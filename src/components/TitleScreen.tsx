@@ -62,7 +62,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   }, [onStartGame]);
 
   return (
-    <div className="absolute inset-0 pointer-events-auto flex flex-col justify-between p-6 md:p-10 z-20 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-slate-950/75">
+    <div className="absolute inset-0 pointer-events-auto flex flex-col justify-between p-4 md:p-10 z-20 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-slate-950/75 overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
       {/* Top Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">

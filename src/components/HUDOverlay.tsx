@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -153,6 +153,14 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   const isZh = language === 'zh-TW';
   const [isDockCollapsed, setIsDockCollapsed] = useState(false);
 
+  // Auto-collapse bottom dock on short screens (mobile landscape <= 540px) during incidents
+  // On desktop / laptop (where window.innerHeight >= 700px), this NEVER triggers so PC layout is 100% untouched.
+  useEffect(() => {
+    if ((activeHazard || activePreAlarm) && typeof window !== 'undefined' && window.innerHeight <= 540) {
+      setIsDockCollapsed(true);
+    }
+  }, [activeHazard, activePreAlarm]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -194,7 +202,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   ];
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-2 md:p-3 overflow-hidden select-none">
+    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-2 md:p-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] overflow-hidden select-none">
       {/* ==================================================== */}
       {/* SCENE PPE VISOR HUD & UNPROTECTED EXPOSURE VIGNETTE  */}
       {/* ==================================================== */}
@@ -534,8 +542,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 3. AMBER EQUIPMENT DIAGNOSTIC & TROUBLESHOOTING CARD */}
       {/* ==================================================== */}
       {activePreAlarm && !activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in">
-          <div className="rounded-2xl border-2 border-amber-400/90 bg-slate-950/95 p-3.5 md:p-4 shadow-2xl backdrop-blur-md space-y-2.5">
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
+          <div className="rounded-2xl border-2 border-amber-400/90 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 pb-2">
               <div className="flex items-center space-x-2">
                 <Cpu className="w-5 h-5 text-amber-400 animate-pulse shrink-0" />
@@ -671,8 +679,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
       {/* ==================================================== */}
       {activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in">
-          <div className="rounded-2xl border-2 border-rose-500/95 bg-slate-950/95 p-3.5 md:p-4 shadow-2xl backdrop-blur-md space-y-2.5">
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
+          <div className="rounded-2xl border-2 border-rose-500/95 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             {/* Header with Level Tier, Mute Siren & Comfortable 60s Timer */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center space-x-2">
@@ -916,9 +924,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 5. 4-PILLAR CONSEQUENCE & LEARNING FEEDBACK TOAST    */}
       {/* ==================================================== */}
       {ehsDecisionFeedback && (
-        <div className="mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in">
+        <div className="mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in max-h-[calc(100dvh-75px)] overflow-y-auto pr-1">
           <div
-            className={`p-3.5 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
+            className={`p-3 md:p-3.5 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
               ehsDecisionFeedback.type === 'PREVENTED' ||
               ehsDecisionFeedback.type === 'CORRECT_STEP' ||
               ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
