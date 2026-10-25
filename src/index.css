@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #e2e8f0;
+    background-color: #020617;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .font-display {
+    font-family: 'Chakra Petch', 'Inter', sans-serif;
+  }
+}
+
+/* Custom scrollbars for debrief log panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.6);
+}
+
+/* Cleanroom HUD glow accents */
+.hud-border {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(10, 20, 35, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(56, 189, 248, 0.05);
+}
+
+.hud-border-amber {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(28, 20, 10, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(245, 158, 11, 0.05);
+}
+
+.hud-border-red {
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(35, 12, 14, 0.92);
+  box-shadow: 0 4px 24px -2px rgba(239, 68, 68, 0.2), inset 0 0 15px rgba(239, 68, 68, 0.1);
+}

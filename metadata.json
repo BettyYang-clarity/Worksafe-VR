@@ -1,0 +1,6 @@
+{
+  "name": "WorkSafe VR - Semiconductor Fab & Safety Simulator",
+  "description": "Navigate immersive semiconductor cleanroom fabrication environments to manage wafer production efficiency, rapidly contain chemical and machinery hazards, and master life-saving industrial safety protocols.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
