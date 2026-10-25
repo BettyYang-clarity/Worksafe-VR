@@ -404,9 +404,12 @@ export default function App() {
     []
   );
 
-  // Spawn a full Red Emergency Crisis (comfortable 60s decision timer)
+  // Spawn a full Red Emergency Crisis (Phase 2: On-Site PPE & EHS SOP Containment)
   const spawnHazard = useCallback(
-    (specificTypeId?: string) => {
+    (
+      specificTypeId?: string,
+      containmentMode: 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED' = 'UNCONTROLLED'
+    ) => {
       if (activeHazard) return;
 
       let randDef = HAZARD_DEFINITIONS[0];
@@ -424,6 +427,8 @@ export default function App() {
       const sectorId = randDef.defaultSector;
       const stage0 = randDef.steps[0];
       const isZh = language === 'zh-TW';
+      const timeLimit =
+        containmentMode === 'CONTROLLED' ? 65 : containmentMode === 'MODERATE' ? 50 : 40;
 
       const localizedChoices: ProtocolStep[] = shuffleChoices(
         stage0.choices.map((c) => ({
@@ -449,8 +454,8 @@ export default function App() {
         description: randDef.description,
         descZh: randDef.descZh,
         severity: randDef.severity,
-        timeLimitSec: 60,
-        timeRemainingSec: 60,
+        timeLimitSec: timeLimit,
+        timeRemainingSec: timeLimit,
         startTime: Date.now(),
         currentStageIndex: 0,
         totalStages: randDef.steps.length,
@@ -462,6 +467,7 @@ export default function App() {
         failed: false,
         isSilenced: false,
         regulatoryStandard: randDef.regulatoryStandard,
+        containmentMode,
       };
 
       setActivePreAlarm(null);
@@ -469,6 +475,9 @@ export default function App() {
       setSelectedSectorId(sectorId);
       hazardStartTimeRef.current = Date.now();
       firstActionTimeRef.current = null;
+
+      const effDrop =
+        containmentMode === 'CONTROLLED' ? 0 : containmentMode === 'MODERATE' ? 12 : 25;
 
       setSectors((prev) => {
         const next = {
@@ -478,7 +487,7 @@ export default function App() {
             activeHazardId: newIncident.id,
             preAlarm: null,
             status: 'CRITICAL' as const,
-            efficiency: Math.max(25, prev[sectorId].efficiency - 25),
+            efficiency: Math.max(25, prev[sectorId].efficiency - effDrop),
           },
         };
         sceneInstanceRef.current?.updateSectorStatus(next);
@@ -486,6 +495,11 @@ export default function App() {
       });
 
       sceneInstanceRef.current?.setHazardActive(sectorId, true, randDef.typeId);
+      if (containmentMode === 'CONTROLLED') {
+        sceneInstanceRef.current?.setHazardMitigationProgress(0.65);
+      } else if (containmentMode === 'MODERATE') {
+        sceneInstanceRef.current?.setHazardMitigationProgress(0.85);
+      }
       soundManager.startEmergencyAlarm();
     },
     [activeHazard, language]
@@ -563,20 +577,21 @@ export default function App() {
         : HAZARD_DEFINITIONS.find((h) => h.defaultSector === sectorId);
       const nominal = INITIAL_SECTORS[sectorId];
 
-      // If player selected a specific Troubleshooting Option during Amber Pre-Alarm:
-      if (pre && option) {
+      // If an Amber Pre-Alarm is active on this bay, resolve Phase 1 Troubleshooting and transition to Phase 2 On-Site PPE & SOP Containment:
+      if (pre) {
         const solveOpt = pre.troubleshootingOptions.find((o) => o.outcomeType === 'SOLVE');
         const escalateOpt = pre.troubleshootingOptions.find((o) => o.outcomeType === 'ESCALATE');
+        const chosenOpt = option || solveOpt || pre.troubleshootingOptions[0];
 
-        if (option.outcomeType === 'ESCALATE') {
-          // Wrong diagnosis! Backfires in 3D and triggers the Red EHS Crisis!
+        if (chosenOpt.outcomeType === 'ESCALATE') {
+          // Wrong diagnosis! Backfires in 3D and triggers Uncontrolled Phase 2 EHS Crisis!
           soundManager.playErrorBuzzer();
           sceneInstanceRef.current?.triggerActionEffect('BACKFIRE_EXPLOSION', sectorId);
           setActivePreAlarm(null);
-          setSafetyComplianceScore((s) => Math.max(0, s - 10));
-          setTotalDefectiveWafers((d) => d + 10);
+          setSafetyComplianceScore((s) => Math.max(0, s - 12));
+          setTotalDefectiveWafers((d) => d + 12);
           addFloatingDelta(
-            isZh ? '💥 排障誤判！引發緊急工安事故' : '💥 Wrong Fix! Crisis Triggered!',
+            isZh ? '💥 排障誤判！災情失控 (-12分 / 12片晶圓報廢)' : '💥 Wrong Fix! Uncontrolled Crisis (-12 pts)',
             'WAFER_SCRAP'
           );
 
@@ -587,11 +602,11 @@ export default function App() {
               bayCode: nominal.code.split('/')[0].trim(),
               eventTitle: isZh ? pre.titleZh : pre.title,
               category: 'TROUBLESHOOTING',
-              chosenAction: isZh ? option.labelZh : option.label,
-              outcomeImpact: isZh ? option.explanationZh : option.explanation,
+              chosenAction: isZh ? chosenOpt.labelZh : chosenOpt.label,
+              outcomeImpact: isZh ? chosenOpt.explanationZh : chosenOpt.explanation,
               alternativeComparison: isZh
-                ? `若選擇正確方案「${solveOpt?.labelZh || ''}」，原可挽救機台並避免事故爆發！`
-                : `Choosing "${solveOpt?.label || ''}" would have solved the root cause & prevented the crisis!`,
+                ? `若選擇正確方案「${solveOpt?.labelZh || ''}」，原可保全晶圓良率並將事故控制在小規模受控狀態！`
+                : `Choosing "${solveOpt?.label || ''}" would have protected wafer yield and contained the hazard scale!`,
               isPositive: false,
               financialDeltaMillionsUSD: -1.5,
             },
@@ -600,43 +615,28 @@ export default function App() {
           setEhsDecisionFeedback({
             id: `fb-${Date.now()}`,
             type: 'WRONG_STEP',
-            title: `Troubleshooting Backfired! Escalated to ${def?.title || pre.title}`,
-            titleZh: `💥 工程排障誤判！引發「${def?.titleZh || pre.titleZh}」`,
-            explanation: option.explanation,
-            explanationZh: option.explanationZh,
-            consequenceNote: `Correct Root-Cause Fix was: ${solveOpt?.label || ''}`,
-            consequenceNoteZh: `✅ 正確根因排除應為：${solveOpt?.labelZh || ''}`,
+            title: `Phase 1 Backfired! Escalated to Uncontrolled ${def?.title || pre.title}`,
+            titleZh: `💥 第一階段排障誤判！引發全面失控「${def?.titleZh || pre.titleZh}」`,
+            explanation: chosenOpt.explanation,
+            explanationZh: chosenOpt.explanationZh,
+            consequenceNote: `Proceeding to Phase 2 Emergency SOP (40s limit). Correct Phase 1 fix was: ${solveOpt?.label || ''}`,
+            consequenceNoteZh: `🚨 進入第二階段：請立即穿戴必備 PPE 搶救現場（限時 40 秒）！正確根因排除應為：${solveOpt?.labelZh || ''}`,
             standard: def?.regulatoryStandard || 'SEMI S2 Engineering Control',
             timestamp: Date.now(),
           });
 
-          spawnHazard(pre.hazardTypeId);
+          spawnHazard(pre.hazardTypeId, 'UNCONTROLLED');
           return;
         }
 
-        if (option.outcomeType === 'PARTIAL') {
-          // Partial band-aid: clears pre-alarm, but scraps wafers and drops yield
+        if (chosenOpt.outcomeType === 'PARTIAL') {
+          // Partial band-aid: scraps 8 wafers, deducts 5 safety pts, transitions to Moderate Phase 2 SOP
           soundManager.playUiClick();
           sceneInstanceRef.current?.triggerActionEffect('SMOKE_SMOTHER', sectorId);
           setActivePreAlarm(null);
+          setSafetyComplianceScore((s) => Math.max(0, s - 5));
           setTotalDefectiveWafers((d) => d + 8);
           setFabValueSavedMillionsUSD((v) => Math.max(0, Number((v - 0.4).toFixed(1))));
-
-          setSectors((prev) => {
-            const curr = prev[sectorId];
-            const next = {
-              ...prev,
-              [sectorId]: {
-                ...curr,
-                status: 'OPTIMAL' as const,
-                preAlarm: null,
-                efficiency: Math.max(60, curr.efficiency - 12),
-                scrubberLoadPct: nominal.nominalScrubberLoadPct + 10,
-              },
-            };
-            sceneInstanceRef.current?.updateSectorStatus(next);
-            return next;
-          });
 
           setChoiceOutcomes((prev) => [
             ...prev,
@@ -645,39 +645,39 @@ export default function App() {
               bayCode: nominal.code.split('/')[0].trim(),
               eventTitle: isZh ? pre.titleZh : pre.title,
               category: 'TROUBLESHOOTING',
-              chosenAction: isZh ? option.labelZh : option.label,
-              outcomeImpact: isZh ? option.explanationZh : option.explanation,
+              chosenAction: isZh ? chosenOpt.labelZh : chosenOpt.label,
+              outcomeImpact: isZh ? chosenOpt.explanationZh : chosenOpt.explanation,
               alternativeComparison: isZh
-                ? `最佳根因解法為：「${solveOpt?.labelZh || ''}」（可零報廢保住全批晶圓）`
-                : `Optimal fix was "${solveOpt?.label || ''}" (zero wafer loss + full stabilization).`,
+                ? `最佳根因解法為：「${solveOpt?.labelZh || ''}」（可零報廢保住全批晶圓並大幅縮減外洩規模）`
+                : `Optimal fix was "${solveOpt?.label || ''}" (zero wafer loss + controlled containment).`,
               isPositive: false,
               financialDeltaMillionsUSD: -0.4,
             },
           ]);
 
           addFloatingDelta(
-            isZh ? '⚠️ 治標處置：8 片晶圓報廢 (-$0.4M)' : '⚠️ Partial Fix: 8 Wafers Scrapped (-$0.4M)',
+            isZh ? '⚠️ 治標處置：8 片晶圓報廢 ➔ 進入現場 SOP 隔離' : '⚠️ Partial Fix: 8 Wafers Scrapped ➔ Enter Phase 2 SOP',
             'YIELD_DOWN'
           );
 
           setEhsDecisionFeedback({
             id: `fb-${Date.now()}`,
             type: 'WRONG_STEP',
-            title: `Partial Band-Aid Applied (-8 Wafers Scrapped)`,
-            titleZh: `⚠️ 治標未治本（造成 8 片晶圓異常報廢）`,
-            explanation: option.explanation,
-            explanationZh: option.explanationZh,
-            consequenceNote: `Best Root-Cause Fix: ${solveOpt?.label || ''}`,
-            consequenceNoteZh: `💡 最佳根因排除方案：${solveOpt?.labelZh || ''}`,
+            title: `Phase 1 Partial Band-Aid (-8 Wafers) ➔ Phase 2 SOP Required`,
+            titleZh: `⚠️ 第一階段治標未治本（8 片晶圓報廢）➔ 殘留危害擴散！`,
+            explanation: chosenOpt.explanation,
+            explanationZh: chosenOpt.explanationZh,
+            consequenceNote: `Equip mandatory PPE now to execute Phase 2 SOP containment! (Best Phase 1 fix: ${solveOpt?.label || ''})`,
+            consequenceNoteZh: `🚨 進入第二階段：管線殘留危害仍持續外洩，請立即穿戴 PPE 執行現場 SOP 隔離！（最佳根因方案：${solveOpt?.labelZh || ''}）`,
             standard: def?.regulatoryStandard || 'SEMI S2 Process Control',
             timestamp: Date.now(),
           });
 
-          nextEventTimerRef.current = 24;
+          spawnHazard(pre.hazardTypeId, 'MODERATE');
           return;
         }
 
-        // option.outcomeType === 'SOLVE': Root-cause solved!
+        // chosenOpt.outcomeType === 'SOLVE': Root-cause solved! Protects wafer yield & shrinks 3D hazard, then enters Phase 2 Controlled SOP!
         soundManager.playSuccessChime();
         sceneInstanceRef.current?.triggerActionEffect('N2_PURGE', sectorId);
 
@@ -687,7 +687,6 @@ export default function App() {
             ...prev,
             [sectorId]: {
               ...curr,
-              status: 'OPTIMAL' as const,
               preAlarm: null,
               health: Math.min(100, curr.health + 12),
               efficiency: Math.min(96, Math.max(86, curr.efficiency + 6)),
@@ -710,7 +709,7 @@ export default function App() {
 
         addDecisionEvent(
           nominal.code,
-          `Solved ${pre.title} via root-cause fix: ${option.label}`,
+          `Phase 1 Root-Cause Contained (${pre.title}): ${chosenOpt.label}`,
           true,
           def?.regulatoryStandard || 'SEMI S2'
         );
@@ -722,32 +721,37 @@ export default function App() {
             bayCode: nominal.code.split('/')[0].trim(),
             eventTitle: isZh ? pre.titleZh : pre.title,
             category: 'TROUBLESHOOTING',
-            chosenAction: isZh ? option.labelZh : option.label,
-            outcomeImpact: isZh ? option.explanationZh : option.explanation,
+            chosenAction: isZh ? chosenOpt.labelZh : chosenOpt.label,
+            outcomeImpact: isZh ? chosenOpt.explanationZh : chosenOpt.explanation,
             alternativeComparison: isZh
-              ? `成功避免誤選「${escalateOpt?.labelZh || ''}」而引爆 $${def?.ehsPillars.estimatedLossMillionsUSD || 4.0}M 危機！`
-              : `Avoided "${escalateOpt?.label || ''}" which would have triggered a $${def?.ehsPillars.estimatedLossMillionsUSD || 4.0}M crisis!`,
+              ? `成功阻斷主供應源並保住全批晶圓（避免誤選「${escalateOpt?.labelZh || ''}」引爆 $${def?.ehsPillars.estimatedLossMillionsUSD || 4.0}M 災損）！`
+              : `Successfully isolated main source & saved wafer batch (avoided "${escalateOpt?.label || ''}")!`,
             isPositive: true,
             financialDeltaMillionsUSD: savedVal,
           },
         ]);
 
-        addFloatingDelta(`🛡️ +300 排障成功 ($${savedVal}M Saved)`, 'YIELD_UP');
+        addFloatingDelta(
+          isZh
+            ? `🛡️ 排障成功 (+5分 / 保全 $${savedVal}M) ➔ 請穿戴 PPE 執行殘留 SOP`
+            : `🛡️ Phase 1 Contained (+5 pts / $${savedVal}M Saved) ➔ Equip PPE for Phase 2 SOP`,
+          'YIELD_UP'
+        );
 
         setEhsDecisionFeedback({
           id: `fb-${Date.now()}`,
           type: 'PREVENTED',
-          title: `Root-Cause Solved! Avoided ${def?.title || pre.title}`,
-          titleZh: `✅ 根因排障成功！消弭「${def?.titleZh || pre.titleZh}」`,
-          explanation: option.explanation,
-          explanationZh: option.explanationZh,
-          consequenceNote: option.consequenceSummary,
-          consequenceNoteZh: `💎 ${option.consequenceSummaryZh}`,
+          title: `Phase 1 Root-Cause Contained (+5 Safety Pts) ➔ Proceed to Phase 2 On-Site SOP`,
+          titleZh: `✅ 第一階段工程排障成功（主供應源已阻斷 · 晶圓零報廢）➔ 進入第二階段現場 SOP！`,
+          explanation: chosenOpt.explanation,
+          explanationZh: chosenOpt.explanationZh,
+          consequenceNote: `Chamber/line still contains residual hazard! Equip mandatory PPE and complete the 2-stage on-site isolation SOP (65s window).`,
+          consequenceNoteZh: `🛡️ 雖然機台主閥已成功阻斷、保住全批晶圓，但腔體與管線內仍有局部殘留危害！請依規穿戴必備 PPE 並完成 2 階段現場標準 SOP 處置（充裕 65 秒）。`,
           standard: def?.regulatoryStandard || 'SEMI S2 Preventive Maintenance',
           timestamp: Date.now(),
         });
 
-        nextEventTimerRef.current = 28;
+        spawnHazard(pre.hazardTypeId, 'CONTROLLED');
         return;
       }
 
@@ -994,7 +998,7 @@ export default function App() {
             return next;
           });
 
-          nextEventTimerRef.current = 30;
+          nextEventTimerRef.current = 20;
         } else {
           // Advance to next stage & visibly shrink 3D hazard diorama by 45%!
           const nextStageIdx = currentStageIndex + 1;
@@ -1156,7 +1160,7 @@ export default function App() {
             return next;
           });
 
-          nextEventTimerRef.current = 30;
+          nextEventTimerRef.current = 20;
         }
       }
     },
@@ -1520,13 +1524,20 @@ export default function App() {
         return prev - 1;
       });
 
-      // 2. Active Pre-Alarm Countdown (30s comfortable prevention window)
+      // 2. Active Pre-Alarm Countdown (comfortable prevention window)
       if (activePreAlarm && !activeHazard) {
         if (activePreAlarm.timeRemainingSec <= 1) {
-          // Escalate unaddressed Pre-Alarm into full Red Crisis!
+          // Escalate unaddressed Pre-Alarm into full Uncontrolled Red Crisis!
           const escalateTypeId = activePreAlarm.hazardTypeId;
+          const isZh = language === 'zh-TW';
+          setSafetyComplianceScore((s) => Math.max(0, s - 10));
+          setTotalDefectiveWafers((d) => d + 10);
+          addFloatingDelta(
+            isZh ? '⏱️ 機台異常超時未排障！引發失控工安事故 (-10分 / 10片晶圓報廢)' : '⏱️ Pre-Alarm Timed Out! Uncontrolled (-10 pts / 10 Wafers)',
+            'WAFER_SCRAP'
+          );
           setActivePreAlarm(null);
-          spawnHazard(escalateTypeId);
+          spawnHazard(escalateTypeId, 'UNCONTROLLED');
         } else {
           const nextRemaining = activePreAlarm.timeRemainingSec - 1;
           const updatedPre = { ...activePreAlarm, timeRemainingSec: nextRemaining };
@@ -1587,7 +1598,7 @@ export default function App() {
               health: Math.max(40, prevSec[curr.sectorId].health - 20),
             },
           }));
-          nextEventTimerRef.current = 28;
+          nextEventTimerRef.current = 20;
           return null;
         }
         return {

@@ -732,6 +732,56 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
 
             {/* ==================================================== */}
+            {/* TWO-PHASE CONNECTION BADGE: PHASE 1 OUTCOME & CONTEXT */}
+            {/* ==================================================== */}
+            <div
+              className={`p-2 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
+                activeHazard.containmentMode === 'CONTROLLED'
+                  ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-200'
+                  : activeHazard.containmentMode === 'MODERATE'
+                  ? 'bg-amber-950/70 border-amber-500/50 text-amber-200'
+                  : 'bg-rose-950/70 border-rose-500/50 text-rose-200'
+              }`}
+            >
+              <span className="text-sm shrink-0">
+                {activeHazard.containmentMode === 'CONTROLLED'
+                  ? '🛡️'
+                  : activeHazard.containmentMode === 'MODERATE'
+                  ? '⚠️'
+                  : '💥'}
+              </span>
+              <div>
+                <span className="font-bold">
+                  {activeHazard.containmentMode === 'CONTROLLED'
+                    ? isZh
+                      ? '第一階段工程排障受控（晶圓零報廢 · 3D 危害已抑制）'
+                      : 'Phase 1 Controlled (Zero Wafer Scrap · Hazard Suppressed)'
+                    : activeHazard.containmentMode === 'MODERATE'
+                    ? isZh
+                      ? '第一階段治標未治本（8 片晶圓異常報廢 · 罰扣 5 分）'
+                      : 'Phase 1 Partial Fix (8 Wafers Scrapped · -5 Pts)'
+                    : isZh
+                    ? '第一階段排障失誤／超時（10~12 片晶圓報廢 · 罰扣 10~12 分）'
+                    : 'Phase 1 Uncontrolled / Timed Out (10-12 Wafers Scrapped · -10-12 Pts)'}
+                </span>
+                <span className="opacity-90 ml-1">
+                  ➔{' '}
+                  {activeHazard.containmentMode === 'CONTROLLED'
+                    ? isZh
+                      ? '第二階段：請依規穿戴必備 PPE，完成現場殘留危害標準 SOP 隔離處置（限時 65s）'
+                      : 'Phase 2: Equip mandatory PPE & execute residual SOP isolation (65s limit)'
+                    : activeHazard.containmentMode === 'MODERATE'
+                    ? isZh
+                      ? '第二階段：殘留危害擴散，請立即穿戴 PPE 執行現場應變 SOP（限時 50s）'
+                      : 'Phase 2: Residual hazard spreading, equip PPE & execute SOP (50s limit)'
+                    : isZh
+                    ? '第二階段：災情全面失控！請緊急穿戴 PPE 搶救現場（限時 40s）'
+                    : 'Phase 2: Outbreak! Equip PPE immediately for emergency containment (40s limit)'}
+                </span>
+              </div>
+            </div>
+
+            {/* ==================================================== */}
             {/* CRUCIAL STEP 1: MANDATORY PPE INSTRUCTION BANNER      */}
             {/* ==================================================== */}
             {requiredPpeInfo && (

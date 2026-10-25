@@ -127,6 +127,7 @@ export interface HazardIncident {
   isSilenced: boolean;
   failureReason?: string;
   regulatoryStandard: string;
+  containmentMode?: 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED';
 }
 
 export interface EquippedPPE {
