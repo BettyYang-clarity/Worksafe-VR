@@ -11,6 +11,42 @@ export type SectorId =
 
 export type HazardLevel = 'LEVEL_1_MECHANICAL' | 'LEVEL_2_CHEMICAL_LEAK' | 'LEVEL_3_FATAL_CRISIS';
 
+export type RequiredPPECode = 'SCBA' | 'ACID_SUIT' | 'HV_GLOVES';
+
+export interface TroubleshootingOption {
+  id: string;
+  label: string;
+  labelZh: string;
+  outcomeType: 'SOLVE' | 'PARTIAL' | 'ESCALATE';
+  explanation: string;
+  explanationZh: string;
+  consequenceSummary: string;
+  consequenceSummaryZh: string;
+}
+
+export interface PreAlarmState {
+  id: string;
+  hazardTypeId: string;
+  sectorId: SectorId;
+  title: string;
+  titleZh: string;
+  whatIsHappening: string;
+  whatIsHappeningZh: string;
+  howToPrevent: string;
+  howToPreventZh: string;
+  consequenceIfIgnored: string;
+  consequenceIfIgnoredZh: string;
+  maintenanceButtonLabel: string;
+  maintenanceButtonLabelZh: string;
+  symptoms: string[];
+  symptomsZh: string[];
+  waferDefectPattern: string;
+  waferDefectPatternZh: string;
+  troubleshootingOptions: TroubleshootingOption[];
+  timeRemainingSec: number;
+  totalTimeSec: number;
+}
+
 export interface SectorState {
   id: SectorId;
   name: string;
@@ -26,9 +62,10 @@ export interface SectorState {
   rfPowerWatts: number; // Dynamic tuning: boosts wafer/hr but overheats chamber
   gasFlowSccm: number; // Dynamic tuning: boosts yield% but spikes exhaust backpressure
   chamberVacuumTorr: number; // Dynamic tuning: cuts defect PPM but strains O-rings
-  scrubberLoadPct: number; // 0-120%, computed from gasFlow and temperature (>90% warning, >100% leak)
-  status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'SHUTDOWN';
+  scrubberLoadPct: number; // 0-120%, computed from gasFlow and temperature (>85% warning, >100% leak)
+  status: 'OPTIMAL' | 'PRE_ALARM' | 'WARNING' | 'CRITICAL' | 'SHUTDOWN';
   activeHazardId: string | null;
+  preAlarm: PreAlarmState | null;
   wafersInProcess: number;
   inputQueue: number; // Upstream backlog
   outputQueue: number; // Downstream buffer
@@ -38,6 +75,21 @@ export interface SectorState {
 }
 
 export type HazardSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CATASTROPHIC';
+
+export interface EhsFourPillars {
+  whatMayHappen: string;
+  whatMayHappenZh: string;
+  howToPrevent: string;
+  howToPreventZh: string;
+  whatShouldDo: string;
+  whatShouldDoZh: string;
+  consequence: string;
+  consequenceZh: string;
+  estimatedLossMillionsUSD: number;
+  recommendedPPE: RequiredPPECode;
+  ppeInstruction: string;
+  ppeInstructionZh: string;
+}
 
 export interface ProtocolStep {
   id: string;
@@ -69,6 +121,7 @@ export interface HazardIncident {
   currentPrompt: string;
   currentPromptZh: string;
   protocolSteps: ProtocolStep[];
+  ehsPillars: EhsFourPillars;
   resolved: boolean;
   failed: boolean;
   isSilenced: boolean;
@@ -76,7 +129,49 @@ export interface HazardIncident {
   regulatoryStandard: string;
 }
 
-export type PlayerRole = 'EQUIPMENT_ENGINEER' | 'SHIFT_SUPERVISOR';
+export interface EquippedPPE {
+  scba: boolean;
+  acidSuit: boolean;
+  hvGloves: boolean;
+}
+
+export interface WaferLotMission {
+  id: string;
+  lotCode: string;
+  title: string;
+  titleZh: string;
+  targetSectorId: SectorId;
+  hint: string;
+  hintZh: string;
+  targetWaferCount: number;
+  startWaferCount: number;
+  rewardScore: number;
+}
+
+export interface EhsDecisionFeedback {
+  id: string;
+  type: 'PREVENTED' | 'CORRECT_STEP' | 'HAZARD_RESOLVED' | 'WRONG_STEP' | 'FATAL_ERROR' | 'PPE_VIOLATION';
+  title: string;
+  titleZh: string;
+  explanation: string;
+  explanationZh: string;
+  consequenceNote: string;
+  consequenceNoteZh: string;
+  standard: string;
+  timestamp: number;
+}
+
+export interface ChoiceOutcomeRecord {
+  id: string;
+  bayCode: string;
+  eventTitle: string;
+  category: 'TROUBLESHOOTING' | 'EHS_SOP' | 'PPE_STEP';
+  chosenAction: string;
+  outcomeImpact: string;
+  alternativeComparison: string;
+  isPositive: boolean;
+  financialDeltaMillionsUSD: number;
+}
 
 export interface DecisionTimelineEvent {
   id: string;
@@ -133,6 +228,9 @@ export interface SimulationMetrics {
   incidentsEncountered: number;
   incidentsResolved: number;
   incidentsFailed: number;
+  preAlarmsPrevented: number;
+  livesProtected: number;
+  fabValueSavedMillionsUSD: number;
   averageReactionTimeMs: number;
   protocolAccuracyPct: number;
   totalWafersProduced: number;
@@ -144,6 +242,7 @@ export interface SimulationMetrics {
   flowStateSeconds: number; // Consecutive seconds of all 5 bays running optimally
   fatalShutdownTriggered: boolean; // Overrides yield if fatal safety breach occurred
   decisionTimeline: DecisionTimelineEvent[];
+  choiceOutcomes?: ChoiceOutcomeRecord[];
   operatorName?: string;
   socialTitle?: SocialEngineerTitle;
   knowledgeGaps: {

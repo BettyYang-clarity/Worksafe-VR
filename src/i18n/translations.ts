@@ -9,22 +9,10 @@ export const TRANSLATIONS = {
     semiCompliant: 'SEMI S2 / OSHA COMPLIANT',
     cleanroomClass: 'ISO CLASS 1 CLEANROOM SAFETY PROTOCOL',
     managerAudit: 'Manager Audit View',
-    sopManual: 'SOP Manual',
-    howToPlay: 'How to Play / Instructions',
-
-    // Role Switcher & Roles
-    role: 'Current Role',
-    roleEngineer: 'Equipment Engineer',
-    roleEngineerShort: 'Equip Eng',
-    roleSupervisor: 'Shift Supervisor',
-    roleSupervisorShort: 'Supervisor',
-    roleSwitchHint: 'Switch Role (Tab)',
-    engineerRoleDesc: 'Hands-on tool diagnostics, vacuum recipe micro-tuning, direct chamber action',
-    supervisorRoleDesc: 'Line dispatching, wafer bypass routing, inter-bay balance, plant evacuation',
+    sopManual: 'EHS Field Guide',
+    howToPlay: 'EHS Field Guide & Instructions',
 
     // Action Tools
-    inspectionTablet: 'Diagnostics Tablet',
-    supervisorDispatch: 'Supervisor Dispatch',
     pipelineFlow: 'CMOS 5-Bay Interlock Pipeline',
     backlog: 'Backlog',
     starved: 'Starved',
@@ -40,7 +28,7 @@ export const TRANSLATIONS = {
 
     // Title Screen
     heroDescription:
-      'Step into a live, high-precision semiconductor cleanroom. Manage 300mm wafer line efficiency, detect chemical and machinery anomalies in real-time, and execute life-saving containment protocols under high-pressure OSHA & SEMI S2 incident scenarios.',
+      'Step into a live 300mm semiconductor cleanroom as a Fab Process & Safety Engineer. Walk the floor, optimize wafer recipes, catch equipment drift before it escalates, and execute life-saving SEMI S2 & OSHA emergency protocols.',
     startSimulation: 'START SHIFT SIMULATION',
     rapidDrill: 'RAPID HAZARD DRILL',
     officerExam: 'SAFETY OFFICER EXAM',
@@ -49,17 +37,17 @@ export const TRANSLATIONS = {
     incidentsResolved: 'INCIDENTS RESOLVED',
     meanReactionTime: 'MEAN REACTION TIME',
     bestCompliance: 'BEST COMPLIANCE',
-    controlsHint: 'WASD Move · Mouse Drag Look · Space Action / Start · Tab Switch Role · Esc Pause · H Toggle Dock · 1/2/3 Camera Views',
+    controlsHint:
+      'WASD or [Walk to Bay] Move · Mouse Drag Look · 1/2/3 Camera Views (2 = Whole Fab) · Esc Pause · H Toggle Dock',
     standardsCompliance: 'SEMI S2 / NFPA 318 / OSHA 1910 STANDARD COMPLIANCE',
 
     // Instructions Modal
-    instructionsTitle: 'WORKSAFE VR · SIMULATION BRIEFING & INSTRUCTIONS',
-    instructionsSub: 'SEMICONDUCTOR FABRICATION SAFETY & OPERATIONS GUIDE',
-    tabControls: 'Controls & Hotkeys',
-    tabObjectives: 'Core Objectives & Pipeline',
-    tabHazards: 'Critical Protocols & Bay 105',
-    tabRoles: 'Dual Role-Play Modes',
-    tabScoring: 'Scoring & Compliance',
+    instructionsTitle: 'WORKSAFE VR · EHS FIELD GUIDE & BRIEFING',
+    instructionsSub: '4-PILLAR SEMICONDUCTOR SAFETY & FAB ENGINEERING MANUAL',
+    tabControls: 'Controls & Fab Walkthrough',
+    tabObjectives: 'Recipe Tuning & Prevention',
+    tabHazards: '4-Pillar Hazard Encyclopedia',
+    tabScoring: 'Scoring & Certification',
     gotItStart: 'UNDERSTOOD · ENTER CLEANROOM',
 
     // HUD
@@ -72,11 +60,11 @@ export const TRANSLATIONS = {
     tgmsTrip: 'ALARM TRIP',
     safetyScore: 'Safety Score',
     shiftClock: 'Shift Clock',
-    vrView: 'VR View',
-    supervisorView: 'Supervisor',
+    vrView: '1st Person',
+    supervisorView: 'Whole Fab',
     inspectView: 'Inspect',
     emergencyIncident: 'EMERGENCY INCIDENT',
-    timeCritical: 'TIME CRITICAL:',
+    timeCritical: 'DECISION WINDOW:',
     silenceAlarm: 'Silence Alarm',
     alarmSilenced: 'Alarm Silenced',
     protocolAccepted: 'PROTOCOL ACCEPTED:',
@@ -102,7 +90,7 @@ export const TRANSLATIONS = {
     score: 'Score',
     fines: 'Fines',
     avgReaction: 'Avg Reaction Time',
-    reactionTarget: 'Target: < 3.0s for critical alarms',
+    reactionTarget: 'Thoughtful & accurate SEMI S2 decisions',
     fabYieldAndWafers: 'Fab Yield & Wafers',
     goodVsDefect: '{good} good · {defect} defect',
     incidentLog: 'Incident Response Audit Log',
@@ -115,7 +103,7 @@ export const TRANSLATIONS = {
     noGaps: 'No critical knowledge gaps detected. Operator demonstrated mastery of cleanroom emergency response.',
     remedialTraining: 'Remedial Training:',
     returnTitle: 'Return to Title',
-    reviewProtocols: 'Review Safety Protocols',
+    reviewProtocols: 'Review EHS Field Guide',
     startNextShift: 'START NEXT SHIFT',
 
     // Pause Modal
@@ -123,7 +111,7 @@ export const TRANSLATIONS = {
     fabSuspended: 'FAB SHIFT SUSPENDED',
     suspendedSub: 'Machinery and hazard timers held in freeze state',
     resumeSimulation: 'RESUME SIMULATION (ESC)',
-    reviewSops: 'Review Cleanroom Safety SOPs',
+    reviewSops: 'Open 4-Pillar EHS Field Guide',
     unmuteAudio: 'Unmute Audio',
     muteAudio: 'Mute Cleanroom Audio',
     restartShift: 'Restart Shift',
@@ -144,22 +132,10 @@ export const TRANSLATIONS = {
     semiCompliant: '符合 SEMI S2 / OSHA 法規標準',
     cleanroomClass: 'ISO CLASS 1 極致無塵室安全規範',
     managerAudit: '廠長稽核分析',
-    sopManual: '工安 SOP 手冊',
-    howToPlay: '新手教學 / 操作指引',
-
-    // Role Switcher & Roles
-    role: '當前角色',
-    roleEngineer: '設備工程師',
-    roleEngineerShort: '設備工程師',
-    roleSupervisor: '值班組長',
-    roleSupervisorShort: '值班組長',
-    roleSwitchHint: '切換角色 (Tab)',
-    engineerRoleDesc: '第一線機台深度診斷、微調真空配方、RF射頻匹配與手動處置',
-    supervisorRoleDesc: '巨觀產線調度、晶圓繞道分流、產能防堵平衡與廣播疏散',
+    sopManual: '工安四大支柱手冊',
+    howToPlay: '工安手冊 / 操作教學',
 
     // Action Tools
-    inspectionTablet: '巡檢診斷平板',
-    supervisorDispatch: '組長分流調度',
     pipelineFlow: 'CMOS 5大製程管線與回堵監控',
     backlog: '前製程回堵',
     starved: '後製程斷料',
@@ -175,7 +151,7 @@ export const TRANSLATIONS = {
 
     // Title Screen
     heroDescription:
-      '進入即時高精度的 300mm 晶圓先進製程無塵室。即時調配產線良率與產能，在高壓情境下快速辨識氫氟酸洩漏、矽甲烷自燃、機械夾傷、電漿火災以及離子植入機砷化氫外洩與200kV電弧放電等重大工安危機，依照 SEMI S2 與 OSHA 標準執行正確緊急應變程序。',
+      '化身為 300mm 先進晶圓廠製程與環安工程師！親自走入無塵室各區機台、微調晶圓配方衝刺良率、在設備漂移預警階段即時預防事故，並在重大化學、機械、高溫與高壓輻射危機中做出拯救生命的 SEMI S2 / OSHA 關鍵決策。',
     startSimulation: '開始輪班模擬 (START)',
     rapidDrill: '突發事故速成演練',
     officerExam: '工安主任認證測驗',
@@ -184,17 +160,17 @@ export const TRANSLATIONS = {
     incidentsResolved: '成功排除事故數',
     meanReactionTime: '平均應變反應時間',
     bestCompliance: '最高法規遵循率',
-    controlsHint: 'WASD 移動巡視 · 滑鼠拖曳環視 · 空白鍵/Enter 執行 · Tab 切換角色 · Esc 暫停 · H 收合面板 · 1/2/3 切換視角',
+    controlsHint:
+      'WASD 或點擊【前往機台】走動 · 滑鼠拖曳環視 · 1/2/3 切換視角 (2=全廠俯視) · Esc 暫停 · H 收合面板',
     standardsCompliance: '依循 SEMI S2 / NFPA 318 / OSHA 1910 半導體設備安全標準',
 
     // Instructions Modal
-    instructionsTitle: '工安實境 VR · 任務簡報與新手教學',
-    instructionsSub: '半導體無塵室操作指引與重大危害防護手冊',
-    tabControls: '操作控制與熱鍵',
-    tabObjectives: '5大製程管線與回堵機制',
-    tabHazards: '重大危害 SOP (含Bay 105)',
-    tabRoles: '雙角色扮演模式',
-    tabScoring: '評分機制與法規處罰',
+    instructionsTitle: '工安實境 VR · 環安四大支柱與操作手冊',
+    instructionsSub: '半導體無塵室「可能發生什麼・如何預防・如何應變・嚴重後果」完整指南',
+    tabControls: '無塵室走動與操作',
+    tabObjectives: '配方調校與預防保養',
+    tabHazards: '6大危害四大支柱百科',
+    tabScoring: '認證評分與安全價值',
     gotItStart: '已充分理解 · 進入無塵室',
 
     // HUD
@@ -207,11 +183,11 @@ export const TRANSLATIONS = {
     tgmsTrip: '氣體洩漏警報',
     safetyScore: '工安合規指數',
     shiftClock: '輪班剩餘時間',
-    vrView: 'VR 第一人稱',
+    vrView: '第一人稱',
     supervisorView: '全廠俯視',
     inspectView: '機台特寫',
     emergencyIncident: '重大突發工安危機',
-    timeCritical: '緊急應變倒數：',
+    timeCritical: '應變決策時間：',
     silenceAlarm: '警報消音 (Mute Siren)',
     alarmSilenced: '警報已消音',
     protocolAccepted: '處置程序正確：',
@@ -231,13 +207,13 @@ export const TRANSLATIONS = {
     expandDock: '▴ 展開應變面板 (H)',
 
     // Debrief
-    debriefTitle: '模擬考核結果 · 工安合規稽核報告',
-    debriefSub: 'SEMI S2 / OSHA 1910 規範評核與知識缺口診斷書',
+    debriefTitle: '模擬考核結果 · 工安合規稽核與證書',
+    debriefSub: 'SEMI S2 / OSHA 1910 規範評核與社群分享卡',
     auditEvaluation: '法規合規等級評定',
     score: '得分',
     fines: '累積罰鍰',
-    avgReaction: '平均反應速度',
-    reactionTarget: '高危險警報目標：< 3.0 秒',
+    avgReaction: '平均決策時間',
+    reactionTarget: '沉著閱讀現場資訊並執行正確 SOP',
     fabYieldAndWafers: '產線良率與產出',
     goodVsDefect: '{good} 良品 · {defect} 報廢',
     incidentLog: '突發事故應變紀錄稽核日誌',
@@ -250,7 +226,7 @@ export const TRANSLATIONS = {
     noGaps: '未檢測到重大知識缺口！操作員展現了對化學沖淋、EMO急停及氣體滅火的熟練掌控。',
     remedialTraining: '補救教育訓練：',
     returnTitle: '返回主畫面',
-    reviewProtocols: '複習工安標準程序',
+    reviewProtocols: '查閱工安四大支柱手冊',
     startNextShift: '進入下一輪班次',
 
     // Pause Modal
@@ -258,7 +234,7 @@ export const TRANSLATIONS = {
     fabSuspended: '晶圓廠產線已凍結',
     suspendedSub: '機台運轉與危害倒數計時已暫停',
     resumeSimulation: '繼續輪班模擬 (ESC)',
-    reviewSops: '查閱無塵室安全 SOP 手冊',
+    reviewSops: '查閱工安四大支柱手冊',
     unmuteAudio: '解除靜音',
     muteAudio: '無塵室音效靜音',
     restartShift: '重置此輪班次',
@@ -267,7 +243,7 @@ export const TRANSLATIONS = {
 
     // Certifications
     CLEANROOM_ROOKIE: '無塵室新手技術員',
-    FAB_SPECIALIST: '資深晶圓製程技術員',
+    FAB_SPECIALIST: '資深晶圓製程工程師',
     HAZMAT_WARDEN: '化學防災指揮官 (HAZMAT)',
     MASTER_SAFETY_DIRECTOR: '晶圓廠特級安全總監',
   },

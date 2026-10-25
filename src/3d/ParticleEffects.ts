@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 
-export type ActionEffectType = 'DELUGE_SHOWER' | 'N2_PURGE' | 'ARC_SPARKS' | 'SMOKE_SMOTHER';
+export type ActionEffectType =
+  | 'DELUGE_SHOWER'
+  | 'N2_PURGE'
+  | 'ARC_SPARKS'
+  | 'SMOKE_SMOTHER'
+  | 'BACKFIRE_EXPLOSION';
 
 interface ActiveSystem {
   type: ActionEffectType;
@@ -42,6 +47,9 @@ export class ParticleEffectsManager {
       case 'SMOKE_SMOTHER':
         this.createSmokeSmother(origin);
         break;
+      case 'BACKFIRE_EXPLOSION':
+        this.createBackfireExplosion(origin);
+        break;
     }
   }
 
@@ -58,7 +66,6 @@ export class ParticleEffectsManager {
 
     for (let i = 0; i < maxCount; i++) {
       const i3 = i * 3;
-      // Start near shower head with slight cone spread
       const angle = Math.random() * Math.PI * 2;
       const radius = Math.random() * 0.35;
       positions[i3] = showerHeadPos.x + Math.cos(angle) * radius;
@@ -66,10 +73,10 @@ export class ParticleEffectsManager {
       positions[i3 + 2] = showerHeadPos.z + Math.sin(angle) * radius;
 
       velocities[i3] = (Math.random() - 0.5) * 0.8;
-      velocities[i3 + 1] = -7.5 - Math.random() * 3.0; // High speed downward
+      velocities[i3 + 1] = -7.5 - Math.random() * 3.0;
       velocities[i3 + 2] = (Math.random() - 0.5) * 0.8;
 
-      lifetimes[i] = Math.random() * 0.3; // Stagger spawn
+      lifetimes[i] = Math.random() * 0.3;
       maxLifetimes[i] = 0.65;
     }
 
@@ -97,7 +104,7 @@ export class ParticleEffectsManager {
       aliveCount: maxCount,
       maxCount,
       origin: showerHeadPos,
-      duration: 3.5, // 3.5 second deluge
+      duration: 3.5,
       elapsed: 0,
     });
   }
@@ -119,7 +126,6 @@ export class ParticleEffectsManager {
       positions[i3 + 1] = nozzlePos.y;
       positions[i3 + 2] = nozzlePos.z;
 
-      // Cone expanding forward and slightly upward
       const theta = (Math.random() - 0.5) * 0.6;
       const phi = (Math.random() - 0.5) * 0.6;
       const speed = 4.0 + Math.random() * 5.0;
@@ -178,7 +184,6 @@ export class ParticleEffectsManager {
       positions[i3 + 1] = arcPos.y;
       positions[i3 + 2] = arcPos.z;
 
-      // Omnidirectional violent spark explosion
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       const speed = 3.0 + Math.random() * 8.0;
@@ -205,9 +210,8 @@ export class ParticleEffectsManager {
     const points = new THREE.Points(geometry, material);
     this.scene.add(points);
 
-    // Also create 3-4 jagged lightning arc segments
     const lineSegmentsGeo = new THREE.BufferGeometry();
-    const linePositions = new Float32Array(24 * 3); // 12 line segments
+    const linePositions = new Float32Array(24 * 3);
     let pt = arcPos.clone();
     for (let j = 0; j < 12; j++) {
       const idx = j * 6;
@@ -265,11 +269,10 @@ export class ParticleEffectsManager {
       positions[i3 + 1] = smotherPos.y + (Math.random() - 0.5) * 0.4;
       positions[i3 + 2] = smotherPos.z + (Math.random() - 0.5) * 0.8;
 
-      // Heavy cold aerosol expanding outward along floor
       const angle = Math.random() * Math.PI * 2;
       const speed = 0.8 + Math.random() * 1.6;
       velocities[i3] = Math.cos(angle) * speed;
-      velocities[i3 + 1] = (Math.random() - 0.3) * 0.5; // Stays close to machine/ground
+      velocities[i3 + 1] = (Math.random() - 0.3) * 0.5;
       velocities[i3 + 2] = Math.sin(angle) * speed;
 
       lifetimes[i] = Math.random() * 0.4;
@@ -305,11 +308,68 @@ export class ParticleEffectsManager {
     });
   }
 
+  // 5. Backfire / Wrong Choice Fiery Explosion Burst
+  private createBackfireExplosion(origin: THREE.Vector3) {
+    const maxCount = 420;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(maxCount * 3);
+    const velocities = new Float32Array(maxCount * 3);
+    const lifetimes = new Float32Array(maxCount);
+    const maxLifetimes = new Float32Array(maxCount);
+
+    const blastPos = origin.clone().add(new THREE.Vector3(0, 2.0, 1.1));
+
+    for (let i = 0; i < maxCount; i++) {
+      const i3 = i * 3;
+      positions[i3] = blastPos.x + (Math.random() - 0.5) * 0.5;
+      positions[i3 + 1] = blastPos.y + (Math.random() - 0.5) * 0.5;
+      positions[i3 + 2] = blastPos.z + (Math.random() - 0.5) * 0.5;
+
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const speed = 5.0 + Math.random() * 11.0;
+
+      velocities[i3] = Math.sin(phi) * Math.cos(theta) * speed;
+      velocities[i3 + 1] = Math.abs(Math.sin(phi) * Math.sin(theta)) * speed + 2.5;
+      velocities[i3 + 2] = Math.cos(phi) * speed;
+
+      lifetimes[i] = 0;
+      maxLifetimes[i] = 0.45 + Math.random() * 0.55;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0xf97316,
+      size: 0.28,
+      transparent: true,
+      opacity: 0.98,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const points = new THREE.Points(geometry, material);
+    this.scene.add(points);
+
+    this.activeSystems.push({
+      type: 'BACKFIRE_EXPLOSION',
+      points,
+      positions,
+      velocities,
+      lifetimes,
+      maxLifetimes,
+      aliveCount: maxCount,
+      maxCount,
+      origin: blastPos,
+      duration: 1.8,
+      elapsed: 0,
+    });
+  }
+
   /**
    * Updates all active particle systems every frame.
    */
   public update(dt: number) {
-    // 1. Update particle systems
     for (let sIdx = this.activeSystems.length - 1; sIdx >= 0; sIdx--) {
       const sys = this.activeSystems[sIdx];
       sys.elapsed += dt;
@@ -325,7 +385,6 @@ export class ParticleEffectsManager {
 
         if (sys.lifetimes[i] > sys.maxLifetimes[i]) {
           if (isEmitting) {
-            // Respawn particle at origin
             sys.lifetimes[i] = 0;
             if (sys.type === 'DELUGE_SHOWER') {
               const angle = Math.random() * Math.PI * 2;
@@ -346,13 +405,13 @@ export class ParticleEffectsManager {
               sys.velocities[i3] = Math.sin(theta) * speed;
               sys.velocities[i3 + 1] = Math.sin(phi) * speed + 0.8;
               sys.velocities[i3 + 2] = -Math.cos(theta) * speed;
-            } else if (sys.type === 'ARC_SPARKS') {
+            } else if (sys.type === 'ARC_SPARKS' || sys.type === 'BACKFIRE_EXPLOSION') {
               sys.positions[i3] = sys.origin.x;
               sys.positions[i3 + 1] = sys.origin.y;
               sys.positions[i3 + 2] = sys.origin.z;
               const theta = Math.random() * Math.PI * 2;
               const phi = Math.acos(2 * Math.random() - 1);
-              const speed = 3.0 + Math.random() * 8.0;
+              const speed = (sys.type === 'BACKFIRE_EXPLOSION' ? 5.0 : 3.0) + Math.random() * 8.0;
               sys.velocities[i3] = Math.sin(phi) * Math.cos(theta) * speed;
               sys.velocities[i3 + 1] = Math.sin(phi) * Math.sin(theta) * speed + 2.0;
               sys.velocities[i3 + 2] = Math.cos(phi) * speed;
@@ -367,30 +426,27 @@ export class ParticleEffectsManager {
               sys.velocities[i3 + 2] = Math.sin(angle) * speed;
             }
           } else {
-            // Dead and done emitting
-            sys.positions[i3 + 1] = -999; // Move out of view
+            sys.positions[i3 + 1] = -999;
             continue;
           }
         }
 
         activeParticles++;
 
-        // Apply velocities & physics
         if (sys.type === 'DELUGE_SHOWER') {
-          sys.velocities[i3 + 1] -= 9.8 * dt; // Gravity
+          sys.velocities[i3 + 1] -= 9.8 * dt;
           if (sys.positions[i3 + 1] <= 0.05) {
-            // Floor splash
             sys.positions[i3 + 1] = 0.05;
             sys.velocities[i3 + 1] = 0.4 + Math.random() * 0.8;
             sys.velocities[i3] *= 1.5;
             sys.velocities[i3 + 2] *= 1.5;
           }
-        } else if (sys.type === 'ARC_SPARKS') {
-          sys.velocities[i3 + 1] -= 8.0 * dt; // Spark gravity
+        } else if (sys.type === 'ARC_SPARKS' || sys.type === 'BACKFIRE_EXPLOSION') {
+          sys.velocities[i3 + 1] -= 8.5 * dt;
         } else if (sys.type === 'SMOKE_SMOTHER') {
-          sys.velocities[i3] *= 0.94; // Air resistance
+          sys.velocities[i3] *= 0.94;
           sys.velocities[i3 + 2] *= 0.94;
-          sys.velocities[i3 + 1] += 0.2 * dt; // Slight buoyancy
+          sys.velocities[i3 + 1] += 0.2 * dt;
         }
 
         sys.positions[i3] += sys.velocities[i3] * dt;
@@ -400,7 +456,6 @@ export class ParticleEffectsManager {
 
       posAttr.needsUpdate = true;
 
-      // Clean up finished systems
       if (!isEmitting && activeParticles === 0) {
         this.scene.remove(sys.points);
         sys.points.geometry.dispose();
@@ -409,7 +464,6 @@ export class ParticleEffectsManager {
       }
     }
 
-    // 2. Clean up temporary arc lines after ~0.25s
     if (this.arcLines.length > 0) {
       for (let j = this.arcLines.length - 1; j >= 0; j--) {
         const line = this.arcLines[j];

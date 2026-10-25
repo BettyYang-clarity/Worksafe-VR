@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Award,
   CheckCircle2,
@@ -14,10 +14,11 @@ import {
   Download,
   MessageSquare,
   ShieldAlert,
-  Flame,
+  ShieldCheck,
   FileText,
+  Sparkles,
 } from 'lucide-react';
-import { IncidentRecord, SimulationMetrics, SocialEngineerTitle } from '../types/game';
+import { IncidentRecord, SimulationMetrics } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
 import { GoogleFormModal } from './GoogleFormModal';
 
@@ -43,9 +44,12 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [showDetailedReport, setShowDetailedReport] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Derive dynamic Social Title if not provided
+  const shareUrl =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://github.com/BettyYang-clarity/Worksafe-VR';
+
   const getSocialTitle = (): { title: string; tag: string; emoji: string } => {
     if (metrics.fatalShutdownTriggered) {
       return {
@@ -56,9 +60,16 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     }
     if (metrics.safetyComplianceScore >= 95 && metrics.overallYieldPct >= 95) {
       return {
-        title: isZh ? '雙料傳奇 · 無塵室救世主' : 'Dual Ace · Cleanroom Savior',
+        title: isZh ? '雙料傳奇 · 無塵室環安救世主' : 'Dual Ace · Cleanroom EHS Savior',
         tag: 'DUAL_ACE',
         emoji: '👑',
+      };
+    }
+    if (metrics.preAlarmsPrevented >= 2 && metrics.safetyComplianceScore >= 90) {
+      return {
+        title: isZh ? '先知級製程工程師 · 零事故防範大師' : 'Preventive Oracle · Zero-Incident Master',
+        tag: 'PREVENTIVE_MASTER',
+        emoji: '🛡️',
       };
     }
     if (metrics.overallYieldPct >= 96 && metrics.safetyComplianceScore < 75) {
@@ -68,15 +79,15 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
         emoji: '🔥',
       };
     }
-    if (metrics.safetyComplianceScore >= 95) {
+    if (metrics.safetyComplianceScore >= 90) {
       return {
         title: isZh ? '聖人級工安官 · 零失誤守護者' : 'Safety Compliance Saint · Flawless Warden',
         tag: 'SAFETY_SAINT',
-        emoji: '🛡️',
+        emoji: '✨',
       };
     }
     return {
-      title: isZh ? '資深晶圓設備工程師' : 'Senior Fab Equipment Engineer',
+      title: isZh ? '資深晶圓製程與環安工程師' : 'Senior Fab Process & Safety Engineer',
       tag: 'SENIOR_EE',
       emoji: '⚡',
     };
@@ -87,280 +98,499 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   const getGrade = (score: number, fatal?: boolean) => {
     if (fatal) {
       return {
-        grade: 'SHUTDOWN',
+        grade: 'F',
         text: isZh ? '重大工安停線處分 (OSHA 立即停工令)' : 'FATAL FAILURE: Mandatory Fab Shutdown',
         color: 'text-rose-500',
+        hex: '#f43f5e',
       };
     }
     if (score >= 95)
       return {
-        grade: 'A+',
-        text: isZh ? '特級無塵室工安專家 (卓越合規)' : 'Master Cleanroom Safety Specialist',
+        grade: 'S',
+        text: isZh ? '特級無塵室工安總監 (卓越零災害合規)' : 'Master Cleanroom Safety Director',
         color: 'text-emerald-400',
+        hex: '#10b981',
       };
     if (score >= 85)
       return {
         grade: 'A',
-        text: isZh ? '合格半導體防災官 (高度合規)' : 'Certified Fab Safety Warden',
+        text: isZh ? '合格半導體防災工程師 (高度合規)' : 'Certified Fab Safety Engineer',
         color: 'text-cyan-400',
+        hex: '#22d3ee',
       };
     if (score >= 70)
       return {
         grade: 'B',
-        text: isZh ? '合格操作技術員 (具輕微知識缺口)' : 'Qualified Operator (Minor Gaps)',
+        text: isZh ? '合格操作工程師 (具輕微知識缺口)' : 'Qualified Engineer (Minor Gaps)',
         color: 'text-blue-400',
-      };
-    if (score >= 55)
-      return {
-        grade: 'C',
-        text: isZh ? '附條件通過 (強烈建議再教育訓練)' : 'Conditional Pass (Retraining Advised)',
-        color: 'text-amber-400',
+        hex: '#60a5fa',
       };
     return {
-      grade: 'FAIL',
-      text: isZh ? '嚴重不合格 (重大 OSHA 工安違規處分)' : 'Non-Compliant (Severe OSHA Hazards)',
-      color: 'text-rose-500',
+      grade: 'C',
+      text: isZh ? '附條件通過 (建議複習工安四大支柱手冊)' : 'Conditional Pass (Review EHS Field Guide)',
+      color: 'text-amber-400',
+      hex: '#fbbf24',
     };
   };
 
   const gradeInfo = getGrade(metrics.safetyComplianceScore, metrics.fatalShutdownTriggered);
 
-  // Copy 1-page Social Card Text for LinkedIn / X / Threads
-  const handleCopySocialPost = () => {
-    const text =
-      `🚨 I just completed a high-stakes shift in WorkSafe VR Fab!\n` +
-      `👤 Operator: ${metrics.operatorName || 'Alex Chen #402'}\n` +
-      `🏅 Title: ${socialTitle.emoji} ${socialTitle.title}\n` +
-      `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% | 🛡️ OSHA Compliance: ${metrics.safetyComplianceScore}/100\n` +
-      `⚡ Incidents Resolved: ${metrics.incidentsResolved}/${metrics.incidentsEncountered} | Avg Reaction: ${(metrics.averageReactionTimeMs / 1000).toFixed(2)}s\n` +
-      `⚖️ Regulatory Fines: $${metrics.regulatoryFinesTotal.toLocaleString()}\n` +
-      `Can you balance semiconductor output and zero-fatal EHS safety? Try WorkSafe VR!`;
+  const buildShareText = () =>
+    isZh
+      ? `🏭 我剛在《WorkSafe VR 半導體晶圓廠工安模擬器》完成了 300mm 無塵室輪班挑戰！\n` +
+        `👤 認證工程師：${metrics.operatorName || 'Alex Chen #402'}\n` +
+        `🏅 榮譽稱號：${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
+        `📈 晶圓良率：${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} 片良品) | 🛡️ 工安合規：${metrics.safetyComplianceScore}/100\n` +
+        `🔧 預警防範：${metrics.preAlarmsPrevented} 次 | ⚡ 危機排除：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 件\n` +
+        `💎 守護人員與資產價值：保護 ${metrics.livesProtected} 名同仁 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元晶圓廠資產！\n` +
+        `👉 你能在衝刺良率的同時守住零工安事故嗎？立即挑戰：${shareUrl}`
+      : `🏭 I just completed a 300mm cleanroom shift in WorkSafe VR Semiconductor Fab Simulator!\n` +
+        `👤 Engineer: ${metrics.operatorName || 'Alex Chen #402'}\n` +
+        `🏅 Rank: ${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
+        `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} wafers) | 🛡️ EHS Compliance: ${metrics.safetyComplianceScore}/100\n` +
+        `🔧 Pre-Alarms Prevented: ${metrics.preAlarmsPrevented} | ⚡ Crises Resolved: ${metrics.incidentsResolved}/${metrics.incidentsEncountered}\n` +
+        `💎 Impact: ${metrics.livesProtected} Lives Protected · $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M Fab Value Saved!\n` +
+        `👉 Can you balance 300mm wafer yield & SEMI S2 safety? Play now: ${shareUrl}`;
 
+  const handleShareOrCopy = async () => {
+    const text = buildShareText();
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'WorkSafe VR — Semiconductor Fab Safety Certification',
+          text,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // Fallback to clipboard copy
+      }
+    }
     navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), 2800);
   };
 
-  // Download 1-page Canvas Badge PNG
+  // Generate 1200x630 Social OpenGraph / LinkedIn / IG Share PNG Card
   const handleDownloadBadge = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1000;
-    canvas.height = 620;
+    canvas.width = 1200;
+    canvas.height = 630;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 1000, 620);
+    // 1. Deep Cleanroom Gradient Background
+    const grad = ctx.createLinearGradient(0, 0, 1200, 630);
     grad.addColorStop(0, '#020617');
-    grad.addColorStop(0.5, '#0f172a');
-    grad.addColorStop(1, '#082f49');
+    grad.addColorStop(0.55, '#0f172a');
+    grad.addColorStop(1, '#083344');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1000, 620);
+    ctx.fillRect(0, 0, 1200, 630);
 
-    // Glowing cleanroom border
+    // Subtle Grid Overlay
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < 1200; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 630);
+      ctx.stroke();
+    }
+    for (let y = 0; y < 630; y += 40) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(1200, y);
+      ctx.stroke();
+    }
+
+    // Outer Neon Frame
     ctx.strokeStyle = '#06b6d4';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(16, 16, 968, 588);
+    ctx.lineWidth = 5;
+    ctx.strokeRect(20, 20, 1160, 590);
 
-    // Title & Logo
+    // Top Header Banner
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 26px system-ui, sans-serif';
-    ctx.fillText('WORKSAFE VR · SEMICONDUCTOR FAB SAFETY SIMULATOR', 40, 60);
+    ctx.font = 'bold 24px "JetBrains Mono", monospace, sans-serif';
+    ctx.fillText('WORKSAFE VR · 300MM SEMICONDUCTOR FAB EHS CERTIFICATION', 48, 66);
 
-    // Operator Name Badge
-    ctx.fillStyle = '#f8fafc';
-    ctx.font = 'bold 20px monospace';
-    ctx.fillText(`OPERATOR: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}`, 40, 95);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px monospace';
+    ctx.fillText('SEMI S2 / OSHA 1910.147 / NFPA 318 CLEANROOM QUALIFICATION CARD', 48, 94);
 
-    // Social Title Badge
-    ctx.fillStyle = '#0284c7';
-    ctx.fillRect(40, 115, 920, 70);
+    // Grade Emblem Box (Top Right)
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.strokeStyle = gradeInfo.hex;
+    ctx.lineWidth = 4;
+    ctx.fillRect(980, 42, 170, 130);
+    ctx.strokeRect(980, 42, 170, 130);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('AUDIT GRADE', 1018, 70);
+
+    ctx.fillStyle = gradeInfo.hex;
+    ctx.font = 'bold 68px system-ui, sans-serif';
+    ctx.fillText(gradeInfo.grade, 1038, 145);
+
+    // Operator & Title Banner
+    ctx.fillStyle = 'rgba(8, 145, 178, 0.25)';
+    ctx.fillRect(48, 115, 905, 82);
+    ctx.strokeStyle = '#0ea5e9';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(48, 115, 905, 82);
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText(`ENGINEER ID: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}`, 68, 145);
+
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 30px system-ui, sans-serif';
-    ctx.fillText(`${socialTitle.emoji} ${socialTitle.title}`, 60, 160);
+    ctx.fillText(`${socialTitle.emoji} ${socialTitle.title}`, 68, 182);
 
-    // Grid of Stats
-    const drawStatBox = (x: number, y: number, w: number, h: number, label: string, val: string, color: string) => {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    // 6 Key Metric Cards (2x3 Grid)
+    const drawStat = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      label: string,
+      value: string,
+      sub: string,
+      color: string
+    ) => {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
       ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = '#334155';
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, w, h);
 
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '15px monospace';
-      ctx.fillText(label, x + 20, y + 36);
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText(label, x + 22, y + 34);
 
       ctx.fillStyle = color;
-      ctx.font = 'bold 36px monospace';
-      ctx.fillText(val, x + 20, y + 82);
+      ctx.font = 'bold 40px monospace';
+      ctx.fillText(value, x + 22, y + 84);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '14px system-ui, sans-serif';
+      ctx.fillText(sub, x + 22, y + 114);
     };
 
-    drawStatBox(40, 205, 440, 110, 'FAB YIELD RATE (產線良率)', `${metrics.overallYieldPct.toFixed(1)}%`, '#10b981');
-    drawStatBox(520, 205, 440, 110, 'EHS COMPLIANCE (工安合規)', `${metrics.safetyComplianceScore} / 100`, gradeInfo.grade === 'A+' ? '#10b981' : '#38bdf8');
-    drawStatBox(40, 335, 440, 110, 'INCIDENTS RESOLVED (事故處置)', `${metrics.incidentsResolved} / ${metrics.incidentsEncountered}`, '#f59e0b');
-    drawStatBox(520, 335, 440, 110, 'AVG REACTION TIME (平均反應)', `${(metrics.averageReactionTimeMs / 1000).toFixed(2)}s`, '#a855f7');
+    drawStat(
+      48,
+      220,
+      355,
+      135,
+      'FAB YIELD (晶圓良率)',
+      `${metrics.overallYieldPct.toFixed(1)}%`,
+      `${metrics.totalWafersProduced} Good Wafers Produced`,
+      '#10b981'
+    );
+    drawStat(
+      422,
+      220,
+      355,
+      135,
+      'EHS COMPLIANCE (工安合規)',
+      `${metrics.safetyComplianceScore}/100`,
+      metrics.regulatoryFinesTotal === 0 ? 'Zero OSHA Violations' : `Fines: $${metrics.regulatoryFinesTotal.toLocaleString()}`,
+      '#38bdf8'
+    );
+    drawStat(
+      796,
+      220,
+      355,
+      135,
+      'FAB VALUE SAVED (保護資產)',
+      `$${metrics.fabValueSavedMillionsUSD.toFixed(1)}M`,
+      `${metrics.livesProtected} Cleanroom Lives Protected`,
+      '#fbbf24'
+    );
 
-    // Bottom Stamp & Watermark
-    ctx.fillStyle = '#64748b';
-    ctx.font = '14px monospace';
-    ctx.fillText('CERTIFIED SEMI S2 & OSHA 1910.147 COMPLIANCE AUDIT · ONE-PAGE SOCIAL BADGE', 40, 495);
-    ctx.fillText(`TIMESTAMP: ${new Date().toLocaleString()} · RECORD HASH: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 40, 525);
+    drawStat(
+      48,
+      375,
+      355,
+      135,
+      'PRE-ALARMS PREVENTED (預警防範)',
+      `${metrics.preAlarmsPrevented} SAVED`,
+      'Proactive recipe & N2 maintenance',
+      '#22d3ee'
+    );
+    drawStat(
+      422,
+      375,
+      355,
+      135,
+      'CRISES RESOLVED (危機排除)',
+      `${metrics.incidentsResolved} / ${metrics.incidentsEncountered}`,
+      'SEMI S2 / LOTO Emergency SOPs',
+      '#a855f7'
+    );
+    drawStat(
+      796,
+      375,
+      355,
+      135,
+      'MEAN DECISION TIME (決策時間)',
+      `${(metrics.averageReactionTimeMs / 1000).toFixed(1)}s`,
+      'Calm, accurate hazard response',
+      '#34d399'
+    );
 
+    // Call-To-Action Footer Banner
+    ctx.fillStyle = 'rgba(6, 182, 212, 0.18)';
+    ctx.fillRect(48, 530, 1103, 56);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px system-ui, sans-serif';
+    ctx.fillText(
+      '🚀 Can you balance 300mm wafer yield & zero-accident cleanroom safety? Challenge WorkSafe VR:',
+      68,
+      565
+    );
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 18px system-ui, sans-serif';
-    ctx.fillText('Play at: WorkSafe VR Cleanroom', 680, 525);
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(shareUrl, 910, 565);
 
     const link = document.createElement('a');
-    link.download = `WorkSafe_VR_${(metrics.operatorName || 'Operator').replace(/\s+/g, '_')}_${Date.now()}.png`;
+    link.download = `WorkSafe_VR_Certificate_${(metrics.operatorName || 'Engineer').replace(/\s+/g, '_')}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-fade-in font-sans">
-      <div className="rounded-2xl max-w-4xl w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border-2 border-cyan-500/40 bg-slate-950 my-auto">
-        {/* Modal Header */}
-        <div className="p-5 md:p-6 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-3 md:p-6 bg-slate-950/90 backdrop-blur-md overflow-y-auto animate-fade-in font-sans">
+      <div className="rounded-2xl max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden shadow-2xl border-2 border-cyan-500/40 bg-slate-950 my-auto">
+        {/* Compact Top Header */}
+        <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-              <Award className="w-6 h-6" />
+            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              <Award className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl md:text-2xl font-bold font-display text-white">
-                  {isZh ? '8D 事故調查報告與個人績效審核' : '8D Incident Investigation & Performance Audit'}
+                <h2 className="text-base md:text-lg font-bold font-display text-white">
+                  {isZh
+                    ? '半導體晶圓廠 · 輪班結算榮譽證書與社群分享卡'
+                    : 'Semiconductor Fab · Shift Qualification Certificate & Share Card'}
                 </h2>
-                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-xs font-mono font-bold border border-cyan-500/30">
-                  RCA / 8D
+                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-500/30">
+                  1-PAGE SHARE CARD
                 </span>
               </div>
-              <p className="text-xs font-mono text-slate-400">
-                {isZh
-                  ? 'SEMI S2 安全準則 · OSHA 1910.147 根因分析 · 雙軌雙面刃評估'
-                  : 'SEMI S2 / OSHA 1910.147 Root Cause Analysis & Double-Edged Metric Audit'}
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* User Feedback Form Button */}
-            <button
-              onClick={() => setIsFeedbackOpen(true)}
-              className="px-3 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
-              title={isZh ? '填寫體驗心得或改善建議' : 'Submit Feedback & Suggestions'}
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>{isZh ? '心得/改善建議' : 'Feedback'}</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setIsFeedbackOpen(true)}
+            className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>{isZh ? '遊戲內直接回饋 (免跳轉)' : 'In-Game Feedback'}</span>
+          </button>
         </div>
 
-        {/* Modal Content Scroll Area */}
-        <div className="p-5 md:p-6 overflow-y-auto space-y-5">
+        {/* Scrollable Content */}
+        <div className="p-4 md:p-6 overflow-y-auto space-y-4">
           {/* ==================================================== */}
-          {/* UNIFIED DIRECT ONE-PAGE SHAREABLE CERTIFICATE CARD   */}
+          {/* 1-PAGE VISUAL SOCIAL SHARE CERTIFICATE CARD           */}
           {/* ==================================================== */}
           <div className="p-5 md:p-6 rounded-2xl border-2 border-cyan-500/50 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 shadow-2xl relative overflow-hidden">
-            {/* Top decorative seal glow */}
-            <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-44 h-44 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
+            {/* Certificate Header */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-cyan-500/30">
               <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
-                  <Award className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">
-                    SEMI S2 & OSHA 1910.147 CERTIFIED AUDIT
+                  <div className="text-[11px] font-mono text-cyan-400 font-bold tracking-widest uppercase">
+                    WORKSAFE VR · 300MM CLEANROOM EHS QUALIFICATION
                   </div>
                   <div className="text-sm font-display font-bold text-slate-200">
-                    {isZh ? '半導體晶圓廠 · 個人安全與製程綜合認證' : 'Semiconductor Fab · Safety & Yield Certification'}
+                    {isZh
+                      ? 'SEMI S2 / OSHA 1910.147 製程與環安衛認證卡'
+                      : 'SEMI S2 / OSHA 1910.147 Process & Safety Qualification'}
                   </div>
                 </div>
               </div>
 
-              {/* Operator Badge Stamp */}
               <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-mono">
-                <span className="text-slate-400">{isZh ? '認證工程師:' : 'Operator:'}</span>
-                <strong className="text-cyan-300 font-bold">{metrics.operatorName || 'Alex Chen #402'}</strong>
+                <span className="text-slate-400">{isZh ? '認證工程師:' : 'Engineer:'}</span>
+                <strong className="text-cyan-300 font-bold">
+                  {metrics.operatorName || 'Alex Chen #402'}
+                </strong>
               </div>
             </div>
 
-            {/* Social Title & Rating Lockup */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 mb-5">
-              <div className="flex items-center space-x-3">
-                <span className="text-3xl">{socialTitle.emoji}</span>
+            {/* Rank & Grade Hero Banner */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/85 border border-slate-800 mb-4">
+              <div className="flex items-center space-x-3.5">
+                <span className="text-4xl">{socialTitle.emoji}</span>
                 <div>
                   <div className="text-lg md:text-xl font-bold font-display text-white">
                     {socialTitle.title}
                   </div>
-                  <div className="text-xs font-mono text-slate-400 mt-0.5">
-                    {gradeInfo.text}
-                  </div>
+                  <div className="text-xs font-mono text-slate-400 mt-0.5">{gradeInfo.text}</div>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-[10px] font-mono text-slate-400 uppercase">AUDIT RATING</div>
-                  <div className={`text-2xl font-black font-display ${gradeInfo.color}`}>
+                  <div className="text-[10px] font-mono text-slate-400 uppercase">SHIFT GRADE</div>
+                  <div className={`text-3xl font-black font-display ${gradeInfo.color}`}>
                     GRADE {gradeInfo.grade}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 4 Big Stat Pillars */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <div className="text-[11px] font-mono text-slate-400">{isZh ? '晶圓良率' : 'Fab Yield'}</div>
-                <div className="text-2xl font-black font-mono text-emerald-400 my-1 tabular-nums">
-                  {metrics.overallYieldPct.toFixed(1)}%
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">
-                  {isZh
-                    ? `良品: ${metrics.totalWafersProduced} | 報廢: ${metrics.totalWafersDefective}`
-                    : `Good: ${metrics.totalWafersProduced}`}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <div className="text-[11px] font-mono text-slate-400">{isZh ? '工安合規分' : 'Compliance'}</div>
-                <div className="text-2xl font-black font-mono text-cyan-400 my-1 tabular-nums">
-                  {metrics.safetyComplianceScore}/100
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">
-                  {metrics.regulatoryFinesTotal === 0 ? (
-                    <span className="text-emerald-400">✓ 零法規罰鍰</span>
-                  ) : (
-                    <span className="text-rose-400">罰鍰 ${metrics.regulatoryFinesTotal.toLocaleString()}</span>
-                  )}
+            {/* Impact Highlight Strip: Lives Protected & Fab Value Saved ($M) */}
+            <div className="mb-4 p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/60 via-cyan-950/50 to-slate-900 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
+                <div>
+                  <div className="text-xs md:text-sm font-bold text-emerald-200">
+                    {isZh
+                      ? `💎 本班次環安價值：成功守護 ${metrics.livesProtected} 名無塵室同仁生命安全！`
+                      : `💎 EHS Impact: Protected ${metrics.livesProtected} Cleanroom Personnel Lives!`}
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-300">
+                    {isZh
+                      ? `透過事前預警防範 (${metrics.preAlarmsPrevented} 次) 與標準 SOP 處置，避免機台損毀與停工損失`
+                      : `Prevented ${metrics.preAlarmsPrevented} pre-alarms & contained crises before catastrophic loss`}
+                  </div>
                 </div>
               </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <div className="text-[11px] font-mono text-slate-400">{isZh ? '事故排除' : 'Resolved'}</div>
-                <div className="text-2xl font-black font-mono text-amber-400 my-1 tabular-nums">
-                  {metrics.incidentsResolved} / {metrics.incidentsEncountered}
+              <div className="px-3.5 py-1.5 rounded-lg bg-slate-950/90 border border-amber-500/40 text-right">
+                <div className="text-[10px] font-mono text-amber-300 uppercase">
+                  {isZh ? '挽救晶圓廠資產價值' : 'FAB VALUE PROTECTED'}
                 </div>
-                <div className="text-[10px] text-slate-500 font-mono">
-                  {metrics.incidentsFailed === 0 ? '✓ 全數安全排除' : `${metrics.incidentsFailed} 件處置失誤`}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
-                <div className="text-[11px] font-mono text-slate-400">{isZh ? '平均反應' : 'Reaction Time'}</div>
-                <div className="text-2xl font-black font-mono text-purple-400 my-1 tabular-nums">
-                  {(metrics.averageReactionTimeMs / 1000).toFixed(2)}s
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">
-                  {metrics.averageReactionTimeMs < 10000 ? '✓ 卓越反應水準' : '反應稍慢'}
+                <div className="text-lg font-black font-mono text-amber-400 tabular-nums">
+                  ${metrics.fabValueSavedMillionsUSD.toFixed(1)}M USD
                 </div>
               </div>
             </div>
 
-            {/* Direct 1-Click Action Bar */}
+            {/* 4 Core Metric Pillars */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[11px] font-mono text-slate-400">
+                  {isZh ? '晶圓良率 (Yield)' : 'Fab Yield'}
+                </div>
+                <div className="text-2xl font-black font-mono text-emerald-400 my-0.5 tabular-nums">
+                  {metrics.overallYieldPct.toFixed(1)}%
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {isZh
+                    ? `良品 ${metrics.totalWafersProduced} 片 · 報廢 ${metrics.totalWafersDefective}`
+                    : `${metrics.totalWafersProduced} good wafers`}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[11px] font-mono text-slate-400">
+                  {isZh ? '工安合規 (Safety)' : 'EHS Compliance'}
+                </div>
+                <div className="text-2xl font-black font-mono text-cyan-400 my-0.5 tabular-nums">
+                  {metrics.safetyComplianceScore}/100
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {metrics.regulatoryFinesTotal === 0 ? (
+                    <span className="text-emerald-400">
+                      {isZh ? '✓ 零 OSHA 違規罰鍰' : '✓ Zero OSHA Fines'}
+                    </span>
+                  ) : (
+                    <span className="text-rose-400">
+                      {isZh ? '罰鍰' : 'Fine'} ${metrics.regulatoryFinesTotal.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[11px] font-mono text-slate-400">
+                  {isZh ? '預警防範 / 危機排除' : 'Prevented / Resolved'}
+                </div>
+                <div className="text-2xl font-black font-mono text-amber-400 my-0.5 tabular-nums">
+                  {metrics.preAlarmsPrevented} / {metrics.incidentsResolved}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {isZh
+                    ? `預警防範 ${metrics.preAlarmsPrevented} · 危機排除 ${metrics.incidentsResolved}/${metrics.incidentsEncountered}`
+                    : `${metrics.preAlarmsPrevented} prevented · ${metrics.incidentsResolved}/${metrics.incidentsEncountered} SOP`}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[11px] font-mono text-slate-400">
+                  {isZh ? '平均決策時間' : 'Mean Decision Time'}
+                </div>
+                <div className="text-2xl font-black font-mono text-purple-400 my-0.5 tabular-nums">
+                  {(metrics.averageReactionTimeMs / 1000).toFixed(1)}s
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  {isZh ? '✓ 沉著準確執行 SOP' : '✓ Thoughtful SOP Execution'}
+                </div>
+              </div>
+            </div>
+
+            {/* YOUR CHOICES & REAL-WORLD OUTCOME COMPARISON */}
+            {metrics.choiceOutcomes && metrics.choiceOutcomes.length > 0 && (
+              <div className="mb-4 p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-cyan-300 font-mono uppercase tracking-wider">
+                    {isZh
+                      ? '⚖️ 您的關鍵決策與結果差異對照 (Your Choices vs. Alternative Outcomes)'
+                      : '⚖️ Your Decisions & Choice Outcome Comparison'}
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {isZh ? `共記錄 ${metrics.choiceOutcomes.length} 項關鍵抉擇` : `${metrics.choiceOutcomes.length} Key Choices`}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
+                  {metrics.choiceOutcomes.slice(-6).map((co) => (
+                    <div
+                      key={co.id}
+                      className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between ${
+                        co.isPositive
+                          ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-100'
+                          : 'bg-rose-950/40 border-rose-500/50 text-rose-100'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 font-mono text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300 font-bold">
+                            {co.bayCode} · {co.category}
+                          </span>
+                          <span
+                            className={`font-bold ${
+                              co.financialDeltaMillionsUSD >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                            }`}
+                          >
+                            {co.financialDeltaMillionsUSD >= 0
+                              ? `+$${co.financialDeltaMillionsUSD.toFixed(1)}M Saved`
+                              : `-$${Math.abs(co.financialDeltaMillionsUSD).toFixed(1)}M Loss`}
+                          </span>
+                        </div>
+                        <div className="font-bold text-white mt-1 leading-snug">
+                          {co.isPositive ? '✅ ' : '❌ '}
+                          {co.chosenAction}
+                        </div>
+                        <div className="text-[11px] opacity-90 mt-0.5">{co.outcomeImpact}</div>
+                      </div>
+                      <div className="mt-1.5 pt-1 border-t border-white/10 text-[10px] font-mono text-amber-300/90">
+                        💡 {co.alternativeComparison}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Viral Social Share Call-to-Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
@@ -368,297 +598,258 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center space-x-2 transition-all active:scale-95 shadow-lg shadow-cyan-600/30 cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>{isZh ? '📸 下載個人榮譽圖卡 (PNG)' : 'Download Badge (PNG)'}</span>
+                  <span>
+                    {isZh
+                      ? '📸 下載 1200×630 社群分享證書 (PNG)'
+                      : '📸 Download 1200×630 Share Card (PNG)'}
+                  </span>
                 </button>
 
                 <button
-                  onClick={handleCopySocialPost}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center space-x-2 transition-all active:scale-95 cursor-pointer"
+                  onClick={handleShareOrCopy}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs flex items-center space-x-2 transition-all active:scale-95 cursor-pointer"
                 >
-                  <Copy className="w-4 h-4" />
-                  <span>{copied ? (isZh ? '✓ 已複製貼文！' : 'Copied!') : (isZh ? '📋 複製社群文案' : 'Copy Post')}</span>
+                  {copied ? <CheckCircle2 className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  <span>
+                    {copied
+                      ? isZh
+                        ? '✓ 已複製戰績與遊戲邀請連結！'
+                        : '✓ Copied Result & Game Invite Link!'
+                      : isZh
+                      ? '🚀 一鍵分享戰績邀請朋友挑戰'
+                      : '🚀 Share Result & Invite Friends'}
+                  </span>
                 </button>
 
                 <button
                   onClick={() => setIsFeedbackOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer"
+                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-bold text-xs flex items-center space-x-1.5 transition-all cursor-pointer"
                 >
                   <MessageSquare className="w-4 h-4 text-cyan-400" />
-                  <span>{isZh ? '💬 心得與改善建議' : 'Feedback'}</span>
+                  <span>{isZh ? '💬 填寫回饋問卷' : '💬 Give Feedback'}</span>
                 </button>
               </div>
 
               <button
                 onClick={() => setShowDetailedReport(!showDetailedReport)}
-                className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 text-xs text-slate-300 transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 text-xs font-mono text-slate-300 transition-colors cursor-pointer"
               >
                 {showDetailedReport
                   ? isZh
-                    ? '▴ 收合 8D 詳細報告'
-                    : '▴ Hide 8D Detailed Audit'
+                    ? '▴ 收合詳細稽核日誌'
+                    : '▴ Hide Audit Log'
                   : isZh
-                  ? '▾ 查看完整 8D 根因分析報告'
-                  : '▾ View Full 8D Root Cause Analysis'}
+                  ? '▾ 展開 8D 決策軌跡與知識診斷'
+                  : '▾ View 8D Audit Log & Gap Diagnosis'}
               </button>
             </div>
           </div>
 
           {/* Fatal Alert Banner if Mandated Shutdown */}
           {metrics.fatalShutdownTriggered && (
-            <div className="p-4 rounded-xl border-2 border-rose-500 bg-rose-950/70 text-rose-200 space-y-1 animate-pulse">
+            <div className="p-4 rounded-xl border-2 border-rose-500 bg-rose-950/70 text-rose-200 space-y-1">
               <div className="flex items-center space-x-2 text-rose-300 font-bold">
                 <ShieldAlert className="w-5 h-5 text-rose-400" />
-                <span>{isZh ? '【全廠緊急停線】發生致命級事故，產線全面停工' : '【MANDATORY FAB SHUTDOWN】Fatal Level 3 Event Bypassed'}</span>
+                <span>
+                  {isZh
+                    ? '【全廠緊急停線】發生致命級工安違規，產線強制停工檢討'
+                    : '【MANDATORY FAB SHUTDOWN】Fatal Level 3 Safety Breach'}
+                </span>
               </div>
               <p className="text-xs text-rose-300/90 font-mono">
                 {isZh
-                  ? '未於3秒內拍下 EMO 或違反 LOTO 帶電開啟腔體，觸發 SEMI S2 第 12 條緊急制動條款，產出歸零並移送工安委員會。'
-                  : 'Failed to strike EMO within safety window or bypassed LOTO. Immediate OSHA halt enforced.'}
+                  ? '採取了致命錯誤處置（如對矽甲烷噴水、未斷電拉扯受困人員或忽略氫氟酸沖淋），觸發 SEMI S2 緊急停工條款。請點擊下方「查閱工安四大支柱手冊」複習正確應變步驟！'
+                  : 'A fatal protocol error triggered a mandatory SEMI S2 shutdown. Review the 4-Pillar EHS Field Guide below to master the correct procedure.'}
               </p>
             </div>
           )}
 
           {/* Collapsible Detailed 8D Audit & Incident History */}
           {showDetailedReport && (
-            <div className="space-y-6 pt-4 border-t border-slate-800 animate-fade-in">
-              {/* Top Grade & Score Row */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Main Compliance Grade Card */}
-            <div className="md:col-span-2 rounded-xl border border-slate-800 p-4 bg-gradient-to-br from-slate-900 to-slate-950 flex items-center space-x-5">
-              <div className="flex flex-col items-center justify-center w-24 h-24 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner shrink-0">
-                <span className={`text-3xl font-display font-black ${gradeInfo.color}`}>
-                  {gradeInfo.grade}
-                </span>
-                <span className="text-[10px] font-mono text-slate-500 uppercase">{isZh ? '評等' : 'Grade'}</span>
-              </div>
+            <div className="space-y-5 pt-3 border-t border-slate-800 animate-fade-in">
+              {/* 8D Incident RCA Timeline Section */}
               <div>
-                <div className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-                  {t.auditEvaluation}
-                </div>
-                <div className={`text-sm md:text-base font-bold font-display mt-0.5 ${gradeInfo.color}`}>
-                  {gradeInfo.text}
-                </div>
-                <div className="text-xs font-mono text-slate-400 mt-2 flex items-center space-x-4">
+                <h3 className="text-sm font-display font-bold text-slate-200 uppercase tracking-wider mb-2.5 flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-cyan-400" />
                   <span>
-                    {t.score}: <strong className="text-slate-100">{metrics.safetyComplianceScore}/100</strong>
+                    {isZh
+                      ? '8D 關鍵決策時間軸與處置軌跡 (Decision Timeline)'
+                      : '8D Critical Decision Timeline & SOP Trace'}
                   </span>
-                  <span>
-                    {t.fines}:{' '}
-                    <strong className={metrics.regulatoryFinesTotal > 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                      ${metrics.regulatoryFinesTotal.toLocaleString()}
-                    </strong>
-                  </span>
-                </div>
-              </div>
-            </div>
+                </h3>
 
-            {/* Metric Card 1: Reaction Time */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>{t.avgReaction}</span>
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-              </div>
-              <div className="text-2xl font-bold font-mono text-slate-100 tabular-nums my-1">
-                {(metrics.averageReactionTimeMs / 1000).toFixed(2)}s
-              </div>
-              <div className="text-[11px] font-mono text-slate-400">
-                {t.reactionTarget}
-              </div>
-            </div>
-
-            {/* Metric Card 2: Production Yield */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span>{t.fabYieldAndWafers}</span>
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-              </div>
-              <div className="text-2xl font-bold font-mono text-emerald-400 tabular-nums my-1">
-                {metrics.overallYieldPct.toFixed(1)}%
-              </div>
-              <div className="text-[11px] font-mono text-slate-400">
-                {t.goodVsDefect
-                  .replace('{good}', String(metrics.totalWafersProduced))
-                  .replace('{defect}', String(metrics.totalWafersDefective))}
-              </div>
-            </div>
-          </div>
-
-          {/* 8D Incident RCA Timeline Section */}
-          <div>
-            <h3 className="text-sm font-display font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center space-x-2">
-              <FileText className="w-4 h-4 text-cyan-400" />
-              <span>
-                {isZh ? '8D 關鍵決策時間軸與處置軌跡 (Decision Timeline)' : '8D Critical Decision Timeline & SOP Trace'}
-              </span>
-            </h3>
-
-            {metrics.decisionTimeline && metrics.decisionTimeline.length > 0 ? (
-              <div className="space-y-2">
-                {metrics.decisionTimeline.map((ev, eIdx) => (
-                  <div
-                    key={eIdx}
-                    className={`p-3 rounded-lg border text-xs font-mono flex items-start justify-between gap-3 ${
-                      ev.isGoodDecision
-                        ? 'bg-slate-900/70 border-slate-800 text-slate-300'
-                        : 'bg-rose-950/40 border-rose-900 text-rose-300'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-bold shrink-0">
-                        {ev.formattedTime}
-                      </span>
-                      <div>
-                        <div className="font-bold text-slate-200">
-                          [{ev.bayCode}] {ev.description}
-                        </div>
-                        {ev.violationStandard && (
-                          <div className="text-[11px] text-amber-400 mt-0.5">
-                            Standard: {ev.violationStandard}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <span className={`font-bold ${ev.isGoodDecision ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {ev.isGoodDecision ? '✓ COMPLIANT' : '✗ HAZARD'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 text-xs font-mono text-slate-400 text-center">
-                {isZh ? '本輪未記錄到重大偏差決策，處置流程穩定。' : 'No critical deviations logged during this shift.'}
-              </div>
-            )}
-          </div>
-
-          {/* Granular Incident Log */}
-          <div>
-            <h3 className="text-sm font-display font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center space-x-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span>
-                {t.incidentLog} ({incidentRecords.length} {isZh ? '件事故' : 'Incidents'})
-              </span>
-            </h3>
-
-            {incidentRecords.length === 0 ? (
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono text-slate-400 text-center">
-                {t.zeroIncidents}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {incidentRecords.map((rec, idx) => (
-                  <div
-                    key={idx}
-                    className={`rounded-xl p-4 border transition-all ${
-                      rec.success
-                        ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/50'
-                        : 'bg-rose-950/30 border-rose-900/60'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800/80">
-                      <div className="flex items-center space-x-2">
-                        {rec.success ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                        )}
-                        <span className="text-xs font-display font-bold text-slate-200">
-                          {rec.title}
-                        </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                          {rec.sectorName}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-3 text-xs font-mono">
-                        <span className="text-slate-400">
-                          {t.reaction}{' '}
-                          <strong className="text-amber-400 tabular-nums">
-                            {(rec.reactionTimeMs / 1000).toFixed(2)}s
-                          </strong>
-                        </span>
-                        <span className="text-slate-400">
-                          {t.total}{' '}
-                          <strong className="text-slate-200 tabular-nums">
-                            {(rec.completionTimeMs / 1000).toFixed(1)}s
-                          </strong>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Steps evaluation */}
-                    <div className="space-y-1.5 mt-2">
-                      {rec.stepsTaken.map((step, sIdx) => (
-                        <div
-                          key={sIdx}
-                          className="text-xs font-mono flex items-start space-x-2 text-slate-300"
-                        >
-                          <span className={step.wasCorrect ? 'text-emerald-400' : 'text-rose-400'}>
-                            {step.wasCorrect ? '✓' : '✗'}
+                {metrics.decisionTimeline && metrics.decisionTimeline.length > 0 ? (
+                  <div className="space-y-2">
+                    {metrics.decisionTimeline.map((ev, eIdx) => (
+                      <div
+                        key={eIdx}
+                        className={`p-3 rounded-lg border text-xs font-mono flex items-start justify-between gap-3 ${
+                          ev.isGoodDecision
+                            ? 'bg-slate-900/70 border-slate-800 text-slate-300'
+                            : 'bg-rose-950/40 border-rose-900 text-rose-300'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-bold shrink-0">
+                            {ev.formattedTime}
                           </span>
                           <div>
-                            <span className="font-semibold text-slate-200">{step.stepLabel}: </span>
-                            <span className="text-slate-400">{step.explanation}</span>
+                            <div className="font-bold text-slate-200">
+                              [{ev.bayCode}] {ev.description}
+                            </div>
+                            {ev.violationStandard && (
+                              <div className="text-[11px] text-amber-400 mt-0.5">
+                                Standard: {ev.violationStandard}
+                              </div>
+                            )}
                           </div>
                         </div>
-                      ))}
-                    </div>
-
-                    {rec.failureReason && (
-                      <div className="mt-2.5 p-2 rounded bg-rose-950/60 border border-rose-800/60 text-xs font-mono text-rose-300">
-                        <strong>{isZh ? '違規肇因：' : 'Violation:'}</strong> {rec.failureReason}
+                        <span
+                          className={`font-bold shrink-0 ${
+                            ev.isGoodDecision ? 'text-emerald-400' : 'text-rose-400'
+                          }`}
+                        >
+                          {ev.isGoodDecision ? '✓ SAFE' : '✗ VIOLATION'}
+                        </span>
                       </div>
-                    )}
-
-                    <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono text-slate-500">
-                      <span>{t.standard} {rec.regulatoryStandard}</span>
-                      <span>{t.penalty} ${rec.oshaViolationFine.toLocaleString()}</span>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Manager's Knowledge Gap & Remedial Actions */}
-          <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40">
-            <h3 className="text-sm font-display font-bold text-cyan-300 uppercase tracking-wider mb-2 flex items-center space-x-2">
-              <BookOpen className="w-4 h-4 text-cyan-400" />
-              <span>{t.managerKnowledgeGap}</span>
-            </h3>
-
-            {metrics.knowledgeGaps.length === 0 ? (
-              <p className="text-xs font-mono text-emerald-400">
-                {t.noGaps}
-              </p>
-            ) : (
-              <div className="space-y-2 mt-3">
-                {metrics.knowledgeGaps.map((gap, gIdx) => (
-                  <div
-                    key={gIdx}
-                    className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-mono"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-amber-400 font-semibold uppercase">{gap.category}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
-                        {gap.severity} RISK
-                      </span>
-                    </div>
-                    <div className="text-slate-300 mb-1">{gap.description}</div>
-                    <div className="text-cyan-300 text-[11px]">
-                      <strong>{t.remedialTraining}</strong> {gap.remedialAction}
-                    </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 text-xs font-mono text-slate-400 text-center">
+                    {isZh
+                      ? '本輪未記錄到重大偏差決策，處置流程穩定。'
+                      : 'No critical deviations logged during this shift.'}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
+
+              {/* Granular Incident Log */}
+              <div>
+                <h3 className="text-sm font-display font-bold text-slate-200 uppercase tracking-wider mb-2.5 flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span>
+                    {t.incidentLog} ({incidentRecords.length} {isZh ? '件事故' : 'Incidents'})
+                  </span>
+                </h3>
+
+                {incidentRecords.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono text-slate-400 text-center">
+                    {t.zeroIncidents}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {incidentRecords.map((rec, idx) => (
+                      <div
+                        key={idx}
+                        className={`rounded-xl p-4 border transition-all ${
+                          rec.success
+                            ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/50'
+                            : 'bg-rose-950/30 border-rose-900/60'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800/80">
+                          <div className="flex items-center space-x-2">
+                            {rec.success ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                            )}
+                            <span className="text-xs font-display font-bold text-slate-200">
+                              {rec.title}
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                              {rec.sectorName}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-3 text-xs font-mono">
+                            <span className="text-slate-400">
+                              {t.reaction}{' '}
+                              <strong className="text-amber-400 tabular-nums">
+                                {(rec.reactionTimeMs / 1000).toFixed(2)}s
+                              </strong>
+                            </span>
+                            <span className="text-slate-400">
+                              {t.total}{' '}
+                              <strong className="text-slate-200 tabular-nums">
+                                {(rec.completionTimeMs / 1000).toFixed(1)}s
+                              </strong>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 mt-2">
+                          {rec.stepsTaken.map((step, sIdx) => (
+                            <div
+                              key={sIdx}
+                              className="text-xs font-mono flex items-start space-x-2 text-slate-300"
+                            >
+                              <span
+                                className={step.wasCorrect ? 'text-emerald-400' : 'text-rose-400'}
+                              >
+                                {step.wasCorrect ? '✓' : '✗'}
+                              </span>
+                              <div>
+                                <span className="font-semibold text-slate-200">
+                                  {step.stepLabel}:{' '}
+                                </span>
+                                <span className="text-slate-400">{step.explanation}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {rec.failureReason && (
+                          <div className="mt-2.5 p-2 rounded bg-rose-950/60 border border-rose-800/60 text-xs font-mono text-rose-300">
+                            <strong>{isZh ? '違規肇因：' : 'Violation:'}</strong>{' '}
+                            {rec.failureReason}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Manager's Knowledge Gap & Remedial Actions */}
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40">
+                <h3 className="text-sm font-display font-bold text-cyan-300 uppercase tracking-wider mb-2 flex items-center space-x-2">
+                  <BookOpen className="w-4 h-4 text-cyan-400" />
+                  <span>{t.managerKnowledgeGap}</span>
+                </h3>
+
+                {metrics.knowledgeGaps.length === 0 ? (
+                  <p className="text-xs font-mono text-emerald-400">{t.noGaps}</p>
+                ) : (
+                  <div className="space-y-2 mt-3">
+                    {metrics.knowledgeGaps.map((gap, gIdx) => (
+                      <div
+                        key={gIdx}
+                        className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-mono"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-amber-400 font-semibold uppercase">
+                            {gap.category}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
+                            {gap.severity} RISK
+                          </span>
+                        </div>
+                        <div className="text-slate-300 mb-1">{gap.description}</div>
+                        <div className="text-cyan-300 text-[11px]">
+                          <strong>{t.remedialTraining}</strong> {gap.remedialAction}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 md:p-5 border-t border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={onReturnToTitle}
             className="px-4 py-2 rounded-xl border border-slate-700 text-xs font-mono text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
@@ -669,7 +860,7 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
           <div className="flex items-center space-x-3">
             <button
               onClick={onOpenTrainingManual}
-              className="px-4 py-2 rounded-xl border border-cyan-500/30 bg-slate-800 text-xs font-mono text-cyan-300 hover:text-cyan-200 hover:bg-slate-750 transition-colors flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-cyan-500/30 bg-slate-800 text-xs font-mono text-cyan-300 hover:text-cyan-200 hover:bg-slate-700 transition-colors flex items-center space-x-1.5 cursor-pointer"
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>{t.reviewProtocols}</span>
@@ -687,12 +878,13 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
         </div>
       </div>
 
-      {/* Embedded Google Form / Player Feedback Modal */}
+      {/* Zero-Redirect In-Game Google Form Feedback Modal */}
       {isFeedbackOpen && (
         <GoogleFormModal
           isOpen={isFeedbackOpen}
           onClose={() => setIsFeedbackOpen(false)}
           language={language}
+          metrics={metrics}
         />
       )}
     </div>

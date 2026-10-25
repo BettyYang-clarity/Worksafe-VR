@@ -6,93 +6,152 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Compass,
   Cpu,
   Eye,
   Flame,
+  Footprints,
   HelpCircle,
   Layers,
+  MessageSquare,
   Pause,
   ShieldAlert,
-  Sliders,
-  TrendingUp,
+  ShieldCheck,
+  Sparkles,
   Volume2,
   VolumeX,
+  Wrench,
   XCircle,
   Zap,
 } from 'lucide-react';
 import { Language, TRANSLATIONS } from '../i18n/translations';
 import {
   CameraViewMode,
+  EhsDecisionFeedback,
+  EquippedPPE,
   FloatingDelta,
   HazardIncident,
+  PreAlarmState,
   ProtocolStep,
+  RequiredPPECode,
   SectorId,
   SectorState,
   SectorTuneParams,
+  TroubleshootingOption,
+  WaferLotMission,
 } from '../types/game';
 import { INITIAL_SECTORS } from '../data/protocols';
+import { ON_SITE_DISTANCE_THRESHOLD_M, OffscreenIndicator } from '../3d/FabScene';
+import { ActionEffectType } from '../3d/ParticleEffects';
 
 interface HUDOverlayProps {
   language: Language;
   onToggleLanguage: () => void;
   onOpenInstructions: () => void;
+  onOpenFeedback: () => void;
   onSilenceAlarm: () => void;
   shiftTimeRemainingSec: number;
   overallYieldPct: number;
   totalWafersProduced: number;
   defectiveWafers: number;
   safetyScore: number;
+  fabValueSavedMillionsUSD: number;
   activeHazard: HazardIncident | null;
+  activePreAlarm: PreAlarmState | null;
   sectors: Record<SectorId, SectorState>;
   selectedSectorId: SectorId;
   onSelectSector: (sectorId: SectorId) => void;
+  onWalkToSector: (sectorId: SectorId) => void;
+  onPreventPreAlarm: (sectorId: SectorId, option?: TroubleshootingOption) => void;
   onSelectProtocolStep: (step: ProtocolStep) => void;
   onHitEmo: (sectorId: SectorId) => void;
-  onTuneEfficiency: (sectorId: SectorId, delta: number) => void;
+  onTriggerPhysicalAction: (type: ActionEffectType, sectorId: SectorId) => void;
   onPause: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
   cameraView: CameraViewMode;
   onChangeCameraView: (mode: CameraViewMode) => void;
-  lastFeedback: { text: string; isCorrect: boolean } | null;
-  onOpenTablet: () => void;
+  ehsDecisionFeedback: EhsDecisionFeedback | null;
+  onDismissFeedback: () => void;
   flowStateSeconds?: number;
   floatingDeltas?: FloatingDelta[];
   playerName?: string;
   onTuneSectorParams?: (sectorId: SectorId, params: SectorTuneParams) => void;
+  bayDistances: Record<SectorId, number>;
+  isAutoWalking: boolean;
+  walkingTargetSector: SectorId | null;
+  offscreenIndicators: OffscreenIndicator[];
+  equippedPPE: EquippedPPE;
+  onTogglePPE: (key: keyof EquippedPPE) => void;
+  lotMission: WaferLotMission | null;
 }
+
+const PPE_META: Record<
+  RequiredPPECode,
+  { key: keyof EquippedPPE; icon: string; nameEn: string; nameZh: string }
+> = {
+  SCBA: {
+    key: 'scba',
+    icon: '😷',
+    nameEn: 'Positive-Pressure SCBA Respirator',
+    nameZh: 'SCBA 正壓自給式呼吸器',
+  },
+  ACID_SUIT: {
+    key: 'acidSuit',
+    icon: '🧤',
+    nameEn: 'Chemical Acid Apron & Face Shield',
+    nameZh: '防酸化學防護服與面罩',
+  },
+  HV_GLOVES: {
+    key: 'hvGloves',
+    icon: '⚡',
+    nameEn: 'Class-00 HV Insulating / LOTO Gloves',
+    nameZh: 'Class-00 高壓絕緣/防夾手套',
+  },
+};
 
 export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   language,
   onToggleLanguage,
   onOpenInstructions,
+  onOpenFeedback,
   onSilenceAlarm,
   shiftTimeRemainingSec,
   overallYieldPct,
   totalWafersProduced,
-  defectiveWafers,
   safetyScore,
+  fabValueSavedMillionsUSD,
   activeHazard,
+  activePreAlarm,
   sectors,
   selectedSectorId,
   onSelectSector,
+  onWalkToSector,
+  onPreventPreAlarm,
   onSelectProtocolStep,
   onHitEmo,
-  onTuneEfficiency,
+  onTriggerPhysicalAction,
   onPause,
   isMuted,
   onToggleMute,
   cameraView,
   onChangeCameraView,
-  lastFeedback,
-  onOpenTablet,
-  flowStateSeconds = 0,
+  ehsDecisionFeedback,
+  onDismissFeedback,
   floatingDeltas = [],
   playerName,
   onTuneSectorParams,
+  bayDistances,
+  isAutoWalking,
+  walkingTargetSector,
+  offscreenIndicators,
+  equippedPPE,
+  onTogglePPE,
+  lotMission,
 }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
+  const [isDockCollapsed, setIsDockCollapsed] = useState(false);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -101,6 +160,30 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   };
 
   const selectedSector = sectors[selectedSectorId] || Object.values(sectors)[0];
+  const selectedBayDist = bayDistances[selectedSectorId] ?? 10.0;
+  const isSelectedBayOnSite = selectedBayDist <= ON_SITE_DISTANCE_THRESHOLD_M;
+
+  const hazardBayDist = activeHazard ? bayDistances[activeHazard.sectorId] ?? 10.0 : 0;
+  const isHazardBayOnSite = activeHazard ? hazardBayDist <= ON_SITE_DISTANCE_THRESHOLD_M : true;
+
+  const preAlarmBayDist = activePreAlarm ? bayDistances[activePreAlarm.sectorId] ?? 10.0 : 0;
+  const isPreAlarmBayOnSite = activePreAlarm
+    ? preAlarmBayDist <= ON_SITE_DISTANCE_THRESHOLD_M
+    : true;
+
+  // Check Required PPE for Active Hazard
+  const requiredPpeCode: RequiredPPECode | null = activeHazard
+    ? activeHazard.ehsPillars.recommendedPPE
+    : null;
+  const requiredPpeInfo = requiredPpeCode ? PPE_META[requiredPpeCode] : null;
+  const isRequiredPpeEquipped = requiredPpeInfo ? equippedPPE[requiredPpeInfo.key] : true;
+
+  // Unprotected exposure warning if standing < 5.5m near an active hazard without required PPE
+  const isUnprotectedHazardExposure = Boolean(
+    activeHazard && isHazardBayOnSite && !isRequiredPpeEquipped
+  );
+
+  const anyPpeEquipped = equippedPPE.scba || equippedPPE.acidSuit || equippedPPE.hvGloves;
 
   const pipelineOrder: SectorId[] = [
     'PHOTOLITHOGRAPHY',
@@ -110,30 +193,71 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
     'ION_IMPLANTATION',
   ];
 
-  // Detect genuine creeping micro-anomalies (avoiding false alarms on 1050°C Diffusion Furnace)
-  const anomalousSectors = Object.values(sectors).filter((s) => {
-    if (s.activeHazardId) return true;
-    if (s.scrubberLoadPct > 88) return true;
-    if (s.id === 'DIFFUSION_FURNACE') return s.temperatureC > 1160;
-    return s.temperatureC > 310 || s.health < 75;
-  });
-
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-2 md:p-3 overflow-hidden select-none">
       {/* ==================================================== */}
-      {/* 1. TOP STATUS & CONTROL BAR (Responsive & Uncut)     */}
+      {/* SCENE PPE VISOR HUD & UNPROTECTED EXPOSURE VIGNETTE  */}
       {/* ==================================================== */}
-      <div className="w-full pointer-events-auto">
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/60 shadow-xl text-xs font-mono">
-          {/* Left Cluster: Operator Badge, Live Yield, Wafer Counts & CMOS 5-Station Pills */}
+      {isUnprotectedHazardExposure && requiredPpeInfo && (
+        <div className="fixed inset-0 pointer-events-none z-20 border-[6px] border-rose-500/80 shadow-[inset_0_0_75px_rgba(244,63,94,0.45)] animate-pulse flex items-end justify-center pb-36">
+          <div className="px-4 py-1.5 rounded-full bg-rose-950/95 border-2 border-rose-400 text-rose-100 font-mono text-xs font-bold shadow-2xl">
+            🚨{' '}
+            {isZh
+              ? `危險暴露警告！您已進入事故現場 (<5.5m) 但尚未穿戴【${requiredPpeInfo.icon} ${requiredPpeInfo.nameZh}】！`
+              : `UNPROTECTED EXPOSURE! You are On-Site (<5.5m) without [${requiredPpeInfo.icon} ${requiredPpeInfo.nameEn}]!`}
+          </div>
+        </div>
+      )}
+
+      {anyPpeEquipped && !isUnprotectedHazardExposure && (
+        <div className="fixed inset-0 pointer-events-none z-10 border-[3px] border-emerald-400/35 shadow-[inset_0_0_35px_rgba(16,185,129,0.12)]" />
+      )}
+
+      {/* ==================================================== */}
+      {/* OFF-SCREEN DIRECTIONAL THREAT POINTERS                */}
+      {/* ==================================================== */}
+      {offscreenIndicators.map((ind) => {
+        const bayCode = INITIAL_SECTORS[ind.sectorId]?.code.split('/')[0].trim() || ind.sectorId;
+        const isCrit = ind.status === 'CRITICAL';
+        return (
+          <button
+            key={ind.sectorId}
+            onClick={() => {
+              onSelectSector(ind.sectorId);
+              onWalkToSector(ind.sectorId);
+            }}
+            style={{
+              left: `${ind.xPct}%`,
+              top: `${ind.yPct}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+            className={`pointer-events-auto fixed z-30 px-2.5 py-1.5 rounded-full border-2 font-mono text-[11px] font-bold flex items-center space-x-1.5 shadow-2xl transition-transform hover:scale-110 cursor-pointer ${
+              isCrit
+                ? 'bg-rose-950/95 border-rose-400 text-rose-200 animate-pulse'
+                : 'bg-amber-950/95 border-amber-400 text-amber-200'
+            }`}
+            title={isZh ? '點擊立即轉向並走往該機台' : 'Click to walk to this alerting bay'}
+          >
+            <Compass className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {isCrit ? '🚨' : '⚠️'} {bayCode} ({ind.distanceM.toFixed(1)}m)
+            </span>
+          </button>
+        );
+      })}
+
+      {/* ==================================================== */}
+      {/* 1. TOP STATUS, PIPELINE & CAMERA SWITCHER BAR         */}
+      {/* ==================================================== */}
+      <div className="w-full pointer-events-auto space-y-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/70 shadow-xl text-xs font-mono">
+          {/* Left Cluster: Engineer Badge, Yield, Good/Scrap, Value Saved & 5-Bay CMOS Pipeline */}
           <div className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto min-w-0">
-            {/* Operator Identification Tag */}
-            <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/50 text-[11px] text-cyan-300 font-bold shrink-0 shadow-sm shadow-cyan-950/50">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span className="truncate max-w-[130px]">{playerName || 'Operator #402'}</span>
+            <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/50 text-[11px] text-cyan-300 font-bold shrink-0">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="truncate max-w-[125px]">{playerName || 'Alex Chen #402'}</span>
             </div>
 
-            {/* Yield & Wafer Counts */}
             <div className="flex items-center space-x-2 text-[11px] font-bold shrink-0">
               <span className="text-cyan-400">
                 {isZh ? '良率' : 'Yield'}:{' '}
@@ -151,90 +275,68 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               </span>
               <span className="text-slate-600">|</span>
               <span className="text-slate-300">
-                {isZh ? '產出' : 'Good'}: <strong className="text-white">{totalWafersProduced}</strong>
+                {isZh ? '良品' : 'Good'}: <strong className="text-white">{totalWafersProduced}</strong>
               </span>
-              <span className="text-slate-600">|</span>
-              <span className="text-rose-400">
-                {isZh ? '報廢' : 'Scrap'}: <strong>{defectiveWafers}</strong>
+              <span className="text-slate-600 hidden sm:inline">|</span>
+              <span className="text-amber-300 hidden sm:inline" title="Protected Fab Asset Value">
+                💎 <strong>${fabValueSavedMillionsUSD.toFixed(1)}M</strong>
               </span>
             </div>
 
-            {/* CMOS 5-Station Pipeline Pills */}
-            <div className="hidden md:flex items-center space-x-1 pl-2 border-l border-slate-700/60 shrink-0">
-              {pipelineOrder.map((secId) => {
+            {/* Live 5-Bay CMOS Wafer Pipeline Strip */}
+            <div className="hidden lg:flex items-center space-x-1 pl-2 border-l border-slate-700/60 shrink-0">
+              {pipelineOrder.map((secId, idx) => {
                 const sec = sectors[secId];
                 if (!sec) return null;
                 const isSelected = selectedSectorId === secId;
-                const hasAlert = sec.activeHazardId !== null;
-                const isWarning = sec.scrubberLoadPct > 85 || sec.health < 80;
+                const hasCrisis = sec.activeHazardId !== null;
+                const hasPreAlarm = sec.preAlarm !== null;
+                const dist = bayDistances[secId] ?? 10;
+                const isHere = dist <= ON_SITE_DISTANCE_THRESHOLD_M;
 
                 return (
-                  <button
-                    key={secId}
-                    onClick={() => onSelectSector(secId)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] transition-all flex items-center space-x-1 cursor-pointer shrink-0 ${
-                      hasAlert
-                        ? 'bg-rose-500/30 border border-rose-500 text-rose-200 font-bold animate-pulse'
-                        : sec.bypassActive
-                        ? 'bg-indigo-500/30 border border-indigo-400 text-indigo-200'
-                        : isWarning
-                        ? 'bg-amber-500/20 border border-amber-500/60 text-amber-300'
-                        : isSelected
-                        ? 'bg-cyan-500/30 border border-cyan-400 text-cyan-200 font-bold'
-                        : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                    title={`${sec.name} - Queue: ${sec.inputQueue}`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        hasAlert
-                          ? 'bg-rose-400 animate-ping'
-                          : isWarning
-                          ? 'bg-amber-400'
-                          : 'bg-emerald-400'
+                  <React.Fragment key={secId}>
+                    <button
+                      onClick={() => onSelectSector(secId)}
+                      onDoubleClick={() => onWalkToSector(secId)}
+                      className={`px-2 py-0.5 rounded text-[10px] transition-all flex items-center space-x-1 cursor-pointer shrink-0 ${
+                        hasCrisis
+                          ? 'bg-rose-500/30 border border-rose-500 text-rose-200 font-bold animate-pulse'
+                          : hasPreAlarm
+                          ? 'bg-amber-500/30 border border-amber-400 text-amber-200 font-bold animate-pulse'
+                          : isSelected
+                          ? 'bg-cyan-500/30 border border-cyan-400 text-cyan-200 font-bold'
+                          : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
                       }`}
-                    />
-                    <span>{sec.code.replace('BAY ', 'B')}</span>
-                  </button>
+                      title={`${sec.name} (${dist.toFixed(1)}m) - Double-click to Walk Here`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          hasCrisis
+                            ? 'bg-rose-400 animate-ping'
+                            : hasPreAlarm
+                            ? 'bg-amber-400 animate-ping'
+                            : isHere
+                            ? 'bg-cyan-400'
+                            : 'bg-emerald-400'
+                        }`}
+                      />
+                      <span>{sec.code.split('/')[0].replace('BAY-', 'B')}</span>
+                      {isHere && <span className="text-[9px] text-cyan-300">📍</span>}
+                    </button>
+                    {idx < pipelineOrder.length - 1 && (
+                      <span className="text-[9px] text-cyan-500/70 font-bold">➔</span>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </div>
-
-            {/* Flow State Indicator */}
-            {flowStateSeconds > 0 && (
-              <span className="hidden xl:flex items-center space-x-1 text-[10px] text-emerald-400 font-bold shrink-0">
-                <TrendingUp className="w-3 h-3" />
-                <span>Flow {flowStateSeconds}s</span>
-              </span>
-            )}
           </div>
 
-          {/* Right Cluster: Tablet Launcher, TGMS, Score, Clock & Control Icons (Flex-Shrink-0) */}
+          {/* Right Cluster: EHS Score, Clock, 1/2/3 Camera View Switcher (incl. Whole Fab View 2), Help, Feedback, Mute, Pause */}
           <div className="flex items-center space-x-1.5 shrink-0 ml-auto">
-            {/* Engineer Diagnostic Tablet Launcher */}
-            <button
-              onClick={onOpenTablet}
-              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg border border-cyan-500/40 bg-slate-900/90 text-cyan-300 hover:bg-slate-800 hover:border-cyan-400 transition cursor-pointer text-[11px] font-bold shadow-sm"
-              title="Open Diagnostics Tablet & Process Tuning"
-            >
-              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{isZh ? '機台調校平板' : 'Diagnostic Pad'}</span>
-            </button>
-
-            {/* TGMS Indicator */}
-            <div
-              className={`hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] ${
-                activeHazard
-                  ? 'bg-rose-500/20 border border-rose-500 text-rose-300 font-bold animate-pulse'
-                  : 'bg-slate-900/80 border border-slate-800 text-emerald-400'
-              }`}
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              <span>{activeHazard ? 'TGMS TRIP' : 'TGMS 0.0'}</span>
-            </div>
-
-            {/* Safety Score */}
-            <div className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px]">
+            {/* EHS Compliance Score */}
+            <div className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-[10px]">
               <span className="text-slate-400">{isZh ? '工安' : 'EHS'}:</span>
               <span
                 className={`font-bold ${
@@ -250,46 +352,71 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
 
             {/* Shift Clock */}
-            <div className="px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] font-bold text-white tabular-nums">
+            <div className="px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] font-bold text-white tabular-nums">
               {formatTime(shiftTimeRemainingSec)}
             </div>
 
-            {/* Camera View Switcher */}
-            <div className="hidden sm:flex items-center space-x-0.5 bg-slate-900/90 border border-slate-800 rounded-lg p-0.5">
+            {/* 1 / 2 / 3 Camera View Switcher (Preserves Whole Fab View 2!) */}
+            <div className="flex items-center space-x-0.5 bg-slate-900/95 border border-slate-700/80 rounded-lg p-0.5">
               <button
                 onClick={() => onChangeCameraView('VR_FIRST_PERSON')}
-                className={`p-1 rounded ${
+                className={`px-2 py-1 rounded text-[10px] font-bold flex items-center space-x-1 cursor-pointer transition-colors ${
                   cameraView === 'VR_FIRST_PERSON'
-                    ? 'bg-cyan-500/30 text-cyan-300'
+                    ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
                     : 'text-slate-400 hover:text-white'
                 }`}
-                title="VR First-Person (1)"
+                title="1: First-Person Walkthrough View"
               >
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="w-3 h-3" />
+                <span className="hidden xl:inline">{isZh ? '1 第一人稱' : '1 Walk'}</span>
+                <span className="xl:hidden">1</span>
               </button>
               <button
                 onClick={() => onChangeCameraView('SUPERVISOR_ISOMETRIC')}
-                className={`p-1 rounded ${
+                className={`px-2 py-1 rounded text-[10px] font-bold flex items-center space-x-1 cursor-pointer transition-colors ${
                   cameraView === 'SUPERVISOR_ISOMETRIC'
-                    ? 'bg-cyan-500/30 text-cyan-300'
+                    ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
                     : 'text-slate-400 hover:text-white'
                 }`}
-                title="Fab Bird-Eye View (2)"
+                title="2: Whole Fab Bird's-Eye View (See your 3D Engineer Avatar & PPE!)"
               >
-                <Layers className="w-3.5 h-3.5" />
+                <Layers className="w-3 h-3" />
+                <span className="hidden xl:inline">{isZh ? '2 全廠俯視' : '2 Whole Fab'}</span>
+                <span className="xl:hidden">2</span>
               </button>
               <button
                 onClick={() => onChangeCameraView('INSPECTION')}
-                className={`p-1 rounded ${
+                className={`px-2 py-1 rounded text-[10px] font-bold flex items-center space-x-1 cursor-pointer transition-colors ${
                   cameraView === 'INSPECTION'
-                    ? 'bg-cyan-500/30 text-cyan-300'
+                    ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
                     : 'text-slate-400 hover:text-white'
                 }`}
-                title="Bay Inspection (3)"
+                title="3: Close-Up Machine Inspection View"
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="w-3 h-3" />
+                <span className="hidden xl:inline">{isZh ? '3 機台特寫' : '3 Inspect'}</span>
+                <span className="xl:hidden">3</span>
               </button>
             </div>
+
+            {/* 4-Pillar EHS Field Guide Button */}
+            <button
+              onClick={onOpenInstructions}
+              className="px-2 py-1 rounded-lg bg-cyan-500/20 border border-cyan-400/60 text-cyan-200 hover:bg-cyan-500/30 text-[10px] font-bold flex items-center space-x-1 cursor-pointer transition-colors"
+              title={t.howToPlay}
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-cyan-300" />
+              <span className="hidden md:inline">{isZh ? '工安手冊' : 'Guide'}</span>
+            </button>
+
+            {/* In-Game Feedback Button */}
+            <button
+              onClick={onOpenFeedback}
+              className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-amber-300 hover:text-white cursor-pointer transition-colors"
+              title={isZh ? '遊戲內回饋表單' : 'In-Game Feedback'}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+            </button>
 
             {/* Language Toggle */}
             <button
@@ -300,22 +427,17 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               {isZh ? 'EN' : '繁中'}
             </button>
 
-            {/* Help / SOP */}
-            <button
-              onClick={onOpenInstructions}
-              className="p-1 rounded bg-slate-900 border border-slate-800 text-cyan-400 hover:text-white cursor-pointer transition-colors"
-              title={t.howToPlay}
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-            </button>
-
             {/* Mute */}
             <button
               onClick={onToggleMute}
               className="p-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:text-white cursor-pointer transition-colors"
               title={isMuted ? t.unmuteAudio : t.muteAudio}
             >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-cyan-400" />}
+              {isMuted ? (
+                <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+              )}
             </button>
 
             {/* Pause */}
@@ -329,27 +451,66 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
           </div>
         </div>
 
-        {/* Clickable Actionable Micro-Anomaly Ticker */}
-        {anomalousSectors.length > 0 && !activeHazard && (
-          <div className="mt-1 flex items-center justify-center pointer-events-auto">
-            <button
-              onClick={() => onSelectSector(anomalousSectors[0].id)}
-              className="px-3.5 py-1 rounded-full bg-amber-950/85 hover:bg-amber-900 border border-amber-500/70 text-[11px] text-amber-200 flex items-center space-x-2 animate-pulse cursor-pointer shadow-lg shadow-amber-950/50 transition-all hover:scale-105"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>
-                {isZh
-                  ? `【感測微幅異常】${anomalousSectors.map((s) => s.code.split('/')[0]).join(', ')} 負載過高 ➔ [點擊立即鎖定機台調校]`
-                  : `[Sensor Jitter] Elevated backpressure in ${anomalousSectors.map((s) => s.code.split('/')[0]).join(', ')} ➔ [Click to Tune]`}
+        {/* ==================================================== */}
+        {/* 2. ALWAYS-ON LIVE ENGINEER CO-PILOT BANNER           */}
+        {/* ==================================================== */}
+        {!activeHazard && !activePreAlarm && (
+          <div className="mx-auto max-w-4xl w-full px-3.5 py-2 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-mono font-bold text-[10px] shrink-0 flex items-center space-x-1">
+                <Sparkles className="w-3 h-3" />
+                <span>{isZh ? '工程師即時指引' : 'ENGINEER CO-PILOT'}</span>
               </span>
-            </button>
+              {lotMission ? (
+                <div className="text-slate-200 truncate">
+                  <strong className="text-amber-300 font-mono">[{lotMission.lotCode}]</strong>{' '}
+                  <span>{isZh ? lotMission.titleZh : lotMission.title}</span>
+                  <span className="text-slate-400 ml-1.5 hidden sm:inline">
+                    — {isZh ? lotMission.hintZh : lotMission.hint}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-slate-200">
+                  {isZh
+                    ? '各區運轉穩定！請巡視無塵室並微調下方 RF / 特氣 / 真空滑桿以提升良率，注意洗滌塔負載勿超過 85%。'
+                    : 'All bays nominal! Walk the fab and tune RF / Gas / Vacuum sliders for yield while keeping Scrubber < 85%.'}
+                </div>
+              )}
+            </div>
+
+            {lotMission && (
+              <div className="flex items-center space-x-2 shrink-0 font-mono text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-emerald-300">
+                  {isZh ? '批次進度' : 'Lot'}:{' '}
+                  {Math.min(
+                    lotMission.targetWaferCount,
+                    Math.max(0, totalWafersProduced - lotMission.startWaferCount)
+                  )}
+                  /{lotMission.targetWaferCount}
+                </span>
+                <button
+                  onClick={() => {
+                    onSelectSector(lotMission.targetSectorId);
+                    onWalkToSector(lotMission.targetSectorId);
+                  }}
+                  className="px-2.5 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/60 text-cyan-200 font-bold flex items-center space-x-1 cursor-pointer transition-colors"
+                >
+                  <Footprints className="w-3 h-3" />
+                  <span>
+                    {isZh
+                      ? `前往 ${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0].trim()}`
+                      : `Walk to ${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0].trim()}`}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Floating Animated Score / Yield Delta Badges (Relocated to Top-Right to prevent view blocking) */}
+      {/* Floating Animated Score / Yield Delta Badges */}
       {floatingDeltas.length > 0 && (
-        <div className="pointer-events-none fixed top-20 right-5 flex flex-col items-end gap-1.5 z-30">
+        <div className="pointer-events-none fixed top-24 right-5 flex flex-col items-end gap-1.5 z-30">
           {floatingDeltas.slice(-4).map((d) => (
             <div
               key={d.id}
@@ -370,38 +531,164 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       )}
 
       {/* ==================================================== */}
-      {/* 2. FLOATING EMERGENCY ALERT CARD (3-Tiered Hazards)  */}
+      {/* 3. AMBER EQUIPMENT DIAGNOSTIC & TROUBLESHOOTING CARD */}
       {/* ==================================================== */}
-      {activeHazard && (
-        <div className="mx-auto max-w-xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in font-mono">
-          <div className="rounded-xl border-2 border-rose-500/90 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-md">
-            {/* Header with Level Tier Badge */}
-            <div className="flex items-center justify-between mb-2">
+      {activePreAlarm && !activeHazard && (
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in">
+          <div className="rounded-2xl border-2 border-amber-400/90 bg-slate-950/95 p-3.5 md:p-4 shadow-2xl backdrop-blur-md space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 pb-2">
               <div className="flex items-center space-x-2">
-                <Flame className="w-4 h-4 text-rose-500 animate-bounce" />
-                <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">
-                  {t.emergencyIncident}
-                </span>
+                <Cpu className="w-5 h-5 text-amber-400 animate-pulse shrink-0" />
+                <div>
+                  <div className="text-[11px] font-mono font-bold text-amber-300 uppercase tracking-wider">
+                    {isZh
+                      ? '🔧 [製程設備故障診斷 · 工程師排障挑戰]'
+                      : '🔧 [EQUIPMENT DIAGNOSTIC & TROUBLESHOOTING PUZZLE]'}
+                  </div>
+                  <h3 className="text-sm md:text-base font-bold text-white">
+                    {isZh ? activePreAlarm.titleZh : activePreAlarm.title}
+                  </h3>
+                </div>
+              </div>
 
-                {/* Level Tier Badge */}
+              <div className="flex items-center space-x-2 font-mono">
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                    activeHazard.level === 'LEVEL_3_FATAL_CRISIS'
-                      ? 'bg-rose-900/60 border-rose-400 text-rose-200 animate-pulse'
-                      : activeHazard.level === 'LEVEL_2_CHEMICAL_LEAK'
-                      ? 'bg-amber-900/60 border-amber-400 text-amber-200'
-                      : 'bg-blue-900/60 border-blue-400 text-blue-200'
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                    isPreAlarmBayOnSite
+                      ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                      : 'bg-slate-900 border-amber-400/60 text-amber-200'
                   }`}
                 >
-                  {activeHazard.level === 'LEVEL_3_FATAL_CRISIS'
-                    ? (isZh ? 'LEVEL 3 即時致命危機' : 'LEVEL 3 FATAL CRISIS')
-                    : activeHazard.level === 'LEVEL_2_CHEMICAL_LEAK'
-                    ? (isZh ? 'LEVEL 2 化學/特殊氣體洩漏' : 'LEVEL 2 CHEMICAL / GAS LEAK')
-                    : (isZh ? 'LEVEL 1 機械/傳輸異常' : 'LEVEL 1 MECHANICAL / LOTO')}
+                  {isPreAlarmBayOnSite
+                    ? isZh
+                      ? `📍 已在現場 (${preAlarmBayDist.toFixed(1)}m)`
+                      : `📍 ON-SITE (${preAlarmBayDist.toFixed(1)}m)`
+                    : isZh
+                    ? `📡 距離機台 ${preAlarmBayDist.toFixed(1)}m`
+                    : `📡 Distance ${preAlarmBayDist.toFixed(1)}m`}
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400 text-amber-200 text-xs font-bold tabular-nums">
+                  ⏳ {activePreAlarm.timeRemainingSec}s
+                </span>
+              </div>
+            </div>
+
+            {/* Live Chamber Diagnostic Clues + Wafer Defect Pattern */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+              <div className="md:col-span-2 p-2.5 rounded-xl bg-slate-900/95 border border-amber-500/40">
+                <div className="font-bold text-amber-300 text-[11px] mb-1 flex items-center justify-between">
+                  <span>
+                    {isZh ? '📊 機台即時感測器異常線索 (Sensor Clues)：' : '📊 Live Chamber Sensor Symptoms:'}
+                  </span>
+                  <span className="text-[10px] font-mono text-cyan-300">
+                    {isZh ? '請依線索判斷根因' : 'Diagnose Root Cause'}
+                  </span>
+                </div>
+                <ul className="space-y-1 text-[11px] text-slate-200 font-mono">
+                  {(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).map((sym, i) => (
+                    <li key={i} className="flex items-start space-x-1.5">
+                      <span className="text-amber-400 font-bold">▸</span>
+                      <span>{sym}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-rose-950/30 border border-rose-500/40 flex flex-col justify-between">
+                <div>
+                  <div className="font-bold text-rose-300 text-[11px] mb-0.5">
+                    {isZh ? '🔬 晶圓缺陷圖譜 (Wafer Map)：' : '🔬 Wafer Defect Signature:'}
+                  </div>
+                  <p className="text-amber-100 text-[11px] font-mono leading-snug">
+                    {isZh ? activePreAlarm.waferDefectPatternZh : activePreAlarm.waferDefectPattern}
+                  </p>
+                </div>
+                <div className="mt-2 pt-1.5 border-t border-rose-500/20 text-[10px] text-rose-200/90">
+                  <strong>{isZh ? '⚠️ 誤判後果：' : '⚠️ If Misdiagnosed: '}</strong>
+                  {isZh ? activePreAlarm.consequenceIfIgnoredZh : activePreAlarm.consequenceIfIgnored}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1: Walk to Bay OR Step 2: 3 Engineering Troubleshooting Options */}
+            <div className="pt-1">
+              {!isPreAlarmBayOnSite ? (
+                <button
+                  onClick={() => {
+                    onSelectSector(activePreAlarm.sectorId);
+                    onWalkToSector(activePreAlarm.sectorId);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/25 cursor-pointer transition-all"
+                >
+                  <Footprints className="w-4 h-4" />
+                  <span>
+                    {isAutoWalking && walkingTargetSector === activePreAlarm.sectorId
+                      ? isZh
+                        ? `🏃 正在走往 ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} 診斷 (${preAlarmBayDist.toFixed(1)}m)...`
+                        : `🏃 Walking to Bay to Diagnose (${preAlarmBayDist.toFixed(1)}m)...`
+                      : isZh
+                      ? `🏃 第一步：點擊走往 ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} 現場 (<5.5m) 開啟 3 項工程排障決策`
+                      : `🏃 Step 1: Click to Walk to ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} (<5.5m) to Unlock 3 Troubleshooting Fixes`}
+                  </span>
+                </button>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-cyan-300">
+                      {isZh
+                        ? '🧠 第二步：請根據上方感測器線索，選擇正確的「工程故障排除方案」：'
+                        : '🧠 Step 2: Based on the sensor symptoms above, choose the Root-Cause Engineering Fix:'}
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300">
+                      {isZh ? '不同選擇將產生截然不同的結果！' : 'Choices have distinct outcomes!'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {activePreAlarm.troubleshootingOptions.map((opt, idx) => (
+                      <button
+                        key={opt.id || idx}
+                        onClick={() => onPreventPreAlarm(activePreAlarm.sectorId, opt)}
+                        className="p-2.5 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 hover:bg-slate-800/95 text-left transition-all group cursor-pointer flex flex-col justify-between"
+                      >
+                        <div className="text-xs font-bold text-slate-100 group-hover:text-amber-300 leading-snug">
+                          🔧 {isZh ? opt.labelZh : opt.label}
+                        </div>
+                        <div className="mt-2 pt-1 border-t border-slate-800 text-[10px] font-mono text-cyan-400 flex items-center justify-between">
+                          <span>{isZh ? `工程方案 ${idx + 1}` : `Fix Option ${idx + 1}`}</span>
+                          <span>👉</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
+      {/* ==================================================== */}
+      {activeHazard && (
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in">
+          <div className="rounded-2xl border-2 border-rose-500/95 bg-slate-950/95 p-3.5 md:p-4 shadow-2xl backdrop-blur-md space-y-2.5">
+            {/* Header with Level Tier, Mute Siren & Comfortable 60s Timer */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <Flame className="w-5 h-5 text-rose-500 animate-bounce shrink-0" />
+                <span className="text-xs font-mono font-bold text-rose-400 uppercase tracking-wider">
+                  {t.emergencyIncident}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-rose-900/60 border border-rose-400 text-rose-200 text-[10px] font-mono font-bold">
+                  {activeHazard.regulatoryStandard}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold">
+                  ${activeHazard.ehsPillars.estimatedLossMillionsUSD.toFixed(1)}M Risk
                 </span>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 font-mono">
                 {!activeHazard.isSilenced && (
                   <button
                     onClick={onSilenceAlarm}
@@ -410,53 +697,158 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     🔕 {t.silenceAlarm}
                   </button>
                 )}
-                <span className="text-xs font-bold text-rose-300">
-                  {t.timeCritical} <strong className="text-rose-400 tabular-nums">{activeHazard.timeRemainingSec.toFixed(1)}s</strong>
+                <span className="text-xs font-bold text-rose-200 bg-rose-950/80 border border-rose-500/50 px-2.5 py-0.5 rounded-lg tabular-nums">
+                  {t.timeCritical} {activeHazard.timeRemainingSec.toFixed(0)}s
                 </span>
               </div>
             </div>
 
-            {/* Time progress bar */}
-            <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden mb-2">
+            {/* Progress Bar */}
+            <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-300 ${
-                  activeHazard.timeRemainingSec > 15
+                  activeHazard.timeRemainingSec > 20
                     ? 'bg-emerald-500'
-                    : activeHazard.timeRemainingSec > 7
+                    : activeHazard.timeRemainingSec > 10
                     ? 'bg-amber-500'
                     : 'bg-rose-500'
                 }`}
                 style={{
-                  width: `${Math.min(100, (activeHazard.timeRemainingSec / activeHazard.timeLimitSec) * 100)}%`,
+                  width: `${Math.min(
+                    100,
+                    (activeHazard.timeRemainingSec / activeHazard.timeLimitSec) * 100
+                  )}%`,
                 }}
               />
             </div>
 
-            <h3 className="text-sm font-bold text-white mb-1 font-sans">
-              {isZh ? activeHazard.titleZh : activeHazard.title}
-            </h3>
-            <p className="text-xs text-slate-300 mb-2 leading-relaxed font-sans">
-              {isZh ? activeHazard.descZh : activeHazard.description}
-            </p>
+            <div>
+              <h3 className="text-sm md:text-base font-bold text-white">
+                {isZh ? activeHazard.titleZh : activeHazard.title}
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                {isZh ? activeHazard.descZh : activeHazard.description}
+              </p>
+            </div>
 
-            {/* Protocol Choices (Randomized) */}
-            {activeHazard.protocolSteps && activeHazard.protocolSteps.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-slate-800">
-                <div className="text-[11px] font-bold text-cyan-300 mb-2 font-sans">
-                  {isZh ? activeHazard.currentPromptZh : activeHazard.currentPrompt}
+            {/* ==================================================== */}
+            {/* CRUCIAL STEP 1: MANDATORY PPE INSTRUCTION BANNER      */}
+            {/* ==================================================== */}
+            {requiredPpeInfo && (
+              <div
+                className={`p-2.5 rounded-xl border-2 flex flex-wrap items-center justify-between gap-2 text-xs transition-all ${
+                  isRequiredPpeEquipped
+                    ? 'bg-emerald-950/60 border-emerald-400/80 text-emerald-100'
+                    : 'bg-amber-950/80 border-amber-400 text-amber-100 animate-pulse'
+                }`}
+              >
+                <div className="flex items-start space-x-2 flex-1 min-w-[240px]">
+                  {isRequiredPpeEquipped ? (
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <div className="font-bold font-mono text-[11px]">
+                      {isRequiredPpeEquipped
+                        ? isZh
+                          ? `✅ 關鍵防護步驟完成：已穿戴【${requiredPpeInfo.icon} ${requiredPpeInfo.nameZh}】`
+                          : `✅ CRUCIAL PPE STEP VERIFIED: [${requiredPpeInfo.icon} ${requiredPpeInfo.nameEn}] Equipped`
+                        : isZh
+                        ? `🚨 關鍵步驟 1 (必備 PPE 指引)：請先穿戴【${requiredPpeInfo.icon} ${requiredPpeInfo.nameZh}】！`
+                        : `🚨 CRUCIAL STEP 1 (MANDATORY PPE): Equip [${requiredPpeInfo.icon} ${requiredPpeInfo.nameEn}] First!`}
+                    </div>
+                    <div className="text-[11px] opacity-90 mt-0.5">
+                      {isZh
+                        ? activeHazard.ehsPillars.ppeInstructionZh
+                        : activeHazard.ehsPillars.ppeInstruction}
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+
+                {!isRequiredPpeEquipped && (
+                  <button
+                    onClick={() => onTogglePPE(requiredPpeInfo.key)}
+                    className="px-3.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-mono font-bold text-xs flex items-center space-x-1.5 shrink-0 shadow-lg cursor-pointer"
+                  >
+                    <span>{requiredPpeInfo.icon}</span>
+                    <span>
+                      {isZh
+                        ? `立即穿戴 ${requiredPpeInfo.nameZh.split(' ')[0]}`
+                        : `Equip ${requiredPpeInfo.nameEn.split(' ')[0]} Now`}
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Guided Step 2 (Walk On-Site) OR Step 3 (Make Critical SOP Decision) */}
+            {!isHazardBayOnSite ? (
+              <div className="p-3 rounded-xl bg-amber-950/50 border-2 border-amber-400/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-amber-100">
+                  <div className="font-bold text-amber-300">
+                    {isZh
+                      ? `📍 工程師指引 Step 2：您目前距離事故機台 ${hazardBayDist.toFixed(1)} 公尺`
+                      : `📍 Co-Pilot Step 2: You are ${hazardBayDist.toFixed(1)}m away from the incident bay`}
+                  </div>
+                  <div className="text-[11px] text-slate-300 mt-0.5">
+                    {isZh
+                      ? '請確認穿戴好上方指示之 PPE 後，走近事故機台 (< 5.5m) 解鎖 3 項關鍵緊急應變決策！'
+                      : 'Equip the instructed PPE above and walk to the incident bay (< 5.5m) to unlock the 3 critical SOP choices!'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectSector(activeHazard.sectorId);
+                    onWalkToSector(activeHazard.sectorId);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center space-x-2 shrink-0 shadow-lg shadow-amber-500/30 cursor-pointer"
+                >
+                  <Footprints className="w-4 h-4" />
+                  <span>
+                    {isAutoWalking && walkingTargetSector === activeHazard.sectorId
+                      ? isZh
+                        ? `🏃 正在趕往現場 (${hazardBayDist.toFixed(1)}m)...`
+                        : `🏃 Walking to Bay (${hazardBayDist.toFixed(1)}m)...`
+                      : isZh
+                      ? `🏃 點擊立即趕往 ${INITIAL_SECTORS[activeHazard.sectorId].code.split('/')[0]}`
+                      : `🏃 Walk to ${INITIAL_SECTORS[activeHazard.sectorId].code.split('/')[0]} Now`}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              /* Unspoiled Critical Player Decision (3 Randomized SOP Choices) */
+              <div className="pt-1 border-t border-slate-800">
+                <div className="flex flex-wrap items-center justify-between gap-1 mb-2">
+                  <div className="text-xs font-bold text-cyan-300">
+                    🧠 {isZh ? activeHazard.currentPromptZh : activeHazard.currentPrompt}{' '}
+                    <span className="text-[10px] font-mono text-slate-400">
+                      (Stage {activeHazard.currentStageIndex + 1}/{activeHazard.totalStages})
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded">
+                    {isZh
+                      ? `📍 已在現場 (${hazardBayDist.toFixed(1)}m) · 選出正確應變決策`
+                      : `📍 On-Site (${hazardBayDist.toFixed(1)}m) · Choose the correct SOP`}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {activeHazard.protocolSteps.map((step, idx) => (
                     <button
                       key={step.id || idx}
                       onClick={() => onSelectProtocolStep(step)}
-                      className="p-2.5 rounded-lg bg-slate-900/95 border border-slate-700/80 hover:border-cyan-400 hover:bg-slate-800 text-left transition-all group cursor-pointer"
+                      className="p-3 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-cyan-400 hover:bg-slate-800/90 text-left transition-all group cursor-pointer flex flex-col justify-between"
                     >
-                      <div className="text-[11px] font-bold text-slate-100 group-hover:text-cyan-300 leading-tight font-sans">
-                        {isZh ? step.labelZh : step.label}
+                      <div>
+                        <div className="text-xs font-bold text-slate-100 group-hover:text-cyan-300 leading-snug">
+                          {isZh ? step.labelZh : step.label}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                          {isZh ? step.descZh : step.description}
+                        </div>
                       </div>
-                      <div className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 font-sans">
-                        {isZh ? step.descZh : step.description}
+                      <div className="mt-2 pt-1.5 border-t border-slate-800/80 text-[10px] font-mono text-cyan-400 opacity-80 group-hover:opacity-100">
+                        {isZh ? `👉 執行方案 ${idx + 1}` : `👉 Execute Option ${idx + 1}`}
                       </div>
                     </button>
                   ))}
@@ -467,456 +859,465 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
         </div>
       )}
 
-      {/* Toast Feedback */}
-      {lastFeedback && (
-        <div className="mx-auto max-w-sm w-full pointer-events-none mb-1">
+      {/* ==================================================== */}
+      {/* 5. 4-PILLAR CONSEQUENCE & LEARNING FEEDBACK TOAST    */}
+      {/* ==================================================== */}
+      {ehsDecisionFeedback && (
+        <div className="mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in">
           <div
-            className={`p-2.5 rounded-xl border text-xs font-mono flex items-center space-x-2 shadow-xl backdrop-blur-md ${
-              lastFeedback.isCorrect
-                ? 'bg-emerald-950/95 border-emerald-500/80 text-emerald-200'
-                : 'bg-rose-950/95 border-rose-500/80 text-rose-200'
+            className={`p-3.5 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
+              ehsDecisionFeedback.type === 'PREVENTED' ||
+              ehsDecisionFeedback.type === 'CORRECT_STEP' ||
+              ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
+                ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
+                : 'bg-rose-950/95 border-rose-500 text-rose-100'
             }`}
           >
-            {lastFeedback.isCorrect ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            ) : (
-              <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            )}
-            <div className="leading-tight text-[11px]">{lastFeedback.text}</div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 font-bold text-sm">
+                {ehsDecisionFeedback.type === 'WRONG_STEP' ||
+                ehsDecisionFeedback.type === 'FATAL_ERROR' ||
+                ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
+                  <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                )}
+                <span>
+                  {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
+                </span>
+              </div>
+              <button
+                onClick={onDismissFeedback}
+                className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="leading-relaxed text-slate-100">
+              {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
+            </p>
+            <div className="pt-1 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-amber-200">
+              <span>
+                {isZh ? ehsDecisionFeedback.consequenceNoteZh : ehsDecisionFeedback.consequenceNote}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-black/30 text-cyan-300">
+                {ehsDecisionFeedback.standard}
+              </span>
+            </div>
           </div>
         </div>
       )}
 
       {/* ==================================================== */}
-      {/* 3. DOCKED BOTTOM CLUSTER (Banner + Bay Tuning Rack)   */}
+      {/* 6. BOTTOM ENGINEER CONSOLE (Sliders + On-Site Rack)  */}
       {/* ==================================================== */}
-      <div className="pointer-events-auto mx-auto w-full max-w-4xl font-mono mt-auto flex flex-col gap-1.5 z-20">
-        {/* Dynamic SOP Banner or Educational Recipe Goal Header */}
-        {activeHazard ? (
-          <div className="p-2.5 rounded-xl bg-gradient-to-r from-rose-950/95 via-slate-950/90 to-amber-950/95 border-2 border-rose-500/80 shadow-2xl backdrop-blur-md">
-            <div className="flex items-center justify-between mb-1 pb-1 border-b border-rose-900/60">
-              <div className="flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
-                <span className="font-bold text-rose-300 text-xs tracking-wider font-sans">
-                  {isZh ? '🚨 [SOP 緊急處置標準引導步驟]' : '🚨 [SOP EMERGENCY CONTAINMENT INSTRUCTIONS]'}
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/50">
-                  {isZh
-                    ? `目標機台: ${INITIAL_SECTORS[activeHazard.sectorId]?.nameZh}`
-                    : `Target Bay: ${INITIAL_SECTORS[activeHazard.sectorId]?.code}`}
-                </span>
-              </div>
-              <span className="text-xs font-bold text-rose-400 tabular-nums">
-                {activeHazard.timeRemainingSec.toFixed(1)}s
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-              {/* Step 1: Bay Selection & Target */}
-              <div
-                className={`p-2 rounded-lg border transition-all ${
-                  selectedSectorId === activeHazard.sectorId
-                    ? 'bg-slate-900/90 border-cyan-500/80 text-cyan-200'
-                    : 'bg-amber-950/40 border-amber-500/50 text-amber-200 animate-pulse'
-                }`}
-              >
-                <div className="font-bold mb-0.5">
-                  {isZh ? '步驟 1: 切換目標機台' : 'Step 1: Switch Target Bay'}
-                </div>
-                <div>
-                  {selectedSectorId === activeHazard.sectorId ? (
-                    <span className="text-emerald-400 font-bold">
-                      {isZh ? '✓ 已鎖定目標機台' : '✓ Target Bay Locked'}
-                    </span>
-                  ) : (
-                    <span className="cursor-pointer" onClick={() => onSelectSector(activeHazard.sectorId)}>
-                      {isZh
-                        ? `👉 點選下方「${INITIAL_SECTORS[activeHazard.sectorId]?.code.split('/')[0]}」`
-                        : `👉 Click ${INITIAL_SECTORS[activeHazard.sectorId]?.code} below`}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 2: Parameter De-escalation Target */}
-              <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-700/80 text-slate-200">
-                <div className="font-bold mb-0.5 text-amber-300">
-                  {isZh ? '步驟 2: 製程參數安全抑制' : 'Step 2: Safety De-escalation'}
-                </div>
-                <div>
-                  {activeHazard.level === 'LEVEL_3_FATAL_CRISIS' ? (
-                    <span className="text-rose-400 font-bold animate-pulse">
-                      {isZh ? '⚠️ 立即拍下下方 EMO 急停！' : '⚠️ Strike EMO Button Below!'}
-                    </span>
-                  ) : selectedSector.rfPowerWatts > 900 ? (
-                    <span>
-                      {isZh
-                        ? `拉降 RF 至 < 900W (目前: ${selectedSector.rfPowerWatts}W)`
-                        : `Pull RF < 900W (Now: ${selectedSector.rfPowerWatts}W)`}
-                    </span>
-                  ) : selectedSector.gasFlowSccm > 50 ? (
-                    <span>
-                      {isZh
-                        ? `切斷特氣至 < 50 sccm (目前: ${selectedSector.gasFlowSccm})`
-                        : `Cut Gas < 50 sccm (Now: ${selectedSector.gasFlowSccm})`}
-                    </span>
-                  ) : (
-                    <span className="text-emerald-400 font-bold">
-                      {isZh ? '✓ 參數已在受控範圍' : '✓ In Controlled Zone'}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 3: SOP Protocol Resolution */}
-              <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-700/80 text-slate-200">
-                <div className="font-bold mb-0.5 text-cyan-300">
-                  {isZh ? '步驟 3: 執行標準處置' : 'Step 3: Execute Protocol'}
-                </div>
-                <div>
-                  {isZh ? '點選上方正確 SOP 卡牌完成隔離' : 'Pick correct SOP protocol card above'}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Educational Target Recipe & Balancing Banner */
-          <div className="px-3 py-1.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center space-x-2 text-slate-200">
-              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/40">
-                {isZh ? '製程配方目標' : 'RECIPE TARGET'}
-              </span>
-              <span className="font-bold text-white">
-                {selectedSector.code.split('/')[0]}:
-              </span>
-              <span className="text-slate-300 text-[11px]">
-                {selectedSector.id === 'PHOTOLITHOGRAPHY'
-                  ? (isZh ? '最佳範圍: RF 800~1100W | 特氣 30~50 sccm (常壓大氣微影吸附)' : 'Optimal: RF 800-1100W | Gas 30-50 sccm (Atmospheric chuck)')
-                  : selectedSector.id === 'ION_IMPLANTATION'
-                  ? (isZh ? '最佳範圍: RF 1100~1400W | 真空 < 20 Torr (深真空防 200kV 擊穿電弧)' : 'Optimal: RF 1100-1400W | Vac < 20T (Deep vacuum prevents 200kV arcing)')
-                  : selectedSector.id === 'ETCH_CVD'
-                  ? (isZh ? '最佳範圍: RF 1300~1700W | 特氣 70~110 sccm | 監控洗滌塔負載 < 88%' : 'Optimal: RF 1300-1700W | Gas 70-110 sccm | Scrubber < 88%')
-                  : selectedSector.id === 'CMP_WET_BENCH'
-                  ? (isZh ? '最佳範圍: 研磨 RF 700~950W | 漿料 20~40 sccm (化學酸槽負壓排氣)' : 'Optimal: RF 700-950W | Slurry 20-40 sccm (Acid bench negative draft)')
-                  : (isZh ? '最佳範圍: RF 900~1200W | 爐溫 1020~1100°C (石英管均勻氧化)' : 'Optimal: RF 900-1200W | Temp 1020-1100°C (Nano oxide film)')}
-              </span>
-            </div>
-
-            <div className="flex items-center space-x-2 text-[10px]">
-              {selectedSector.scrubberLoadPct > 88 ? (
-                <span className="px-2 py-0.5 rounded bg-rose-500/20 border border-rose-500 text-rose-300 font-bold animate-pulse">
-                  🚨 洗滌塔高背壓！請調降特氣
-                </span>
-              ) : selectedSector.rfPowerWatts >= 2100 ? (
-                <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500 text-amber-300 font-bold animate-pulse">
-                  ⚠️ RF 功率過載！腔體過熱
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500 text-emerald-300 font-bold">
-                  ✓ 製程參數最佳平衡中
+      <div className="pointer-events-auto mx-auto w-full max-w-5xl font-mono mt-auto flex flex-col gap-1 z-20">
+        {/* Collapse / Expand Handle + PPE Quick-Toggle Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 rounded-t-xl bg-slate-950/95 border border-b-0 border-slate-700/80 text-[11px]">
+          {/* PPE Quick-Bar with Mandatory Highlight */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto">
+            <span className="text-[10px] text-slate-400 font-bold uppercase">
+              {isZh ? '個人防護具 (PPE):' : 'PPE GEAR:'}
+            </span>
+            <button
+              onClick={() => onTogglePPE('scba')}
+              className={`px-2 py-0.5 rounded border text-[10px] font-bold transition-all cursor-pointer flex items-center space-x-1 ${
+                equippedPPE.scba
+                  ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200 shadow-sm shadow-emerald-500/30'
+                  : requiredPpeCode === 'SCBA'
+                  ? 'bg-amber-500/30 border-2 border-amber-400 text-amber-200 animate-pulse'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+              title={isZh ? '正壓自給式呼吸器 (防劇毒氣體 AsH3 / SiH4 / 高溫氫氣)' : 'Positive-Pressure SCBA Respirator'}
+            >
+              <span>😷 {isZh ? 'SCBA 呼吸器' : 'SCBA'}</span>
+              <span className="font-mono">{equippedPPE.scba ? 'ON' : 'OFF'}</span>
+              {requiredPpeCode === 'SCBA' && !equippedPPE.scba && (
+                <span className="px-1 rounded bg-amber-400 text-slate-950 text-[9px]">
+                  {isZh ? '必備!' : 'REQ!'}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => onTogglePPE('acidSuit')}
+              className={`px-2 py-0.5 rounded border text-[10px] font-bold transition-all cursor-pointer flex items-center space-x-1 ${
+                equippedPPE.acidSuit
+                  ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200 shadow-sm shadow-emerald-500/30'
+                  : requiredPpeCode === 'ACID_SUIT'
+                  ? 'bg-amber-500/30 border-2 border-amber-400 text-amber-200 animate-pulse'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+              title={isZh ? '防酸蝕圍裙與面罩 (防氫氟酸 HF 噴濺)' : 'Chemical Acid Apron & Face Shield'}
+            >
+              <span>🧤 {isZh ? '防酸防護衣' : 'Acid Suit'}</span>
+              <span className="font-mono">{equippedPPE.acidSuit ? 'ON' : 'OFF'}</span>
+              {requiredPpeCode === 'ACID_SUIT' && !equippedPPE.acidSuit && (
+                <span className="px-1 rounded bg-amber-400 text-slate-950 text-[9px]">
+                  {isZh ? '必備!' : 'REQ!'}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => onTogglePPE('hvGloves')}
+              className={`px-2 py-0.5 rounded border text-[10px] font-bold transition-all cursor-pointer flex items-center space-x-1 ${
+                equippedPPE.hvGloves
+                  ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200 shadow-sm shadow-emerald-500/30'
+                  : requiredPpeCode === 'HV_GLOVES'
+                  ? 'bg-amber-500/30 border-2 border-amber-400 text-amber-200 animate-pulse'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+              title={isZh ? 'Class 00 高壓絕緣手套 (防 200kV 電弧與機械夾傷)' : 'Class 00 High-Voltage Insulating Gloves'}
+            >
+              <span>⚡ {isZh ? '高壓絕緣手套' : 'HV Gloves'}</span>
+              <span className="font-mono">{equippedPPE.hvGloves ? 'ON' : 'OFF'}</span>
+              {requiredPpeCode === 'HV_GLOVES' && !equippedPPE.hvGloves && (
+                <span className="px-1 rounded bg-amber-400 text-slate-950 text-[9px]">
+                  {isZh ? '必備!' : 'REQ!'}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Selected Bay Proximity Indicator + Walk to Bay Button */}
+          <div className="flex items-center space-x-2 ml-auto">
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                isSelectedBayOnSite
+                  ? 'bg-emerald-950/90 border-emerald-500/60 text-emerald-300'
+                  : 'bg-slate-900 border-slate-700 text-amber-300'
+              }`}
+            >
+              {isSelectedBayOnSite
+                ? isZh
+                  ? `📍 人在機台現場 (${selectedBayDist.toFixed(1)}m)`
+                  : `📍 ON-SITE (${selectedBayDist.toFixed(1)}m)`
+                : isZh
+                ? `📡 遠端遙測中 (${selectedBayDist.toFixed(1)}m)`
+                : `📡 REMOTE (${selectedBayDist.toFixed(1)}m)`}
+            </span>
+
+            {!isSelectedBayOnSite && (
+              <button
+                onClick={() => onWalkToSector(selectedSectorId)}
+                className="px-2.5 py-0.5 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[10px] flex items-center space-x-1 cursor-pointer shadow-sm"
+              >
+                <Footprints className="w-3 h-3" />
+                <span>
+                  {isAutoWalking && walkingTargetSector === selectedSectorId
+                    ? isZh
+                      ? '走動中...'
+                      : 'Walking...'
+                    : isZh
+                    ? '🏃 走至此機台'
+                    : '🏃 Walk Here'}
+                </span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setIsDockCollapsed(!isDockCollapsed)}
+              className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-[10px] flex items-center space-x-1 cursor-pointer"
+            >
+              {isDockCollapsed ? (
+                <>
+                  <ChevronUp className="w-3 h-3" />
+                  <span>{isZh ? '展開控制台' : 'Expand'}</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3" />
+                  <span>{isZh ? '收合 (H)' : 'Collapse'}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Main Console Body */}
+        {!isDockCollapsed && (
+          <div className="rounded-b-xl rounded-tr-xl border border-slate-700/80 bg-slate-950/95 backdrop-blur-lg p-2.5 shadow-2xl text-xs">
+            {/* Bay Selector Tabs (Bay 101 ~ 105) */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pb-2 mb-2 border-b border-slate-800">
+              <div className="flex items-center space-x-1.5 overflow-x-auto">
+                {pipelineOrder.map((secId) => {
+                  const s = sectors[secId];
+                  if (!s) return null;
+                  const isSelected = selectedSectorId === secId;
+                  const isCrisis = s.activeHazardId !== null;
+                  const isPre = s.preAlarm !== null;
+                  const bayCode = s.code.split('/')[0].trim();
+                  const dist = bayDistances[secId] ?? 10;
+
+                  return (
+                    <button
+                      key={secId}
+                      onClick={() => onSelectSector(secId)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
+                        isSelected
+                          ? 'bg-cyan-500/30 border-2 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-500/20'
+                          : isCrisis
+                          ? 'bg-rose-500/30 border border-rose-500 text-rose-200 animate-pulse'
+                          : isPre
+                          ? 'bg-amber-500/30 border border-amber-400 text-amber-200 animate-pulse'
+                          : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          isCrisis
+                            ? 'bg-rose-400 animate-ping'
+                            : isPre
+                            ? 'bg-amber-400 animate-ping'
+                            : dist <= ON_SITE_DISTANCE_THRESHOLD_M
+                            ? 'bg-cyan-400'
+                            : 'bg-emerald-400'
+                        }`}
+                      />
+                      <span>{bayCode}</span>
+                      <span className="text-[10px] opacity-80 hidden sm:inline">
+                        {isZh ? s.nameZh.substring(5, 9) : s.name.split(' ')[0]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Quick Telemetry of Selected Bay */}
+              <div className="flex items-center space-x-3 text-[11px] text-slate-300 shrink-0">
+                <span>
+                  {isZh ? '腔溫' : 'Temp'}:{' '}
+                  <strong
+                    className={
+                      selectedSector.id === 'DIFFUSION_FURNACE'
+                        ? selectedSector.temperatureC > 1135
+                          ? 'text-rose-400'
+                          : 'text-amber-300'
+                        : selectedSector.temperatureC > 260
+                        ? 'text-rose-400'
+                        : 'text-white'
+                    }
+                  >
+                    {selectedSector.temperatureC.toFixed(0)}°C
+                  </strong>
+                </span>
+                <span>
+                  {isZh ? '洗滌塔' : 'Scrubber'}:{' '}
+                  <strong
+                    className={
+                      selectedSector.scrubberLoadPct > 85 ? 'text-amber-400' : 'text-emerald-400'
+                    }
+                  >
+                    {Math.round(selectedSector.scrubberLoadPct)}%
+                  </strong>
+                </span>
+                <span>
+                  {isZh ? '產速' : 'Speed'}:{' '}
+                  <strong className="text-cyan-300">{selectedSector.efficiency}%</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* 4-Column Grid: 3 Remote Recipe Sliders + 1 On-Site Physical Maintenance & Action Box */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {/* Slider 1: RF Power */}
+              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-slate-300 font-bold flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-amber-400" />
+                    <span>{isZh ? 'RF 射頻功率 (遠端可調)' : 'RF Power (Remote)'}</span>
+                  </span>
+                  <span
+                    className={`font-bold tabular-nums ${
+                      selectedSector.rfPowerWatts >= 2000
+                        ? 'text-rose-400 animate-pulse'
+                        : 'text-amber-400'
+                    }`}
+                  >
+                    {selectedSector.rfPowerWatts} W
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="500"
+                  max="2500"
+                  step="50"
+                  value={selectedSector.rfPowerWatts}
+                  onChange={(e) =>
+                    onTuneSectorParams?.(selectedSectorId, {
+                      rfPowerWatts: Number(e.target.value),
+                    })
+                  }
+                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                />
+                <div className="flex items-center justify-between text-[9px] mt-1.5 text-slate-400">
+                  <span>{isZh ? '安全區: 800~1750W' : 'Safe: 800-1750W'}</span>
+                  <span className="text-cyan-300 font-bold">
+                    {isZh ? `產速 ${selectedSector.efficiency}%` : `Speed ${selectedSector.efficiency}%`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Slider 2: Gas Flow */}
+              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-slate-300 font-bold flex items-center gap-1">
+                    <Flame className="w-3 h-3 text-cyan-400" />
+                    <span>{isZh ? '特氣流量 (遠端可調)' : 'Gas Flow (Remote)'}</span>
+                  </span>
+                  <span className="font-bold text-cyan-400 tabular-nums">
+                    {selectedSector.gasFlowSccm} sccm
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="260"
+                  step="5"
+                  value={selectedSector.gasFlowSccm}
+                  onChange={(e) =>
+                    onTuneSectorParams?.(selectedSectorId, {
+                      gasFlowSccm: Number(e.target.value),
+                    })
+                  }
+                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                />
+                <div className="flex items-center justify-between text-[9px] mt-1.5 text-slate-400">
+                  <span>{isZh ? '安全區: 35~135 sccm' : 'Safe: 35-135 sccm'}</span>
+                  <span
+                    className={
+                      selectedSector.scrubberLoadPct > 85
+                        ? 'text-amber-400 font-bold'
+                        : 'text-emerald-400'
+                    }
+                  >
+                    {isZh
+                      ? `廢氣負載 ${Math.round(selectedSector.scrubberLoadPct)}%`
+                      : `Scrubber ${Math.round(selectedSector.scrubberLoadPct)}%`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Slider 3: Chamber Vacuum */}
+              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-slate-300 font-bold flex items-center gap-1">
+                    <Activity className="w-3 h-3 text-purple-400" />
+                    <span>{isZh ? '腔體真空度 (遠端可調)' : 'Vacuum (Remote)'}</span>
+                  </span>
+                  <span className="font-bold text-purple-400 tabular-nums">
+                    {selectedSector.chamberVacuumTorr} Torr
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="760"
+                  step="5"
+                  value={selectedSector.chamberVacuumTorr}
+                  onChange={(e) =>
+                    onTuneSectorParams?.(selectedSectorId, {
+                      chamberVacuumTorr: Number(e.target.value),
+                    })
+                  }
+                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
+                />
+                <div className="flex items-center justify-between text-[9px] mt-1.5 text-slate-400">
+                  <span>
+                    {isZh
+                      ? `微塵: ${selectedSector.particleCountPPM.toFixed(1)} PPM`
+                      : `Particles: ${selectedSector.particleCountPPM.toFixed(1)} PPM`}
+                  </span>
+                  <button
+                    onClick={() =>
+                      onTuneSectorParams?.(selectedSectorId, {
+                        bypassActive: !selectedSector.bypassActive,
+                      })
+                    }
+                    className={`px-1.5 py-0.5 rounded border text-[9px] font-bold cursor-pointer ${
+                      selectedSector.bypassActive
+                        ? 'bg-indigo-600 border-indigo-400 text-white'
+                        : 'bg-slate-800 border-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {selectedSector.bypassActive
+                      ? isZh
+                        ? '分流開啟中'
+                        : 'Bypass ON'
+                      : isZh
+                      ? '繞道分流'
+                      : 'Bypass'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Column 4: On-Site Hands-On Engineering & Physical Action Box */}
+              <div className="p-2 rounded-lg bg-slate-900/90 border border-cyan-500/40 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-[10px] mb-1">
+                  <span className="font-bold text-cyan-300 flex items-center space-x-1">
+                    <Wrench className="w-3 h-3" />
+                    <span>{isZh ? '現場實體操作 (<5.5m)' : 'On-Site Actions (<5.5m)'}</span>
+                  </span>
+                  <span className="text-[9px] text-slate-400">
+                    {selectedBayDist.toFixed(1)}m
+                  </span>
+                </div>
+
+                {!isSelectedBayOnSite ? (
+                  <button
+                    onClick={() => onWalkToSector(selectedSectorId)}
+                    className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-[11px] flex items-center justify-center space-x-1.5 cursor-pointer shadow-md"
+                  >
+                    <Footprints className="w-3.5 h-3.5" />
+                    <span>
+                      {isZh
+                        ? `🏃 走近 ${selectedSector.code.split('/')[0]} 執行現場維護`
+                        : `🏃 Walk to ${selectedSector.code.split('/')[0]} for On-Site Ops`}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="space-y-1.5">
+                    <button
+                      onClick={() => {
+                        onPreventPreAlarm(selectedSectorId);
+                        onTriggerPhysicalAction('N2_PURGE', selectedSectorId);
+                      }}
+                      className="w-full py-1.5 px-2 rounded-lg font-bold text-[10px] flex items-center justify-center space-x-1 cursor-pointer transition-all bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/70 text-emerald-200"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>
+                        {isZh ? '🔧 現場例行 N2 吹驅與校準保養' : '🔧 Routine N2 Purge & Calibrate'}
+                      </span>
+                    </button>
+
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        onClick={() => onTriggerPhysicalAction('DELUGE_SHOWER', selectedSectorId)}
+                        className="py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-[9px] font-bold cursor-pointer"
+                        title="Test Emergency Deluge Shower"
+                      >
+                        💧 {isZh ? '沖淋' : 'Shower'}
+                      </button>
+                      <button
+                        onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
+                        className="py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-[9px] font-bold cursor-pointer"
+                        title="Apply 10kV Grounding Discharge Stick"
+                      >
+                        ⚡ {isZh ? '接地棒' : 'Ground'}
+                      </button>
+                      <button
+                        onClick={() => onHitEmo(selectedSectorId)}
+                        className="py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-[9px] font-bold cursor-pointer"
+                        title="Slam Machine EMO Button"
+                      >
+                        🛑 EMO
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
-
-        {/* Permanent Bay Tuning Rack */}
-        <div className="rounded-xl border border-slate-700/70 bg-slate-950/95 backdrop-blur-lg p-2.5 shadow-2xl text-xs">
-          {/* Bay Selector Tabs (Bay 101 ~ 105) */}
-          <div className="flex items-center justify-between gap-1.5 pb-2 mb-2 border-b border-slate-800 overflow-x-auto">
-            <div className="flex items-center space-x-1.5 shrink-0">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden md:inline">
-                {isZh ? '機台切換:' : 'BAY SELECT:'}
-              </span>
-              {pipelineOrder.map((secId) => {
-                const s = sectors[secId];
-                if (!s) return null;
-                const isSelected = selectedSectorId === secId;
-                const isAlert = s.activeHazardId !== null;
-                const isWarn = s.scrubberLoadPct > 88 || s.health < 80;
-                const bayCode = s.code.split('/')[0].trim();
-
-                return (
-                  <button
-                    key={secId}
-                    onClick={() => onSelectSector(secId)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
-                      isSelected
-                        ? 'bg-cyan-500/30 border-2 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-500/20'
-                        : isAlert
-                        ? 'bg-rose-500/30 border border-rose-500 text-rose-200 animate-pulse'
-                        : isWarn
-                        ? 'bg-amber-500/20 border border-amber-500/60 text-amber-300'
-                        : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        isAlert
-                          ? 'bg-rose-400 animate-ping'
-                          : isWarn
-                          ? 'bg-amber-400'
-                          : isSelected
-                          ? 'bg-cyan-400'
-                          : 'bg-emerald-400'
-                      }`}
-                    />
-                    <span>{bayCode}</span>
-                    <span className="text-[10px] opacity-75 hidden sm:inline">
-                      {isZh ? s.nameZh.substring(0, 4) : s.name.split(' ')[0]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Quick Status of currently inspected bay */}
-            <div className="flex items-center space-x-3 text-[11px] text-slate-400 shrink-0">
-              <span>
-                {isZh ? '腔溫' : 'Temp'}:{' '}
-                <strong
-                  className={
-                    selectedSector.id === 'DIFFUSION_FURNACE'
-                      ? selectedSector.temperatureC > 1150
-                        ? 'text-rose-400'
-                        : 'text-amber-300'
-                      : selectedSector.temperatureC > 300
-                      ? 'text-rose-400'
-                      : 'text-white'
-                  }
-                >
-                  {selectedSector.temperatureC.toFixed(0)}°C
-                </strong>
-              </span>
-              <span>
-                {isZh ? '健康度' : 'Health'}: <strong className="text-emerald-400">{selectedSector.health}%</strong>
-              </span>
-              <span>
-                {isZh ? '產速' : 'Speed'}: <strong className="text-cyan-300">{selectedSector.efficiency}%</strong>
-              </span>
-              <button
-                onClick={onOpenTablet}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-[10px] hidden sm:flex items-center space-x-1 cursor-pointer"
-                title="開啟檢驗診斷面板"
-              >
-                <Sliders className="w-3 h-3" />
-                <span>{isZh ? '深度診斷' : 'Tablet'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 4 Interactive Live Tuning Sliders */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-0.5">
-            {/* Slider 1: RF Power */}
-            <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-300 font-bold flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-400" />
-                  <span>RF 射頻功率</span>
-                </span>
-                <span
-                  className={`font-bold tabular-nums ${
-                    selectedSector.rfPowerWatts >= 2100 ? 'text-rose-400 animate-pulse' : 'text-amber-400'
-                  }`}
-                >
-                  {selectedSector.rfPowerWatts} W
-                </span>
-              </div>
-              <input
-                type="range"
-                min="500"
-                max="2500"
-                step="50"
-                value={selectedSector.rfPowerWatts}
-                onChange={(e) =>
-                  onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: Number(e.target.value) })
-                }
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
-              />
-              <div className="flex items-center justify-between gap-1 text-[9px] mt-1.5">
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: Math.max(500, selectedSector.rfPowerWatts - 100) })}
-                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
-                  title="降低 100W"
-                >
-                  -100W
-                </button>
-                <span className="text-slate-400 font-bold">產速: {selectedSector.efficiency}%</span>
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: Math.min(2500, selectedSector.rfPowerWatts + 100) })}
-                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
-                  title="提升 100W"
-                >
-                  +100W
-                </button>
-              </div>
-              <div className="text-[9px] mt-1 text-center">
-                <span className={selectedSector.rfPowerWatts >= 2100 ? 'text-rose-400 font-bold animate-pulse' : 'text-cyan-400'}>
-                  {selectedSector.rfPowerWatts >= 2100 ? '⚠️ 電漿電弧風險！腔體過熱' : `腔溫 ${selectedSector.temperatureC}°C (安全)`}
-                </span>
-              </div>
-            </div>
-
-            {/* Slider 2: Gas Flow */}
-            <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-300 font-bold flex items-center gap-1">
-                  <Flame className="w-3 h-3 text-cyan-400" />
-                  <span>特氣流量 (Gas)</span>
-                </span>
-                <span className="font-bold text-cyan-400 tabular-nums">{selectedSector.gasFlowSccm} sccm</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="300"
-                step="5"
-                value={selectedSector.gasFlowSccm}
-                onChange={(e) =>
-                  onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: Number(e.target.value) })
-                }
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-              />
-              <div className="flex items-center justify-between gap-1 text-[9px] mt-1.5">
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: Math.max(0, selectedSector.gasFlowSccm - 20) })}
-                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
-                  title="減少 20 sccm"
-                >
-                  -20
-                </button>
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: 0 })}
-                  className="px-1.5 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-700/60 font-bold cursor-pointer"
-                  title="緊急氣閥切斷 (0 sccm)"
-                >
-                  切斷 (0)
-                </button>
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: Math.min(300, selectedSector.gasFlowSccm + 20) })}
-                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
-                  title="增加 20 sccm"
-                >
-                  +20
-                </button>
-              </div>
-              <div className="text-[9px] mt-1 text-center">
-                <span
-                  className={
-                    selectedSector.scrubberLoadPct > 88
-                      ? 'text-rose-400 font-bold animate-pulse'
-                      : 'text-emerald-400 font-bold'
-                  }
-                >
-                  {selectedSector.scrubberLoadPct > 88 ? '🚨 排氣背壓超載！洗滌塔危機' : `洗滌塔負載 ${Math.round(selectedSector.scrubberLoadPct)}%`}
-                </span>
-              </div>
-            </div>
-
-            {/* Slider 3: Chamber Vacuum */}
-            <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-300 font-bold flex items-center gap-1">
-                  <Activity className="w-3 h-3 text-purple-400" />
-                  <span>腔體真空度</span>
-                </span>
-                <span className="font-bold text-purple-400 tabular-nums">{selectedSector.chamberVacuumTorr} Torr</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="760"
-                step="5"
-                value={selectedSector.chamberVacuumTorr}
-                onChange={(e) =>
-                  onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: Number(e.target.value) })
-                }
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
-              />
-              <div className="flex items-center justify-between gap-1 text-[9px] mt-1.5">
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: 1 })}
-                  className="px-1.5 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-700/60 font-bold cursor-pointer"
-                  title="抽高真空 (1 Torr)"
-                >
-                  抽真空 (1T)
-                </button>
-                <span className="text-slate-400">微塵: {selectedSector.particleCountPPM.toFixed(1)} PPM</span>
-                <button
-                  onClick={() => onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: 760 })}
-                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
-                  title="洩壓至大氣壓 (760 Torr)"
-                >
-                  常壓 (760T)
-                </button>
-              </div>
-              <div className="text-[9px] mt-1 text-center">
-                <span
-                  className={
-                    selectedSector.particleCountPPM > 3.0
-                      ? 'text-rose-400 font-bold'
-                      : 'text-slate-300 font-bold'
-                  }
-                >
-                  {selectedSector.particleCountPPM > 3.0 ? '⚠️ 顆粒缺陷超標 (良率受損)' : '✓ 潔淨真空'}
-                </span>
-              </div>
-            </div>
-
-            {/* Scrubber Gauge & Critical Action Buttons */}
-            <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-slate-300 font-bold">洗滌塔排氣負載</span>
-                <span
-                  className={`font-bold tabular-nums ${
-                    selectedSector.scrubberLoadPct > 88
-                      ? 'text-rose-400 animate-pulse'
-                      : selectedSector.scrubberLoadPct > 70
-                      ? 'text-amber-400'
-                      : 'text-emerald-400'
-                  }`}
-                >
-                  {Math.round(selectedSector.scrubberLoadPct)}%
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    selectedSector.scrubberLoadPct > 88
-                      ? 'bg-rose-500'
-                      : selectedSector.scrubberLoadPct > 70
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${Math.min(100, selectedSector.scrubberLoadPct)}%` }}
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5 mt-auto">
-                <button
-                  onClick={() => onHitEmo(selectedSectorId)}
-                  className="flex-1 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold transition-all shadow-md shadow-rose-600/30 flex items-center justify-center space-x-1 cursor-pointer"
-                  title="緊急斷電停機 / Emergency Off"
-                >
-                  <span>EMO 急停</span>
-                </button>
-                <button
-                  onClick={() =>
-                    onTuneSectorParams?.(selectedSectorId, { bypassActive: !selectedSector.bypassActive })
-                  }
-                  className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                    selectedSector.bypassActive
-                      ? 'bg-indigo-600 border-indigo-400 text-white'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                  }`}
-                  title="切換晶圓繞道分流"
-                >
-                  {selectedSector.bypassActive ? '分流中' : '繞道分流'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

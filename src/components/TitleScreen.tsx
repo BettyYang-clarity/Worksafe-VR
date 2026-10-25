@@ -1,5 +1,15 @@
 import React, { useEffect } from 'react';
-import { Play, ShieldAlert, Award, FileText, BarChart3, Volume2, VolumeX, HelpCircle, Globe, User } from 'lucide-react';
+import {
+  Play,
+  ShieldAlert,
+  Award,
+  BarChart3,
+  Volume2,
+  VolumeX,
+  BookOpen,
+  Globe,
+  User,
+} from 'lucide-react';
 import { UserCareerRecord } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
 
@@ -8,7 +18,6 @@ interface TitleScreenProps {
   onToggleLanguage: () => void;
   onStartGame: (mode: 'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM') => void;
   careerRecord: UserCareerRecord;
-  onOpenTrainingManual: () => void;
   onOpenManagerAudit: () => void;
   onOpenInstructions: () => void;
   isMuted: boolean;
@@ -22,7 +31,6 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onToggleLanguage,
   onStartGame,
   careerRecord,
-  onOpenTrainingManual,
   onOpenManagerAudit,
   onOpenInstructions,
   isMuted,
@@ -33,9 +41,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
 
-  // Listen for Enter or Space to start game immediately
+  // Listen for Enter or Space to start game ONLY when not typing inside an input field
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return;
+      }
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         onStartGame('FULL_SHIFT');
@@ -70,12 +82,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <span className="font-bold">{isZh ? 'EN' : '繁體中文'}</span>
           </button>
 
-          {/* Instructions Button */}
+          {/* Unified 4-Pillar EHS Field Guide & Instructions Button */}
           <button
             onClick={onOpenInstructions}
             className="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/60 text-xs font-mono text-cyan-200 hover:bg-cyan-500/30 transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm shadow-cyan-500/20"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-cyan-300" />
+            <BookOpen className="w-3.5 h-3.5 text-cyan-300" />
             <span className="font-semibold">{t.howToPlay}</span>
           </button>
 
@@ -88,31 +100,30 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <span className="hidden sm:inline">{t.managerAudit}</span>
           </button>
 
-          {/* SOP Manual */}
-          <button
-            onClick={onOpenTrainingManual}
-            className="px-3 py-1.5 rounded-lg hud-border text-xs font-mono text-slate-300 hover:text-white transition-colors flex items-center space-x-1.5 cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden sm:inline">{t.sopManual}</span>
-          </button>
-
           {/* Audio Mute */}
           <button
             onClick={onToggleMute}
             className="p-1.5 rounded-lg hud-border text-slate-300 hover:text-white transition-colors cursor-pointer"
             title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+            {isMuted ? (
+              <VolumeX className="w-4 h-4 text-red-400" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-cyan-400" />
+            )}
           </button>
         </div>
       </div>
 
       {/* Hero Centerpiece & Title Lockup */}
       <div className="max-w-3xl my-auto">
-        {/* Bespoke Inline SVG Title Lockup */}
         <div className="mb-4">
-          <svg className="w-full max-w-xl h-auto" viewBox="0 0 580 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            className="w-full max-w-xl h-auto"
+            viewBox="0 0 580 92"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <defs>
               <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#38BDF8" />
@@ -124,32 +135,49 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                 <stop offset="100%" stopColor="#CBD5E1" />
               </linearGradient>
             </defs>
-            {/* Hexagonal Hazard Icon */}
             <path
               d="M34 10L64 26V60L34 76L4 60V26L34 10Z"
               stroke="#38BDF8"
               strokeWidth="2.5"
               fill="rgba(56, 189, 248, 0.12)"
             />
-            {/* Silicon Wafer Circle & Notch inside hex */}
             <circle cx="34" cy="43" r="17" stroke="#F59E0B" strokeWidth="2" strokeDasharray="3 2" />
             <path d="M34 30V39M34 47V49" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" />
 
-            {/* Main Title Text */}
-            <text x="84" y="44" fontFamily="Chakra Petch, Inter, sans-serif" fontWeight="700" fontSize="36" fill="url(#titleGrad)" letterSpacing="2">
+            <text
+              x="84"
+              y="44"
+              fontFamily="Chakra Petch, Inter, sans-serif"
+              fontWeight="700"
+              fontSize="36"
+              fill="url(#titleGrad)"
+              letterSpacing="2"
+            >
               WORKSAFE VR
             </text>
-            <text x="86" y="68" fontFamily="JetBrains Mono, monospace" fontWeight="500" fontSize="13" fill="url(#subGrad)" letterSpacing="3.5">
-              {isZh ? '工安實境 VR · 半導體晶圓廠工安模擬器' : 'SEMICONDUCTOR FAB INCIDENT & SAFETY SIMULATOR'}
+            <text
+              x="86"
+              y="68"
+              fontFamily="JetBrains Mono, monospace"
+              fontWeight="500"
+              fontSize="13"
+              fill="url(#subGrad)"
+              letterSpacing="3.5"
+            >
+              {isZh
+                ? '工安實境 VR · 半導體晶圓廠製程與環安模擬器'
+                : 'SEMICONDUCTOR FAB PROCESS & EHS SIMULATOR'}
             </text>
           </svg>
         </div>
 
-        {isZh && (
-          <div className="inline-block px-3 py-1 rounded-md bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-display font-semibold text-sm mb-4">
-            半導體先進製程 · 關鍵危害辨識 · 應變SOP標準模擬系統
-          </div>
-        )}
+        <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-md bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-display font-semibold text-xs md:text-sm mb-4">
+          <span>
+            {isZh
+              ? '🏭 現場走動巡檢 · 配方良率調校 · 設備異常預警防範 · 四大支柱工安決策'
+              : '🏭 Cleanroom Walkthrough · Recipe Tuning · Preventive Pre-Alarms · 4-Pillar EHS Decisions'}
+          </span>
+        </div>
 
         <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-5 max-w-2xl font-light">
           {t.heroDescription}
@@ -160,7 +188,9 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-mono font-bold text-cyan-300 flex items-center space-x-1.5">
               <User className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{isZh ? '無塵室識別證登錄 / 工程師姓名' : 'Cleanroom Badge ID / Operator Name'}</span>
+              <span>
+                {isZh ? '無塵室識別證登錄 / 工程師姓名' : 'Cleanroom Badge ID / Engineer Name'}
+              </span>
             </label>
             <span className="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40">
               SEMI S2 PASS
@@ -171,13 +201,21 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               type="text"
               value={playerName}
               onChange={(e) => onPlayerNameChange(e.target.value)}
-              placeholder={isZh ? '輸入您的姓名或代號 (例: Alex Chen #402)' : 'Enter Operator Name / ID (e.g. Alex Chen #402)'}
+              placeholder={
+                isZh
+                  ? '輸入您的姓名或代號 (例: Alex Chen #402)'
+                  : 'Enter Engineer Name / ID (e.g. Alex Chen #402)'
+              }
               maxLength={24}
               className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-white text-sm font-mono tracking-wide placeholder-slate-500"
             />
           </div>
           <div className="text-[10px] text-slate-400 font-mono mt-1.5 flex items-center justify-between">
-            <span>{isZh ? '將登錄於 8D 調查報告與結算證書' : 'Will be certified on 8D RCA report & social card'}</span>
+            <span>
+              {isZh
+                ? '將登錄於結算榮譽證書與社群分享卡'
+                : 'Displayed on your Shift Qualification Certificate & Share Card'}
+            </span>
             <span className="text-slate-500">{playerName ? `${playerName.length}/24` : '0/24'}</span>
           </div>
         </div>
@@ -196,7 +234,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             onClick={onOpenInstructions}
             className="px-5 py-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 font-display font-semibold text-sm tracking-wide flex items-center space-x-2 transition-all cursor-pointer shadow-md"
           >
-            <HelpCircle className="w-4 h-4 text-cyan-400" />
+            <BookOpen className="w-4 h-4 text-cyan-400" />
             <span>{t.howToPlay}</span>
           </button>
 
@@ -222,7 +260,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div>
             <div className="text-slate-500">{t.currentCertification}</div>
             <div className="text-cyan-400 font-semibold mt-0.5">
-              {t[careerRecord.certificationLevel] || careerRecord.certificationLevel.replace(/_/g, ' ')}
+              {t[careerRecord.certificationLevel] ||
+                careerRecord.certificationLevel.replace(/_/g, ' ')}
             </div>
           </div>
           <div>
@@ -240,7 +279,9 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div>
             <div className="text-slate-500">{t.meanReactionTime}</div>
             <div className="text-amber-400 font-semibold mt-0.5 tabular-nums">
-              {careerRecord.averageReactionTimeMs > 0 ? `${(careerRecord.averageReactionTimeMs / 1000).toFixed(2)}s` : 'N/A'}
+              {careerRecord.averageReactionTimeMs > 0
+                ? `${(careerRecord.averageReactionTimeMs / 1000).toFixed(2)}s`
+                : 'N/A'}
             </div>
           </div>
           <div>
@@ -254,12 +295,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
       {/* Flat Control Hints Footer */}
       <div className="flex items-center justify-between text-xs font-mono text-slate-500 pt-4 border-t border-slate-900">
-        <div className="text-slate-400">
-          {t.controlsHint}
-        </div>
-        <div className="text-slate-500 hidden sm:block">
-          {t.standardsCompliance}
-        </div>
+        <div className="text-slate-400">{t.controlsHint}</div>
+        <div className="text-slate-500 hidden sm:block">{t.standardsCompliance}</div>
       </div>
     </div>
   );
