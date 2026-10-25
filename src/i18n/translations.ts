@@ -28,7 +28,7 @@ export const TRANSLATIONS = {
 
     // Title Screen
     heroDescription:
-      'Step into a live 300mm semiconductor cleanroom as a Fab Process & Safety Engineer. Walk the floor, optimize wafer recipes, catch equipment drift before it escalates, and execute life-saving SEMI S2 & OSHA emergency protocols.',
+      'Step into a live 300mm semiconductor cleanroom as a Fab Equipment Engineer. Walk the floor, optimize wafer recipes, catch equipment drift before it escalates, and execute life-saving SEMI S2 & OSHA emergency protocols.',
     startSimulation: 'START SHIFT SIMULATION',
     rapidDrill: 'RAPID HAZARD DRILL',
     officerExam: 'SAFETY OFFICER EXAM',
@@ -151,7 +151,7 @@ export const TRANSLATIONS = {
 
     // Title Screen
     heroDescription:
-      '化身為 300mm 先進晶圓廠製程與環安工程師！親自走入無塵室各區機台、微調晶圓配方衝刺良率、在設備漂移預警階段即時預防事故，並在重大化學、機械、高溫與高壓輻射危機中做出拯救生命的 SEMI S2 / OSHA 關鍵決策。',
+      '化身為 300mm 晶圓廠設備工程師！親自走入無塵室各區機台、微調晶圓配方衝刺良率、在設備漂移預警階段即時預防事故，並在重大化學、機械、高溫與高壓輻射危機中做出拯救生命的 SEMI S2 / OSHA 關鍵決策。',
     startSimulation: '開始輪班模擬 (START)',
     rapidDrill: '突發事故速成演練',
     officerExam: '工安主任認證測驗',

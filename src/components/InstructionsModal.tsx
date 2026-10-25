@@ -389,7 +389,7 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({
                   </div>
                   <p className="text-slate-300">
                     {isZh
-                      ? '輪班結束後將生成專屬「一頁式半導體環安工程師認證卡」，可一鍵下載 1200×630 高畫質證書圖片或複製連結邀請朋友挑戰，亦可直接在遊戲內分享您的體驗心得與建議。'
+                      ? '輪班結束後將生成專屬「一頁式半導體設備工程師認證卡」，可一鍵下載 1200×630 高畫質證書圖片或複製連結邀請朋友挑戰，亦可直接在遊戲內分享您的體驗心得與建議。'
                       : 'At the end of your shift, download a 1200×630 HD Qualification Card showing your Grade, Yield, Lives Protected, and Fab Value Saved ($M), or share your feedback directly inside the game.'}
                   </p>
                 </div>
