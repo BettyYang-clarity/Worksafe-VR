@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   Play,
+  Award,
   BarChart3,
   Volume2,
   VolumeX,
@@ -94,13 +95,14 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <span className="font-semibold">{t.howToPlay}</span>
           </button>
 
-          {/* Manager Audit */}
+          {/* Achievements & Audit */}
           <button
             onClick={onOpenManagerAudit}
-            className="px-3 py-1.5 rounded-lg hud-border text-xs font-mono text-slate-300 hover:text-cyan-200 transition-colors flex items-center space-x-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg hud-border text-xs font-mono text-purple-300 hover:text-white transition-colors flex items-center space-x-1.5 cursor-pointer"
+            title="Achievements & Play Records / 查看成就紀錄與歷史戰績"
           >
-            <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden sm:inline">{t.managerAudit}</span>
+            <Award className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden sm:inline">{isZh ? '成就紀錄' : 'Achievements'}</span>
           </button>
 
           {/* In-Game Direct Feedback */}
@@ -249,6 +251,16 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           >
             <BookOpen className="w-4 h-4 text-cyan-400" />
             <span>{t.howToPlay}</span>
+          </button>
+
+          {/* Achievements & Shift History Button */}
+          <button
+            onClick={onOpenManagerAudit}
+            className="px-5 py-3.5 rounded-xl bg-slate-900/90 border border-purple-500/50 hover:border-purple-400 text-purple-300 font-display font-semibold text-sm tracking-wide flex items-center space-x-2 transition-all cursor-pointer shadow-md hover:bg-purple-950/30"
+            title="Achievements & Play Records / 查看成就紀錄與這幾次遊玩的成績"
+          >
+            <Award className="w-4 h-4 text-purple-400" />
+            <span>{isZh ? '成就與戰績紀錄' : 'Achievements & History'}</span>
           </button>
         </div>
 

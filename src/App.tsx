@@ -27,6 +27,7 @@ import {
   SectorId,
   SectorState,
   SimulationMetrics,
+  ShiftHistoryEntry,
   TroubleshootingOption,
   UserCareerRecord,
   WaferLotMission,
@@ -42,6 +43,7 @@ const DEFAULT_CAREER: UserCareerRecord = {
   averageReactionTimeMs: 0,
   certificationLevel: 'CLEANROOM_ROOKIE',
   incidentHistory: [],
+  shiftHistory: [],
 };
 
 const LOT_MISSION_TEMPLATES: Omit<WaferLotMission, 'id' | 'startWaferCount'>[] = [
@@ -1434,6 +1436,37 @@ export default function App() {
       newCert = 'FAB_SPECIALIST';
     }
 
+    const grade: 'S' | 'A' | 'B' | 'C' | 'FAIL' = fatalShutdownTriggered
+      ? 'FAIL'
+      : safetyComplianceScore >= 95 && overallYieldPct >= 95
+      ? 'S'
+      : safetyComplianceScore >= 85 && overallYieldPct >= 85
+      ? 'A'
+      : safetyComplianceScore >= 70
+      ? 'B'
+      : 'C';
+
+    const newShiftEntry: ShiftHistoryEntry = {
+      id: `shift_${Date.now()}`,
+      timestamp: new Date().toLocaleString('zh-TW', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+      operatorName: playerName || 'Anonymous',
+      yieldPct: overallYieldPct,
+      safetyScore: safetyComplianceScore,
+      wafersProduced: totalWafersProduced,
+      preAlarmsPrevented,
+      incidentsResolved: incidentRecords.filter((r) => r.resolved).length,
+      incidentsEncountered: incidentRecords.length,
+      fabValueSavedM: fabValueSavedMillionsUSD,
+      grade,
+      fatalShutdown: fatalShutdownTriggered,
+    };
+
     const updatedCareer: UserCareerRecord = {
       totalShiftsCompleted: careerRecord.totalShiftsCompleted + 1,
       totalIncidentsHandled:
@@ -1442,6 +1475,7 @@ export default function App() {
       averageReactionTimeMs: avgReaction,
       certificationLevel: newCert,
       incidentHistory: [...careerRecord.incidentHistory, ...incidentRecords].slice(-30),
+      shiftHistory: [newShiftEntry, ...(careerRecord.shiftHistory || [])].slice(0, 20),
     };
 
     saveCareer(updatedCareer);
@@ -1469,6 +1503,7 @@ export default function App() {
     overallYieldPct,
     totalWafersProduced,
     fabValueSavedMillionsUSD,
+    fatalShutdownTriggered,
   ]);
 
   // Main 1-Second Simulation Tick Loop

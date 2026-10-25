@@ -260,6 +260,21 @@ export interface SectorTuneParams {
   bypassActive?: boolean;
 }
 
+export interface ShiftHistoryEntry {
+  id: string;
+  timestamp: string;
+  operatorName: string;
+  yieldPct: number;
+  safetyScore: number;
+  wafersProduced: number;
+  preAlarmsPrevented: number;
+  incidentsResolved: number;
+  incidentsEncountered: number;
+  fabValueSavedM: number;
+  grade: 'S' | 'A' | 'B' | 'C' | 'FAIL';
+  fatalShutdown?: boolean;
+}
+
 export interface UserCareerRecord {
   totalShiftsCompleted: number;
   totalIncidentsHandled: number;
@@ -267,4 +282,5 @@ export interface UserCareerRecord {
   averageReactionTimeMs: number;
   certificationLevel: 'CLEANROOM_ROOKIE' | 'FAB_SPECIALIST' | 'HAZMAT_WARDEN' | 'MASTER_SAFETY_DIRECTOR';
   incidentHistory: IncidentRecord[];
+  shiftHistory?: ShiftHistoryEntry[];
 }
