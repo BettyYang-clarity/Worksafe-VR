@@ -42,6 +42,7 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   const t = TRANSLATIONS[language];
   const [copied, setCopied] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [showDetailedReport, setShowDetailedReport] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Derive dynamic Social Title if not provided
@@ -127,7 +128,8 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   // Copy 1-page Social Card Text for LinkedIn / X / Threads
   const handleCopySocialPost = () => {
     const text =
-      `🚨 I just finished a high-stakes shift in WorkSafe VR Fab!\n` +
+      `🚨 I just completed a high-stakes shift in WorkSafe VR Fab!\n` +
+      `👤 Operator: ${metrics.operatorName || 'Alex Chen #402'}\n` +
       `🏅 Title: ${socialTitle.emoji} ${socialTitle.title}\n` +
       `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% | 🛡️ OSHA Compliance: ${metrics.safetyComplianceScore}/100\n` +
       `⚡ Incidents Resolved: ${metrics.incidentsResolved}/${metrics.incidentsEncountered} | Avg Reaction: ${(metrics.averageReactionTimeMs / 1000).toFixed(2)}s\n` +
@@ -143,69 +145,74 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   const handleDownloadBadge = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 1000;
-    canvas.height = 600;
+    canvas.height = 620;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 1000, 600);
+    const grad = ctx.createLinearGradient(0, 0, 1000, 620);
     grad.addColorStop(0, '#020617');
     grad.addColorStop(0.5, '#0f172a');
     grad.addColorStop(1, '#082f49');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1000, 600);
+    ctx.fillRect(0, 0, 1000, 620);
 
     // Glowing cleanroom border
     ctx.strokeStyle = '#06b6d4';
     ctx.lineWidth = 6;
-    ctx.strokeRect(16, 16, 968, 568);
+    ctx.strokeRect(16, 16, 968, 588);
 
     // Title & Logo
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 28px system-ui, sans-serif';
-    ctx.fillText('WORKSAFE VR · SEMICONDUCTOR FAB SAFETY SIMULATOR', 40, 64);
+    ctx.font = 'bold 26px system-ui, sans-serif';
+    ctx.fillText('WORKSAFE VR · SEMICONDUCTOR FAB SAFETY SIMULATOR', 40, 60);
+
+    // Operator Name Badge
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(`OPERATOR: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}`, 40, 95);
 
     // Social Title Badge
     ctx.fillStyle = '#0284c7';
-    ctx.fillRect(40, 95, 920, 70);
+    ctx.fillRect(40, 115, 920, 70);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px system-ui, sans-serif';
-    ctx.fillText(`${socialTitle.emoji} ${socialTitle.title}`, 60, 142);
+    ctx.font = 'bold 30px system-ui, sans-serif';
+    ctx.fillText(`${socialTitle.emoji} ${socialTitle.title}`, 60, 160);
 
     // Grid of Stats
     const drawStatBox = (x: number, y: number, w: number, h: number, label: string, val: string, color: string) => {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
       ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = '#334155';
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, w, h);
 
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '16px monospace';
+      ctx.font = '15px monospace';
       ctx.fillText(label, x + 20, y + 36);
 
       ctx.fillStyle = color;
-      ctx.font = 'bold 38px monospace';
-      ctx.fillText(val, x + 20, y + 84);
+      ctx.font = 'bold 36px monospace';
+      ctx.fillText(val, x + 20, y + 82);
     };
 
-    drawStatBox(40, 190, 440, 110, 'FAB YIELD RATE (產線良率)', `${metrics.overallYieldPct.toFixed(1)}%`, '#10b981');
-    drawStatBox(520, 190, 440, 110, 'EHS COMPLIANCE (工安合規)', `${metrics.safetyComplianceScore} / 100`, gradeInfo.grade === 'A+' ? '#10b981' : '#38bdf8');
-    drawStatBox(40, 320, 440, 110, 'INCIDENTS RESOLVED (事故處置)', `${metrics.incidentsResolved} / ${metrics.incidentsEncountered}`, '#f59e0b');
-    drawStatBox(520, 320, 440, 110, 'AVG REACTION TIME (平均反應)', `${(metrics.averageReactionTimeMs / 1000).toFixed(2)}s`, '#a855f7');
+    drawStatBox(40, 205, 440, 110, 'FAB YIELD RATE (產線良率)', `${metrics.overallYieldPct.toFixed(1)}%`, '#10b981');
+    drawStatBox(520, 205, 440, 110, 'EHS COMPLIANCE (工安合規)', `${metrics.safetyComplianceScore} / 100`, gradeInfo.grade === 'A+' ? '#10b981' : '#38bdf8');
+    drawStatBox(40, 335, 440, 110, 'INCIDENTS RESOLVED (事故處置)', `${metrics.incidentsResolved} / ${metrics.incidentsEncountered}`, '#f59e0b');
+    drawStatBox(520, 335, 440, 110, 'AVG REACTION TIME (平均反應)', `${(metrics.averageReactionTimeMs / 1000).toFixed(2)}s`, '#a855f7');
 
     // Bottom Stamp & Watermark
     ctx.fillStyle = '#64748b';
-    ctx.font = '15px monospace';
-    ctx.fillText('CERTIFIED SEMI S2 & OSHA 1910.147 COMPLIANCE AUDIT · ONE-PAGE SOCIAL BADGE', 40, 480);
-    ctx.fillText(`TIMESTAMP: ${new Date().toLocaleString()} · RECORD HASH: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 40, 510);
+    ctx.font = '14px monospace';
+    ctx.fillText('CERTIFIED SEMI S2 & OSHA 1910.147 COMPLIANCE AUDIT · ONE-PAGE SOCIAL BADGE', 40, 495);
+    ctx.fillText(`TIMESTAMP: ${new Date().toLocaleString()} · RECORD HASH: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 40, 525);
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 18px system-ui, sans-serif';
-    ctx.fillText('Play at: WorkSafe VR Cleanroom', 700, 510);
+    ctx.fillText('Play at: WorkSafe VR Cleanroom', 680, 525);
 
     const link = document.createElement('a');
-    link.download = `WorkSafe_VR_Badge_${Date.now()}.png`;
+    link.download = `WorkSafe_VR_${(metrics.operatorName || 'Operator').replace(/\s+/g, '_')}_${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
@@ -250,38 +257,148 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
         </div>
 
         {/* Modal Content Scroll Area */}
-        <div className="p-5 md:p-6 overflow-y-auto space-y-6">
-          {/* Social Share Callout Banner */}
-          <div className="p-4 rounded-xl border border-cyan-500/40 bg-gradient-to-r from-cyan-950/60 via-slate-900 to-slate-950 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{socialTitle.emoji}</span>
-                <span className="text-lg font-bold text-white tracking-wide">
-                  {socialTitle.title}
-                </span>
+        <div className="p-5 md:p-6 overflow-y-auto space-y-5">
+          {/* ==================================================== */}
+          {/* UNIFIED DIRECT ONE-PAGE SHAREABLE CERTIFICATE CARD   */}
+          {/* ==================================================== */}
+          <div className="p-5 md:p-6 rounded-2xl border-2 border-cyan-500/50 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 shadow-2xl relative overflow-hidden">
+            {/* Top decorative seal glow */}
+            <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-cyan-500/30">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase">
+                    SEMI S2 & OSHA 1910.147 CERTIFIED AUDIT
+                  </div>
+                  <div className="text-sm font-display font-bold text-slate-200">
+                    {isZh ? '半導體晶圓廠 · 個人安全與製程綜合認證' : 'Semiconductor Fab · Safety & Yield Certification'}
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {isZh
-                  ? '分享您在晶圓廠生死線上的決策戰果至 LinkedIn、X 或 Threads'
-                  : 'Share your high-stakes fab survival badge to LinkedIn, X, or Threads'}
-              </p>
+
+              {/* Operator Badge Stamp */}
+              <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-mono">
+                <span className="text-slate-400">{isZh ? '認證工程師:' : 'Operator:'}</span>
+                <strong className="text-cyan-300 font-bold">{metrics.operatorName || 'Alex Chen #402'}</strong>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopySocialPost}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
-              >
-                <Copy className="w-4 h-4" />
-                <span>{copied ? (isZh ? '已複製貼文！' : 'Copied!') : (isZh ? '複製社群文案' : 'Copy Post')}</span>
-              </button>
+            {/* Social Title & Rating Lockup */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 mb-5">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl">{socialTitle.emoji}</span>
+                <div>
+                  <div className="text-lg md:text-xl font-bold font-display text-white">
+                    {socialTitle.title}
+                  </div>
+                  <div className="text-xs font-mono text-slate-400 mt-0.5">
+                    {gradeInfo.text}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <div className="text-[10px] font-mono text-slate-400 uppercase">AUDIT RATING</div>
+                  <div className={`text-2xl font-black font-display ${gradeInfo.color}`}>
+                    GRADE {gradeInfo.grade}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Big Stat Pillars */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <div className="text-[11px] font-mono text-slate-400">{isZh ? '晶圓良率' : 'Fab Yield'}</div>
+                <div className="text-2xl font-black font-mono text-emerald-400 my-1 tabular-nums">
+                  {metrics.overallYieldPct.toFixed(1)}%
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  {isZh
+                    ? `良品: ${metrics.totalWafersProduced} | 報廢: ${metrics.totalWafersDefective}`
+                    : `Good: ${metrics.totalWafersProduced}`}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <div className="text-[11px] font-mono text-slate-400">{isZh ? '工安合規分' : 'Compliance'}</div>
+                <div className="text-2xl font-black font-mono text-cyan-400 my-1 tabular-nums">
+                  {metrics.safetyComplianceScore}/100
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  {metrics.regulatoryFinesTotal === 0 ? (
+                    <span className="text-emerald-400">✓ 零法規罰鍰</span>
+                  ) : (
+                    <span className="text-rose-400">罰鍰 ${metrics.regulatoryFinesTotal.toLocaleString()}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <div className="text-[11px] font-mono text-slate-400">{isZh ? '事故排除' : 'Resolved'}</div>
+                <div className="text-2xl font-black font-mono text-amber-400 my-1 tabular-nums">
+                  {metrics.incidentsResolved} / {metrics.incidentsEncountered}
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  {metrics.incidentsFailed === 0 ? '✓ 全數安全排除' : `${metrics.incidentsFailed} 件處置失誤`}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <div className="text-[11px] font-mono text-slate-400">{isZh ? '平均反應' : 'Reaction Time'}</div>
+                <div className="text-2xl font-black font-mono text-purple-400 my-1 tabular-nums">
+                  {(metrics.averageReactionTimeMs / 1000).toFixed(2)}s
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  {metrics.averageReactionTimeMs < 10000 ? '✓ 卓越反應水準' : '反應稍慢'}
+                </div>
+              </div>
+            </div>
+
+            {/* Direct 1-Click Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={handleDownloadBadge}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center space-x-2 transition-all active:scale-95 shadow-lg shadow-cyan-600/30 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{isZh ? '📸 下載個人榮譽圖卡 (PNG)' : 'Download Badge (PNG)'}</span>
+                </button>
+
+                <button
+                  onClick={handleCopySocialPost}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center space-x-2 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>{copied ? (isZh ? '✓ 已複製貼文！' : 'Copied!') : (isZh ? '📋 複製社群文案' : 'Copy Post')}</span>
+                </button>
+
+                <button
+                  onClick={() => setIsFeedbackOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer"
+                >
+                  <MessageSquare className="w-4 h-4 text-cyan-400" />
+                  <span>{isZh ? '💬 心得與改善建議' : 'Feedback'}</span>
+                </button>
+              </div>
 
               <button
-                onClick={handleDownloadBadge}
-                className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-cyan-600/30"
+                onClick={() => setShowDetailedReport(!showDetailedReport)}
+                className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 text-xs text-slate-300 transition-colors cursor-pointer"
               >
-                <Download className="w-4 h-4" />
-                <span>{isZh ? '下載個人榮譽卡' : 'Download Badge'}</span>
+                {showDetailedReport
+                  ? isZh
+                    ? '▴ 收合 8D 詳細報告'
+                    : '▴ Hide 8D Detailed Audit'
+                  : isZh
+                  ? '▾ 查看完整 8D 根因分析報告'
+                  : '▾ View Full 8D Root Cause Analysis'}
               </button>
             </div>
           </div>
@@ -301,8 +418,11 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
             </div>
           )}
 
-          {/* Top Grade & Score Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Collapsible Detailed 8D Audit & Incident History */}
+          {showDetailedReport && (
+            <div className="space-y-6 pt-4 border-t border-slate-800 animate-fade-in">
+              {/* Top Grade & Score Row */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Main Compliance Grade Card */}
             <div className="md:col-span-2 rounded-xl border border-slate-800 p-4 bg-gradient-to-br from-slate-900 to-slate-950 flex items-center space-x-5">
               <div className="flex flex-col items-center justify-center w-24 h-24 rounded-2xl bg-slate-950 border border-slate-800 shadow-inner shrink-0">
@@ -534,6 +654,8 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
             )}
           </div>
         </div>
+      )}
+    </div>
 
         {/* Modal Footer Controls */}
         <div className="p-4 md:p-5 border-t border-slate-800 bg-slate-900/80 flex flex-wrap items-center justify-between gap-3">

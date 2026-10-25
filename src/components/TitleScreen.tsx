@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Play, ShieldAlert, Award, FileText, BarChart3, Volume2, VolumeX, HelpCircle, Globe } from 'lucide-react';
+import { Play, ShieldAlert, Award, FileText, BarChart3, Volume2, VolumeX, HelpCircle, Globe, User } from 'lucide-react';
 import { UserCareerRecord } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
 
@@ -13,6 +13,8 @@ interface TitleScreenProps {
   onOpenInstructions: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  playerName: string;
+  onPlayerNameChange: (name: string) => void;
 }
 
 export const TitleScreen: React.FC<TitleScreenProps> = ({
@@ -25,6 +27,8 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onOpenInstructions,
   isMuted,
   onToggleMute,
+  playerName,
+  onPlayerNameChange,
 }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
@@ -147,9 +151,36 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         )}
 
-        <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-7 max-w-2xl font-light">
+        <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-5 max-w-2xl font-light">
           {t.heroDescription}
         </p>
+
+        {/* Cleanroom Operator ID Badge Entry */}
+        <div className="mb-6 max-w-md p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 shadow-lg shadow-cyan-950/40">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-mono font-bold text-cyan-300 flex items-center space-x-1.5">
+              <User className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{isZh ? '無塵室識別證登錄 / 工程師姓名' : 'Cleanroom Badge ID / Operator Name'}</span>
+            </label>
+            <span className="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40">
+              SEMI S2 PASS
+            </span>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => onPlayerNameChange(e.target.value)}
+              placeholder={isZh ? '輸入您的姓名或代號 (例: Alex Chen #402)' : 'Enter Operator Name / ID (e.g. Alex Chen #402)'}
+              maxLength={24}
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 focus:border-cyan-400 focus:outline-none text-white text-sm font-mono tracking-wide placeholder-slate-500"
+            />
+          </div>
+          <div className="text-[10px] text-slate-400 font-mono mt-1.5 flex items-center justify-between">
+            <span>{isZh ? '將登錄於 8D 調查報告與結算證書' : 'Will be certified on 8D RCA report & social card'}</span>
+            <span className="text-slate-500">{playerName ? `${playerName.length}/24` : '0/24'}</span>
+          </div>
+        </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3.5 items-center">

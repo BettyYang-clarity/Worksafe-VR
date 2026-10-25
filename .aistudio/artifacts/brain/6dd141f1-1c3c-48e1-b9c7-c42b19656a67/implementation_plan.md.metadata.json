@@ -1,6 +1,6 @@
 {
-  "summary":  "全面優化與擴充 WorkSafe VR 實施計畫：整合 Overcooked 式微小徵兆潛伏升級機制、三級事故節奏 (Level 1 LOTO 機械異常、Level 2 特氣化學品洩漏、Level 3 致命矽甲烷火災與 200kV 閃絡)、製程參數雙刃劍調校系統 (RF功率/特氣流量/真空度/洗滌塔負載)、仿真 8D / RCA 事故調查報告、單頁社群分享卡與 Canvas 證書生成、Google Form 回饋表單，並徹底修復頂部 HUD 截斷、選項隨機打散與 3D 全息設備標牌。",
-  "updatedAt":  "2026-10-25T07:08:32.169298832Z",
+  "summary":  "更新後的實施計畫：\n1. 底部常駐製程參數調校機架 (Docked Bay 101~105 Tuning Rack)\n2. 3D 全息機台標牌高度與遮擋修復 (Y=4.4m，全向清晰可見)\n3. 每個 Shift 必定依序隨機出現所有事故 (Shuffled Incident Guarantee)\n4. 開局輸入操作員姓名 (Player Name Input on Title Screen)\n5. 事故動態 SOP 處置導引橫幅 (Dynamic SOP Checklist Banner)\n6. 結算畫面直接生成一體化單頁社群分享圖卡 (Direct Unified Social Card)",
+  "updatedAt":  "2026-10-25T07:47:19.116398764Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

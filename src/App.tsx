@@ -164,9 +164,30 @@ export default function App() {
   // 3D Scene Ref & Mounting
   const canvasMountRef = useRef<HTMLDivElement>(null);
   const sceneInstanceRef = useRef<FabScene | null>(null);
-  const nextHazardTimerRef = useRef<number>(22);
+  const nextHazardTimerRef = useRef<number>(18);
+  const hazardDeckRef = useRef<string[]>([]);
   const hazardStartTimeRef = useRef<number>(0);
   const firstActionTimeRef = useRef<number | null>(null);
+
+  // Operator Name State (Persisted)
+  const [playerName, setPlayerName] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('worksafe_operator_name');
+      if (saved) return saved;
+    } catch {
+      // Ignore
+    }
+    return 'Alex Chen #402';
+  });
+
+  const handlePlayerNameChange = useCallback((name: string) => {
+    setPlayerName(name);
+    try {
+      localStorage.setItem('worksafe_operator_name', name);
+    } catch {
+      // Ignore
+    }
+  }, []);
 
   // Save career record helper
   const saveCareer = useCallback((updated: UserCareerRecord) => {
@@ -426,7 +447,10 @@ export default function App() {
     setDecisionTimeline([]);
     setFloatingDeltas([]);
     setFatalShutdownTriggered(false);
-    nextHazardTimerRef.current = 18;
+
+    // Guarantee all 5 incidents appear in random order throughout the shift
+    hazardDeckRef.current = shuffleChoices(HAZARD_DEFINITIONS.map((h) => h.typeId));
+    nextHazardTimerRef.current = 14;
 
     soundManager.startAmbientHum();
     soundManager.stopEmergencyAlarm();
@@ -465,9 +489,16 @@ export default function App() {
   const spawnHazard = useCallback((specificTypeId?: string) => {
     if (activeHazard) return;
 
-    const randDef = specificTypeId
-      ? HAZARD_DEFINITIONS.find((h) => h.typeId === specificTypeId) || HAZARD_DEFINITIONS[0]
-      : HAZARD_DEFINITIONS[Math.floor(Math.random() * HAZARD_DEFINITIONS.length)];
+    let randDef: (typeof HAZARD_DEFINITIONS)[0];
+    if (specificTypeId) {
+      randDef = HAZARD_DEFINITIONS.find((h) => h.typeId === specificTypeId) || HAZARD_DEFINITIONS[0];
+    } else {
+      if (hazardDeckRef.current.length === 0) {
+        hazardDeckRef.current = shuffleChoices(HAZARD_DEFINITIONS.map((h) => h.typeId));
+      }
+      const nextTypeId = hazardDeckRef.current.shift()!;
+      randDef = HAZARD_DEFINITIONS.find((h) => h.typeId === nextTypeId) || HAZARD_DEFINITIONS[0];
+    }
     const sectorId = randDef.defaultSector;
     const stage0 = randDef.steps[0];
     const isZh = language === 'zh-TW';
@@ -628,8 +659,8 @@ export default function App() {
             return next;
           });
 
-          // Next hazard interval
-          nextHazardTimerRef.current = Math.floor(Math.random() * 25) + 50;
+          // Next hazard interval from shuffled queue
+          nextHazardTimerRef.current = 14 + Math.floor(Math.random() * 6);
         } else {
           // Advance to next stage in multi-step protocol with shuffled choices
           const nextStageIdx = currentStageIndex + 1;
@@ -753,7 +784,7 @@ export default function App() {
             return next;
           });
 
-          nextHazardTimerRef.current = 45;
+          nextHazardTimerRef.current = 15;
         }
       }
     },
@@ -1039,6 +1070,7 @@ export default function App() {
     knowledgeGaps,
     decisionTimeline,
     fatalShutdownTriggered,
+    operatorName: playerName,
     socialTitle:
       overallYieldPct >= 95 && safetyComplianceScore >= 95
         ? 'FAB_DIRECTOR'
@@ -1071,6 +1103,8 @@ export default function App() {
           onOpenInstructions={() => setIsInstructionsOpen(true)}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
+          playerName={playerName}
+          onPlayerNameChange={handlePlayerNameChange}
         />
       )}
 
@@ -1108,6 +1142,8 @@ export default function App() {
           onOpenTablet={() => setIsTabletOpen(true)}
           flowStateSeconds={flowStateSeconds}
           floatingDeltas={floatingDeltas}
+          playerName={playerName}
+          onTuneSectorParams={handleUpdateSectorParams}
         />
       )}
 

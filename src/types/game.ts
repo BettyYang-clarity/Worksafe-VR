@@ -144,13 +144,21 @@ export interface SimulationMetrics {
   flowStateSeconds: number; // Consecutive seconds of all 5 bays running optimally
   fatalShutdownTriggered: boolean; // Overrides yield if fatal safety breach occurred
   decisionTimeline: DecisionTimelineEvent[];
-  socialTitle: SocialEngineerTitle;
+  operatorName?: string;
+  socialTitle?: SocialEngineerTitle;
   knowledgeGaps: {
     category: string;
     description: string;
     severity: 'LOW' | 'MEDIUM' | 'HIGH';
     remedialAction: string;
   }[];
+}
+
+export interface SectorTuneParams {
+  rfPowerWatts?: number;
+  gasFlowSccm?: number;
+  chamberVacuumTorr?: number;
+  bypassActive?: boolean;
 }
 
 export interface UserCareerRecord {

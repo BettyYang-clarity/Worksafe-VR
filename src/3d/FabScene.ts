@@ -736,23 +736,23 @@ export class FabScene {
     this.emoButtons.set(sectorId, mushroom);
   }
 
-  // 3D Floating Holographic Billboards for each machine bay
+  // 3D Floating Holographic Billboards for each machine bay (Elevated and Unobstructed)
   private buildBayBillboards() {
-    const bays: { id: SectorId; code: string; name: string; pos: THREE.Vector3 }[] = [
-      { id: 'PHOTOLITHOGRAPHY', code: 'BAY 101', name: 'DUV SCANNER', pos: new THREE.Vector3(-11, 4.6, -10) },
-      { id: 'ION_IMPLANTATION', code: 'BAY 105', name: 'ION IMPLANTER (200kV)', pos: new THREE.Vector3(0, 5.0, -11) },
-      { id: 'ETCH_CVD', code: 'BAY 102', name: 'PLASMA ETCH / CVD', pos: new THREE.Vector3(11, 4.6, -10) },
-      { id: 'CMP_WET_BENCH', code: 'BAY 103', name: 'CMP & WET BENCH', pos: new THREE.Vector3(-11, 4.2, 7) },
-      { id: 'DIFFUSION_FURNACE', code: 'BAY 104', name: 'DIFFUSION FURNACE', pos: new THREE.Vector3(11, 4.2, 7) },
+    const bays: { id: SectorId; code: string; name: string; nameZh: string; pos: THREE.Vector3 }[] = [
+      { id: 'PHOTOLITHOGRAPHY', code: 'BAY 101', name: 'DUV SCANNER', nameZh: '微影曝光機', pos: new THREE.Vector3(-11, 4.85, -7.2) },
+      { id: 'ION_IMPLANTATION', code: 'BAY 105', name: 'ION IMPLANTER (200kV)', nameZh: '離子植入機', pos: new THREE.Vector3(0, 5.3, -8.2) },
+      { id: 'ETCH_CVD', code: 'BAY 102', name: 'PLASMA ETCH / CVD', nameZh: '電漿蝕刻 / CVD', pos: new THREE.Vector3(11, 4.85, -7.2) },
+      { id: 'CMP_WET_BENCH', code: 'BAY 103', name: 'CMP & WET BENCH', nameZh: '化學研磨與酸槽', pos: new THREE.Vector3(-11, 4.85, 4.8) },
+      { id: 'DIFFUSION_FURNACE', code: 'BAY 104', name: 'DIFFUSION FURNACE', nameZh: '高溫擴散氧化爐', pos: new THREE.Vector3(11, 4.85, 4.8) },
     ];
 
     bays.forEach((bay) => {
       const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 192;
+      canvas.width = 576;
+      canvas.height = 224;
       const ctx = canvas.getContext('2d')!;
 
-      this.renderBillboardCanvas(ctx, bay.code, bay.name, 'OPTIMAL', 'RF 1200W | NORMAL');
+      this.renderBillboardCanvas(ctx, bay.code, `${bay.nameZh} · ${bay.name}`, 'OPTIMAL', 'RF 1200W | NORMAL');
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.minFilter = THREE.LinearFilter;
@@ -760,12 +760,15 @@ export class FabScene {
       const mat = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
-        opacity: 0.95,
+        opacity: 0.98,
         side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
       });
 
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.12), mat);
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.4), mat);
       mesh.position.copy(bay.pos);
+      mesh.renderOrder = 999;
       mesh.userData = { isBillboard: true, sectorId: bay.id };
       this.scene.add(mesh);
 
@@ -786,74 +789,74 @@ export class FabScene {
     status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'SHUTDOWN',
     subtext: string
   ) {
-    ctx.clearRect(0, 0, 512, 192);
+    ctx.clearRect(0, 0, 576, 224);
 
     // Glowing border color based on status
     let statusColor = '#06b6d4'; // Cyan for optimal
-    let statusBg = 'rgba(6, 182, 212, 0.15)';
-    let statusText = 'NORMAL';
+    let statusBg = 'rgba(6, 182, 212, 0.25)';
+    let statusText = 'NORMAL 運轉中';
     if (status === 'WARNING') {
       statusColor = '#f59e0b'; // Amber
-      statusBg = 'rgba(245, 158, 11, 0.2)';
-      statusText = 'CAUTION';
+      statusBg = 'rgba(245, 158, 11, 0.35)';
+      statusText = 'CAUTION 警戒';
     } else if (status === 'CRITICAL' || status === 'SHUTDOWN') {
       statusColor = '#ef4444'; // Red
-      statusBg = 'rgba(239, 68, 68, 0.25)';
-      statusText = status === 'SHUTDOWN' ? 'HALTED' : 'ALERT';
+      statusBg = 'rgba(239, 68, 68, 0.4)';
+      statusText = status === 'SHUTDOWN' ? 'HALTED 停機' : 'ALERT 事故處置';
     }
 
-    // Glass panel background
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    // High contrast semi-transparent cleanroom glass panel background
+    ctx.fillStyle = 'rgba(10, 15, 29, 0.92)';
     ctx.beginPath();
-    ctx.roundRect(8, 8, 496, 176, 16);
+    ctx.roundRect(8, 8, 560, 208, 18);
     ctx.fill();
 
-    // Border glow
+    // Outer neon glow border
     ctx.strokeStyle = statusColor;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.stroke();
 
-    // Top Header: Bay Code & Status Badge
-    ctx.font = 'bold 22px system-ui, sans-serif';
+    // Top Header: Bay Code
+    ctx.font = 'bold 26px "JetBrains Mono", monospace, sans-serif';
     ctx.fillStyle = '#38bdf8';
-    ctx.fillText(code, 26, 44);
+    ctx.fillText(code, 26, 48);
 
     // Status Badge background
     ctx.fillStyle = statusBg;
     ctx.beginPath();
-    ctx.roundRect(340, 22, 140, 30, 8);
+    ctx.roundRect(350, 18, 200, 38, 10);
     ctx.fill();
     ctx.strokeStyle = statusColor;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     // Status LED dot & text
     ctx.fillStyle = statusColor;
     ctx.beginPath();
-    ctx.arc(358, 37, 5, 0, Math.PI * 2);
+    ctx.arc(370, 37, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = 'bold 15px monospace';
+    ctx.font = 'bold 15px system-ui, sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(statusText, 372, 42);
+    ctx.fillText(statusText, 386, 43);
 
-    // Main Equipment Name
-    ctx.font = 'bold 30px system-ui, sans-serif';
+    // Main Equipment Name (Bilingual prominent)
+    ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(name, 26, 96);
+    ctx.fillText(name, 26, 106);
 
     // Divider Line
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(26, 118);
-    ctx.lineTo(486, 118);
+    ctx.moveTo(26, 134);
+    ctx.lineTo(550, 134);
     ctx.stroke();
 
     // Subtext metrics (e.g. dynamic RF / Scrubber / Eff)
-    ctx.font = 'bold 18px monospace';
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillText(subtext, 26, 154);
+    ctx.font = 'bold 20px "JetBrains Mono", monospace, sans-serif';
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText(subtext, 26, 180);
   }
 
   public updateSectorStatus(sectors: Record<SectorId, SectorState>) {
@@ -861,8 +864,10 @@ export class FabScene {
       const b = this.bayBillboards.get(sec.id);
       if (!b) return;
 
-      const sub = `RF: ${sec.rfPowerWatts}W | Scrubber: ${Math.round(sec.scrubberLoadPct)}% | Eff: ${Math.round(sec.efficiency)}%`;
-      this.renderBillboardCanvas(b.ctx, sec.code, sec.name, sec.status, sub);
+      const sub = `RF: ${sec.rfPowerWatts}W | 廢氣: ${Math.round(sec.scrubberLoadPct)}% | 效率: ${Math.round(sec.efficiency)}%`;
+      const bayCode = sec.code.split('/')[0].trim();
+      const displayName = `${sec.nameZh} · ${bayCode}`;
+      this.renderBillboardCanvas(b.ctx, bayCode, displayName, sec.status, sub);
       b.texture.needsUpdate = true;
     });
   }
