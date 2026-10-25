@@ -25,10 +25,10 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
 
   // 6 Recommended Google Form Fields
   const [overallRating, setOverallRating] = useState(5);
-  const [ehsClarity, setEhsClarity] = useState('VERY_CLEAR');
-  const [memorableHazard, setMemorableHazard] = useState('HF_ACID_SPILL');
+  const [ehsClarity, setEhsClarity] = useState('Very Clear and Practical');
+  const [memorableHazard, setMemorableHazard] = useState('Bay 103: HF Acid Spill & First Aid');
   const [gameplayFunRating, setGameplayFunRating] = useState(5);
-  const [playerBackground, setPlayerBackground] = useState('FAB_ENGINEER');
+  const [playerBackground, setPlayerBackground] = useState('Semiconductor Fab Engineer (EE / PE)');
   const [comments, setComments] = useState('');
 
   if (!isOpen) return null;
@@ -178,16 +178,16 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     {
-                      id: 'VERY_CLEAR',
-                      label: isZh ? '非常清楚明確' : 'Yes, very clear',
+                      id: 'Very Clear and Practical',
+                      label: isZh ? '非常清楚明確' : 'Very Clear & Practical',
                     },
                     {
-                      id: 'SOMEWHAT_CLEAR',
-                      label: isZh ? '大致清楚' : 'Somewhat clear',
+                      id: 'Moderate',
+                      label: isZh ? '大致清楚' : 'Moderate',
                     },
                     {
-                      id: 'NEEDS_MORE_DETAIL',
-                      label: isZh ? '希望再增加說明' : 'Needs more detail',
+                      id: 'Needs More Details',
+                      label: isZh ? '希望再增加說明' : 'Needs More Details',
                     },
                   ].map((opt) => (
                     <button
@@ -219,22 +219,22 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
                     onChange={(e) => setMemorableHazard(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-400"
                   >
-                    <option value="HF_ACID_SPILL">
-                      {isZh ? 'Bay 103 氫氟酸 (HF) 破裂與沖淋解毒' : 'Bay 103 HF Acid Spill & Calcium Gluconate'}
+                    <option value="Bay 103: HF Acid Spill & First Aid">
+                      {isZh ? 'Bay 103 氫氟酸 (HF) 破裂與沖淋解毒' : 'Bay 103 HF Acid Spill & First Aid'}
                     </option>
-                    <option value="SILANE_GAS_LEAK">
+                    <option value="Bay 102: Pyrophoric Silane (SiH4) Fire">
                       {isZh ? 'Bay 102 矽甲烷 (SiH4) 自燃大火 (禁水)' : 'Bay 102 Pyrophoric Silane Fire'}
                     </option>
-                    <option value="FURNACE_QUARTZ_BREACH">
+                    <option value="Bay 104: 1100°C Quartz Furnace Breach & H2 Leak">
                       {isZh ? 'Bay 104 1100°C 高溫石英爐管卡死與氫氣外洩' : 'Bay 104 1100°C Quartz Furnace Breach'}
                     </option>
-                    <option value="ARSINE_GAS_LEAK">
+                    <option value="Bay 105: Arsine (AsH3) Toxic Gas Leak">
                       {isZh ? 'Bay 105 砷化氫 (AsH3) 劇毒氣體外洩' : 'Bay 105 Arsine Toxic Gas Leak'}
                     </option>
-                    <option value="ION_HV_ARC_XRAY">
+                    <option value="Bay 105: 200kV HV Arc & X-Ray Radiation">
                       {isZh ? 'Bay 105 200kV 高壓電弧跳火與 X 光輻射' : 'Bay 105 200kV HV Arc & X-Ray'}
                     </option>
-                    <option value="ROBOTIC_FOUP_PINCH">
+                    <option value="Bay 101: OHT Mechanical Pinch & LOTO">
                       {isZh ? 'Bay 101 OHT 天車機械夾傷與 LOTO 上鎖' : 'Bay 101 OHT Mechanical Pinch & LOTO'}
                     </option>
                   </select>
@@ -250,16 +250,16 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
                     onChange={(e) => setPlayerBackground(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-400"
                   >
-                    <option value="FAB_ENGINEER">
+                    <option value="Semiconductor Fab Engineer (EE / PE)">
                       {isZh ? '半導體設備 / 製程工程師 (EE/PE)' : 'Semiconductor Equipment / Process Engineer'}
                     </option>
-                    <option value="EHS_SPECIALIST">
+                    <option value="EHS / Industrial Safety Specialist">
                       {isZh ? '環安衛 / 工安專家 (EHS Specialist)' : 'EHS / Safety Specialist'}
                     </option>
-                    <option value="STUDENT">
+                    <option value="STEM Student / Academic Researcher">
                       {isZh ? '理工科系學生 / 研究人員' : 'STEM Student / Researcher'}
                     </option>
-                    <option value="GENERAL_PLAYER">
+                    <option value="General Simulation Player / Tech Enthusiast">
                       {isZh ? '一般模擬遊戲玩家' : 'General Simulation Player'}
                     </option>
                   </select>

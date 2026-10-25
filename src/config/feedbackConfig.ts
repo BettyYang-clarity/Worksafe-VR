@@ -30,19 +30,19 @@ export interface GoogleFormFeedbackPayload {
 }
 
 export const GOOGLE_FORM_CONFIG = {
-  // Set via VITE_GOOGLE_FORM_ACTION_URL env var or paste your `/formResponse` URL here:
+  // Set via VITE_GOOGLE_FORM_ACTION_URL env var or defaults to the live form:
   formActionUrl:
     (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_GOOGLE_FORM_ACTION_URL ||
-    '',
+    'https://docs.google.com/forms/d/e/1FAIpQLScdPIjstlQ9fEMGh6L48t5FGba3w4pIQbKw6YO-F7v3XM3ZoA/formResponse',
 
   // Entry IDs corresponding to each Google Form question:
   entries: {
-    overallRating: 'entry.1000001',
-    ehsClarity: 'entry.1000002',
-    memorableHazard: 'entry.1000003',
-    gameplayFunRating: 'entry.1000004',
-    playerBackground: 'entry.1000005',
-    commentsAndTelemetry: 'entry.1000006',
+    overallRating: 'entry.2091963568',
+    ehsClarity: 'entry.180923086',
+    memorableHazard: 'entry.1149424777',
+    gameplayFunRating: 'entry.17447175',
+    playerBackground: 'entry.2137945983',
+    commentsAndTelemetry: 'entry.655589120',
   },
 };
 
