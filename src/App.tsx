@@ -9,6 +9,7 @@ import { InstructionsModal } from './components/InstructionsModal';
 import { ManagerAnalyticsModal } from './components/ManagerAnalyticsModal';
 import { PauseModal } from './components/PauseModal';
 import { TitleScreen } from './components/TitleScreen';
+import { sendTelemetryPing } from './config/feedbackConfig';
 import { HAZARD_DEFINITIONS, INITIAL_SECTORS, shuffleChoices } from './data/protocols';
 import { Language } from './i18n/translations';
 import {
@@ -198,6 +199,19 @@ export default function App() {
       return updated;
     });
   }, [language]);
+
+  // Log page view telemetry once per browser session
+  useEffect(() => {
+    try {
+      const alreadyLogged = sessionStorage.getItem('worksafe_vr_pageview_logged');
+      if (!alreadyLogged) {
+        sessionStorage.setItem('worksafe_vr_pageview_logged', 'true');
+        sendTelemetryPing({ eventType: 'PAGE_VIEW' });
+      }
+    } catch {
+      // Ignore sessionStorage restriction errors
+    }
+  }, []);
 
   // Active Hazard, Pre-Alarm & Educational Feedback Tracking
   const [activeHazard, setActiveHazard] = useState<HazardIncident | null>(null);
@@ -1368,8 +1382,14 @@ export default function App() {
       sceneInstanceRef.current?.setHazardActive(null, false);
       sceneInstanceRef.current?.setCameraView('VR_FIRST_PERSON');
       setCameraView('VR_FIRST_PERSON');
+
+      sendTelemetryPing({
+        eventType: 'GAME_START',
+        playerName,
+        shiftMode: mode,
+      });
     },
-    []
+    [playerName]
   );
 
   // Track Lot Mission completion
@@ -1423,7 +1443,31 @@ export default function App() {
     };
 
     saveCareer(updatedCareer);
-  }, [incidentRecords, preAlarmsPrevented, safetyComplianceScore, careerRecord, saveCareer]);
+
+    sendTelemetryPing({
+      eventType: 'GAME_COMPLETE',
+      playerName,
+      shiftMode,
+      yieldPct: overallYieldPct,
+      safetyScore: safetyComplianceScore,
+      wafersProduced: totalWafersProduced,
+      preAlarmsPrevented,
+      incidentsResolved: incidentRecords.filter((r) => r.resolved).length,
+      incidentsEncountered: incidentRecords.length,
+      fabValueSavedM: fabValueSavedMillionsUSD,
+    });
+  }, [
+    incidentRecords,
+    preAlarmsPrevented,
+    safetyComplianceScore,
+    careerRecord,
+    saveCareer,
+    playerName,
+    shiftMode,
+    overallYieldPct,
+    totalWafersProduced,
+    fabValueSavedMillionsUSD,
+  ]);
 
   // Main 1-Second Simulation Tick Loop
   useEffect(() => {

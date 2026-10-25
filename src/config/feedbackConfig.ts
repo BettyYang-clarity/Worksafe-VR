@@ -104,3 +104,109 @@ export async function submitFeedbackToGoogleForm(
     return { sentToGoogleForm: false, savedLocally };
   }
 }
+
+function getOrCreateSessionId(): string {
+  try {
+    let sid = sessionStorage.getItem('worksafe_vr_session_id');
+    if (!sid) {
+      sid = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+      sessionStorage.setItem('worksafe_vr_session_id', sid);
+    }
+    return sid;
+  } catch {
+    return 'sess_anonymous';
+  }
+}
+
+export interface TelemetryPingData {
+  eventType: 'PAGE_VIEW' | 'GAME_START' | 'GAME_COMPLETE';
+  playerName?: string;
+  shiftMode?: string;
+  yieldPct?: number;
+  safetyScore?: number;
+  wafersProduced?: number;
+  preAlarmsPrevented?: number;
+  incidentsResolved?: number;
+  incidentsEncountered?: number;
+  fabValueSavedM?: number;
+}
+
+/**
+ * Automatically sends silent telemetry pings (Page View, Game Start, Game Complete)
+ * to Google Forms so the admin can monitor total visits, plays, and completions in Google Sheets.
+ */
+export async function sendTelemetryPing(data: TelemetryPingData): Promise<void> {
+  if (!GOOGLE_FORM_CONFIG.formActionUrl) return;
+
+  const sessionId = getOrCreateSessionId();
+  const screenInfo = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'N/A';
+  const language = typeof navigator !== 'undefined' ? navigator.language : 'N/A';
+  const referrer = typeof document !== 'undefined' && document.referrer ? document.referrer : 'Direct / Bookmark';
+
+  let title = '';
+  let role = '';
+  let details = '';
+
+  const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+  if (data.eventType === 'PAGE_VIEW') {
+    title = '[自動統計] 訪客連線 / Page View';
+    role = '[Telemetry] 網頁訪客 (Visitor)';
+    details = [
+      '【WorkSafe VR 自動遙測 - 網頁瀏覽】',
+      `事件類別: PAGE_VIEW (訪客開啟遊戲首頁)`,
+      `連線代號: ${sessionId}`,
+      `記錄時間: ${nowStr} (Taipei)`,
+      `裝置解析度: ${screenInfo} | 語系: ${language}`,
+      `來源網址: ${referrer}`,
+    ].join('\n');
+  } else if (data.eventType === 'GAME_START') {
+    title = '[自動統計] 開始遊玩 / Shift Started';
+    role = '[Telemetry] 當班操作員 (Operator)';
+    details = [
+      '【WorkSafe VR 自動遙測 - 開始當班】',
+      `事件類別: GAME_START (玩家開始值班)`,
+      `連線代號: ${sessionId}`,
+      `操作員代號: ${data.playerName || 'Anonymous'}`,
+      `班別模式: ${data.shiftMode || 'FULL_SHIFT'} (6-min / 360s SIM)`,
+      `記錄時間: ${nowStr} (Taipei)`,
+    ].join('\n');
+  } else if (data.eventType === 'GAME_COMPLETE') {
+    title = '[自動統計] 班次結算 / Shift Completed';
+    role = '[Telemetry] 結算完成 (Debrief)';
+    details = [
+      '【WorkSafe VR 自動遙測 - 班次通關結算】',
+      `事件類別: GAME_COMPLETE (值班完成進入結算)`,
+      `連線代號: ${sessionId}`,
+      `操作員代號: ${data.playerName || 'Anonymous'}`,
+      `晶圓良率: ${data.yieldPct !== undefined ? data.yieldPct.toFixed(1) + '%' : 'N/A'}`,
+      `工安合規分: ${data.safetyScore !== undefined ? data.safetyScore + '/100' : 'N/A'}`,
+      `合格產出: ${data.wafersProduced || 0} 片`,
+      `預警防範: ${data.preAlarmsPrevented || 0} 起`,
+      `事故化解: ${data.incidentsResolved || 0} / ${data.incidentsEncountered || 0}`,
+      `保全廠區價值: $${data.fabValueSavedM !== undefined ? data.fabValueSavedM.toFixed(1) + 'M USD' : 'N/A'}`,
+      `記錄時間: ${nowStr} (Taipei)`,
+    ].join('\n');
+  }
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append(GOOGLE_FORM_CONFIG.entries.overallRating, '5');
+    formData.append(GOOGLE_FORM_CONFIG.entries.ehsClarity, 'Very Clear and Practical');
+    formData.append(GOOGLE_FORM_CONFIG.entries.memorableHazard, title);
+    formData.append(GOOGLE_FORM_CONFIG.entries.gameplayFunRating, '5');
+    formData.append(GOOGLE_FORM_CONFIG.entries.playerBackground, role);
+    formData.append(GOOGLE_FORM_CONFIG.entries.commentsAndTelemetry, details);
+
+    await fetch(GOOGLE_FORM_CONFIG.formActionUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    });
+  } catch {
+    // Ignore any network failures for background telemetry
+  }
+}
