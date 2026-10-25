@@ -9,6 +9,7 @@ import {
   User,
   MessageSquare,
   Linkedin,
+  Info,
 } from 'lucide-react';
 import { UserCareerRecord } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
@@ -286,6 +287,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               {careerRecord.bestComplianceScore}%
             </div>
           </div>
+        </div>
+
+        {/* Educational Demo Disclaimer */}
+        <div className="mt-4 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-400/90 leading-relaxed flex items-start space-x-2">
+          <Info className="w-3.5 h-3.5 text-cyan-400/80 shrink-0 mt-0.5" />
+          <p>
+            <strong className="text-slate-300 font-medium">
+              {isZh ? '免責聲明：' : 'Disclaimer: '}
+            </strong>
+            {isZh
+              ? '本作品為工安模擬示範（Demo）專案，遊戲內之機台場景、操作參數及突發狀況處置皆為教學展示與體驗效果設計，非正式法規與完整作業標準。實際半導體無塵室作業，請務必遵循各產業、企業制定之標準作業程序（SOP）與專業教育訓練。'
+              : 'WorkSafe VR is an educational simulation demo. Cleanroom equipment, parameters, and emergency workflows are designed for conceptual learning and demonstration, and do not represent formal industry standards. Always adhere to company-certified Standard Operating Procedures (SOP) and professional EHS training.'}
+          </p>
         </div>
       </div>
 
