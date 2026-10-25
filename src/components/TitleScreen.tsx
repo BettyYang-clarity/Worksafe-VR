@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import {
   Play,
-  ShieldAlert,
-  Award,
   BarChart3,
   Volume2,
   VolumeX,
@@ -250,22 +248,6 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           >
             <BookOpen className="w-4 h-4 text-cyan-400" />
             <span>{t.howToPlay}</span>
-          </button>
-
-          <button
-            onClick={() => onStartGame('HAZARD_DRILL')}
-            className="px-5 py-3.5 rounded-xl hud-border text-amber-300 hover:text-amber-200 hover:border-amber-400/50 font-display font-semibold text-sm tracking-wide flex items-center space-x-2 transition-all cursor-pointer"
-          >
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
-            <span>{t.rapidDrill}</span>
-          </button>
-
-          <button
-            onClick={() => onStartGame('CERTIFICATION_EXAM')}
-            className="px-5 py-3.5 rounded-xl hud-border text-slate-300 hover:text-white hover:border-slate-400 font-display font-semibold text-sm tracking-wide flex items-center space-x-2 transition-all cursor-pointer"
-          >
-            <Award className="w-4 h-4 text-purple-400" />
-            <span>{t.officerExam}</span>
           </button>
         </div>
 
