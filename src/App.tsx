@@ -99,6 +99,21 @@ const LOT_MISSION_TEMPLATES: Omit<WaferLotMission, 'id' | 'startWaferCount'>[] =
   },
 ];
 
+type ContainmentMode = 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED';
+
+// Phase 2 (On-Site PPE & SOP) decision window per stage, graded by Phase 1 troubleshooting outcome.
+// Kept generous so players can still read SOP choices carefully. Undefined = direct crisis (no Phase 1).
+const getPhase2TimeLimit = (mode?: ContainmentMode): number =>
+  mode === 'CONTROLLED' ? 70 : mode === 'MODERATE' ? 60 : mode === 'UNCONTROLLED' ? 50 : 60;
+
+// Initial 3D hazard scale (flames / gas / arcs) graded by Phase 1 outcome.
+const getPhase2BaseScale = (mode?: ContainmentMode): number =>
+  mode === 'CONTROLLED' ? 0.65 : mode === 'MODERATE' ? 0.85 : mode === 'UNCONTROLLED' ? 1.25 : 1.0;
+
+// Extra safety score awarded on fully resolving Phase 2, graded by Phase 1 outcome.
+const getPhase2ResolveBonus = (mode?: ContainmentMode): number =>
+  mode === 'CONTROLLED' ? 5 : mode === 'MODERATE' ? 3 : mode === 'UNCONTROLLED' ? 1 : 5;
+
 export default function App() {
   // Language State
   const [language, setLanguage] = useState<Language>(() => {
@@ -408,7 +423,7 @@ export default function App() {
   const spawnHazard = useCallback(
     (
       specificTypeId?: string,
-      containmentMode: 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED' = 'UNCONTROLLED'
+      containmentMode?: 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED'
     ) => {
       if (activeHazard) return;
 
@@ -427,8 +442,7 @@ export default function App() {
       const sectorId = randDef.defaultSector;
       const stage0 = randDef.steps[0];
       const isZh = language === 'zh-TW';
-      const timeLimit =
-        containmentMode === 'CONTROLLED' ? 65 : containmentMode === 'MODERATE' ? 50 : 40;
+      const timeLimit = getPhase2TimeLimit(containmentMode);
 
       const localizedChoices: ProtocolStep[] = shuffleChoices(
         stage0.choices.map((c) => ({
@@ -478,6 +492,7 @@ export default function App() {
 
       const effDrop =
         containmentMode === 'CONTROLLED' ? 0 : containmentMode === 'MODERATE' ? 12 : 25;
+      const baseScale = getPhase2BaseScale(containmentMode);
 
       setSectors((prev) => {
         const next = {
@@ -495,10 +510,8 @@ export default function App() {
       });
 
       sceneInstanceRef.current?.setHazardActive(sectorId, true, randDef.typeId);
-      if (containmentMode === 'CONTROLLED') {
-        sceneInstanceRef.current?.setHazardMitigationProgress(0.65);
-      } else if (containmentMode === 'MODERATE') {
-        sceneInstanceRef.current?.setHazardMitigationProgress(0.85);
+      if (baseScale !== 1) {
+        sceneInstanceRef.current?.setHazardMitigationProgress(baseScale);
       }
       soundManager.startEmergencyAlarm();
     },
@@ -619,8 +632,8 @@ export default function App() {
             titleZh: `💥 第一階段排障誤判！引發全面失控「${def?.titleZh || pre.titleZh}」`,
             explanation: chosenOpt.explanation,
             explanationZh: chosenOpt.explanationZh,
-            consequenceNote: `Proceeding to Phase 2 Emergency SOP (40s limit). Correct Phase 1 fix was: ${solveOpt?.label || ''}`,
-            consequenceNoteZh: `🚨 進入第二階段：請立即穿戴必備 PPE 搶救現場（限時 40 秒）！正確根因排除應為：${solveOpt?.labelZh || ''}`,
+            consequenceNote: `Proceeding to Phase 2 Emergency SOP (50s per stage). Correct Phase 1 fix was: ${solveOpt?.label || ''}`,
+            consequenceNoteZh: `🚨 進入第二階段：請立即穿戴必備 PPE 搶救現場（每階段限時 50 秒）！正確根因排除應為：${solveOpt?.labelZh || ''}`,
             standard: def?.regulatoryStandard || 'SEMI S2 Engineering Control',
             timestamp: Date.now(),
           });
@@ -745,8 +758,8 @@ export default function App() {
           titleZh: `✅ 第一階段工程排障成功（主供應源已阻斷 · 晶圓零報廢）➔ 進入第二階段現場 SOP！`,
           explanation: chosenOpt.explanation,
           explanationZh: chosenOpt.explanationZh,
-          consequenceNote: `Chamber/line still contains residual hazard! Equip mandatory PPE and complete the 2-stage on-site isolation SOP (65s window).`,
-          consequenceNoteZh: `🛡️ 雖然機台主閥已成功阻斷、保住全批晶圓，但腔體與管線內仍有局部殘留危害！請依規穿戴必備 PPE 並完成 2 階段現場標準 SOP 處置（充裕 65 秒）。`,
+          consequenceNote: `Chamber/line still contains residual hazard! Equip mandatory PPE and complete the 2-stage on-site isolation SOP (70s per stage).`,
+          consequenceNoteZh: `🛡️ 雖然機台主閥已成功阻斷、保住全批晶圓，但腔體與管線內仍有局部殘留危害！請依規穿戴必備 PPE 並完成 2 階段現場標準 SOP 處置（每階段充裕 70 秒）。`,
           standard: def?.regulatoryStandard || 'SEMI S2 Preventive Maintenance',
           timestamp: Date.now(),
         });
@@ -973,11 +986,17 @@ export default function App() {
             fatalError: false,
             regulatoryStandard: activeHazard.regulatoryStandard,
             oshaViolationFine: 0,
-            safetyScoreEarned: 25,
+            safetyScoreEarned:
+              activeHazard.containmentMode === 'MODERATE'
+                ? 18
+                : activeHazard.containmentMode === 'UNCONTROLLED'
+                ? 12
+                : 25,
           };
 
           setIncidentRecords((prev) => [...prev, record]);
-          setSafetyComplianceScore((prev) => Math.min(100, prev + 5));
+          const resolveBonus = getPhase2ResolveBonus(activeHazard.containmentMode);
+          setSafetyComplianceScore((prev) => Math.min(100, prev + resolveBonus));
           setActiveHazard(null);
           sceneInstanceRef.current?.setHazardActive(null, false);
 
@@ -1003,7 +1022,9 @@ export default function App() {
           // Advance to next stage & visibly shrink 3D hazard diorama by 45%!
           const nextStageIdx = currentStageIndex + 1;
           const nextStage = hazardDef.steps[nextStageIdx];
-          sceneInstanceRef.current?.setHazardMitigationProgress(nextStageIdx === 1 ? 0.55 : 0.35);
+          sceneInstanceRef.current?.setHazardMitigationProgress(
+            getPhase2BaseScale(activeHazard.containmentMode) * (nextStageIdx === 1 ? 0.55 : 0.35)
+          );
           addDecisionEvent(nominal.code, step.label, true);
           addFloatingDelta(
             isZh ? `✓ 第 ${currentStageIndex + 1} 階段抑制成功 (火勢/氣體減半)` : `✓ Stage ${currentStageIndex + 1} Contained (Hazard Reduced 50%)`,
@@ -1043,8 +1064,8 @@ export default function App() {
             currentPrompt: nextStage.prompt,
             currentPromptZh: nextStage.promptZh,
             protocolSteps: localizedChoices,
-            timeRemainingSec: 60,
-            timeLimitSec: 60,
+            timeRemainingSec: getPhase2TimeLimit(activeHazard.containmentMode),
+            timeLimitSec: getPhase2TimeLimit(activeHazard.containmentMode),
             isSilenced: true,
           });
         }
@@ -1205,7 +1226,21 @@ export default function App() {
       }
 
       if (activePreAlarm && activePreAlarm.sectorId === secId) {
-        handlePreventPreAlarm(secId);
+        // EMO hard-stop during Phase 1 is only a band-aid: it halts the tool but aborts in-process wafers
+        // and leaves residual hazard in the chamber/lines -> treated as PARTIAL (MODERATE Phase 2).
+        const emoOption: TroubleshootingOption = {
+          id: 'emo-hard-stop',
+          label: 'Emergency Off (EMO) Hard Stop',
+          labelZh: '按下 EMO 緊急停機',
+          outcomeType: 'PARTIAL',
+          explanation:
+            'EMO instantly cuts tool power, but it is an emergency stop rather than a root-cause fix: in-process wafers are aborted and residual hazard remains in the chamber and lines.',
+          explanationZh:
+            'EMO 可立即切斷機台電源，但它是緊急停機而非根因排除：製程中的晶圓會中斷報廢，且腔體與管線內仍有殘留危害。',
+          consequenceSummary: 'Tool halted, in-process wafers scrapped, residual hazard remains.',
+          consequenceSummaryZh: '機台已停止，但製程中晶圓報廢、殘留危害仍在。',
+        };
+        handlePreventPreAlarm(secId, emoOption);
         return;
       }
 
@@ -1464,7 +1499,7 @@ export default function App() {
       safetyScore: safetyComplianceScore,
       wafersProduced: totalWafersProduced,
       preAlarmsPrevented,
-      incidentsResolved: incidentRecords.filter((r) => r.resolved).length,
+      incidentsResolved: incidentRecords.filter((r) => r.success).length,
       incidentsEncountered: incidentRecords.length,
       fabValueSavedM: fabValueSavedMillionsUSD,
       grade,
@@ -1492,7 +1527,7 @@ export default function App() {
       safetyScore: safetyComplianceScore,
       wafersProduced: totalWafersProduced,
       preAlarmsPrevented,
-      incidentsResolved: incidentRecords.filter((r) => r.resolved).length,
+      incidentsResolved: incidentRecords.filter((r) => r.success).length,
       incidentsEncountered: incidentRecords.length,
       fabValueSavedM: fabValueSavedMillionsUSD,
     });

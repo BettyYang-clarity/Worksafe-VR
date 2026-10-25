@@ -733,7 +733,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
 
             {/* ==================================================== */}
             {/* TWO-PHASE CONNECTION BADGE: PHASE 1 OUTCOME & CONTEXT */}
+            {/* (Hidden for direct crises that had no Phase 1 troubleshooting) */}
             {/* ==================================================== */}
+            {activeHazard.containmentMode && (
             <div
               className={`p-2 rounded-lg border text-xs leading-relaxed flex items-start gap-2 ${
                 activeHazard.containmentMode === 'CONTROLLED'
@@ -768,18 +770,19 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   ➔{' '}
                   {activeHazard.containmentMode === 'CONTROLLED'
                     ? isZh
-                      ? '第二階段：請依規穿戴必備 PPE，完成現場殘留危害標準 SOP 隔離處置（限時 65s）'
-                      : 'Phase 2: Equip mandatory PPE & execute residual SOP isolation (65s limit)'
+                      ? '第二階段：請依規穿戴必備 PPE，完成現場殘留危害標準 SOP 隔離處置（每階段 70s）'
+                      : 'Phase 2: Equip mandatory PPE & execute residual SOP isolation (70s per stage)'
                     : activeHazard.containmentMode === 'MODERATE'
                     ? isZh
-                      ? '第二階段：殘留危害擴散，請立即穿戴 PPE 執行現場應變 SOP（限時 50s）'
-                      : 'Phase 2: Residual hazard spreading, equip PPE & execute SOP (50s limit)'
+                      ? '第二階段：殘留危害擴散，請立即穿戴 PPE 執行現場應變 SOP（每階段 60s）'
+                      : 'Phase 2: Residual hazard spreading, equip PPE & execute SOP (60s per stage)'
                     : isZh
-                    ? '第二階段：災情全面失控！請緊急穿戴 PPE 搶救現場（限時 40s）'
-                    : 'Phase 2: Outbreak! Equip PPE immediately for emergency containment (40s limit)'}
+                    ? '第二階段：災情全面失控！請緊急穿戴 PPE 搶救現場（每階段 50s）'
+                    : 'Phase 2: Outbreak! Equip PPE immediately for emergency containment (50s per stage)'}
                 </span>
               </div>
             </div>
+            )}
 
             {/* ==================================================== */}
             {/* CRUCIAL STEP 1: MANDATORY PPE INSTRUCTION BANNER      */}
