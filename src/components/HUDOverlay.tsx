@@ -104,16 +104,19 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
 
   const pipelineOrder: SectorId[] = [
     'PHOTOLITHOGRAPHY',
-    'ION_IMPLANTATION',
     'ETCH_CVD',
     'CMP_WET_BENCH',
     'DIFFUSION_FURNACE',
+    'ION_IMPLANTATION',
   ];
 
-  // Detect any creeping micro-anomalies (e.g. scrubber > 85% or temperature high)
-  const anomalousSectors = Object.values(sectors).filter(
-    (s) => s.scrubberLoadPct > 85 || s.temperatureC > 300 || s.health < 80
-  );
+  // Detect genuine creeping micro-anomalies (avoiding false alarms on 1050°C Diffusion Furnace)
+  const anomalousSectors = Object.values(sectors).filter((s) => {
+    if (s.activeHazardId) return true;
+    if (s.scrubberLoadPct > 88) return true;
+    if (s.id === 'DIFFUSION_FURNACE') return s.temperatureC > 1160;
+    return s.temperatureC > 310 || s.health < 75;
+  });
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-2 md:p-3 overflow-hidden select-none">
@@ -326,35 +329,38 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
           </div>
         </div>
 
-        {/* Subtle Micro-Anomaly Jitter Ticker (Creeping Disasters warning) */}
+        {/* Clickable Actionable Micro-Anomaly Ticker */}
         {anomalousSectors.length > 0 && !activeHazard && (
-          <div className="mt-1 flex items-center justify-center">
-            <div className="px-3 py-1 rounded-full bg-amber-950/70 border border-amber-500/50 text-[10px] text-amber-300 flex items-center space-x-2 animate-pulse">
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
+          <div className="mt-1 flex items-center justify-center pointer-events-auto">
+            <button
+              onClick={() => onSelectSector(anomalousSectors[0].id)}
+              className="px-3.5 py-1 rounded-full bg-amber-950/85 hover:bg-amber-900 border border-amber-500/70 text-[11px] text-amber-200 flex items-center space-x-2 animate-pulse cursor-pointer shadow-lg shadow-amber-950/50 transition-all hover:scale-105"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>
                 {isZh
-                  ? `【感測微幅異常波動】${anomalousSectors.map((s) => s.code).join(', ')} 腔體負載升高，請留意是否持續惡化`
-                  : `[Sensor Jitter Detected] Elevated backpressure in ${anomalousSectors.map((s) => s.code).join(', ')}`}
+                  ? `【感測微幅異常】${anomalousSectors.map((s) => s.code.split('/')[0]).join(', ')} 負載過高 ➔ [點擊立即鎖定機台調校]`
+                  : `[Sensor Jitter] Elevated backpressure in ${anomalousSectors.map((s) => s.code.split('/')[0]).join(', ')} ➔ [Click to Tune]`}
               </span>
-            </div>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Floating Animated Score / Yield Delta Badges */}
+      {/* Floating Animated Score / Yield Delta Badges (Relocated to Top-Right to prevent view blocking) */}
       {floatingDeltas.length > 0 && (
-        <div className="pointer-events-none fixed top-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-30">
-          {floatingDeltas.map((d) => (
+        <div className="pointer-events-none fixed top-20 right-5 flex flex-col items-end gap-1.5 z-30">
+          {floatingDeltas.slice(-4).map((d) => (
             <div
               key={d.id}
-              className={`px-3 py-1 rounded-full text-xs font-mono font-bold shadow-lg animate-bounce ${
+              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold shadow-xl animate-fade-in ${
                 d.type === 'YIELD_UP'
-                  ? 'bg-emerald-500/90 text-white border border-emerald-300'
+                  ? 'bg-emerald-950/90 text-emerald-200 border border-emerald-500/70'
                   : d.type === 'WAFER_GOOD'
-                  ? 'bg-cyan-500/90 text-white border border-cyan-300'
+                  ? 'bg-cyan-950/90 text-cyan-200 border border-cyan-500/70'
                   : d.type === 'WAFER_SCRAP' || d.type === 'YIELD_DOWN'
-                  ? 'bg-rose-500/90 text-white border border-rose-300'
-                  : 'bg-amber-500/90 text-black border border-amber-300'
+                  ? 'bg-rose-950/90 text-rose-200 border border-rose-500/70'
+                  : 'bg-amber-950/90 text-amber-200 border border-amber-500/70'
               }`}
             >
               {d.text}
@@ -367,7 +373,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 2. FLOATING EMERGENCY ALERT CARD (3-Tiered Hazards)  */}
       {/* ==================================================== */}
       {activeHazard && (
-        <div className="mx-auto max-w-xl w-full pointer-events-auto my-auto animate-fade-in font-mono">
+        <div className="mx-auto max-w-xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in font-mono">
           <div className="rounded-xl border-2 border-rose-500/90 bg-slate-950/95 p-4 shadow-2xl backdrop-blur-md">
             {/* Header with Level Tier Badge */}
             <div className="flex items-center justify-between mb-2">
@@ -482,12 +488,13 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       )}
 
       {/* ==================================================== */}
-      {/* 2.5 DYNAMIC SOP INSTRUCTION & GUIDANCE BANNER        */}
+      {/* 3. DOCKED BOTTOM CLUSTER (Banner + Bay Tuning Rack)   */}
       {/* ==================================================== */}
-      <div className="pointer-events-auto mx-auto w-full max-w-4xl font-mono mb-2">
+      <div className="pointer-events-auto mx-auto w-full max-w-4xl font-mono mt-auto flex flex-col gap-1.5 z-20">
+        {/* Dynamic SOP Banner or Educational Recipe Goal Header */}
         {activeHazard ? (
-          <div className="p-3 rounded-xl bg-gradient-to-r from-rose-950/95 via-slate-950/90 to-amber-950/95 border-2 border-rose-500/80 shadow-2xl backdrop-blur-md">
-            <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-rose-900/60">
+          <div className="p-2.5 rounded-xl bg-gradient-to-r from-rose-950/95 via-slate-950/90 to-amber-950/95 border-2 border-rose-500/80 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center justify-between mb-1 pb-1 border-b border-rose-900/60">
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
                 <span className="font-bold text-rose-300 text-xs tracking-wider font-sans">
@@ -573,27 +580,47 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
           </div>
         ) : (
-          <div className="px-3.5 py-2 rounded-xl bg-slate-950/85 border border-cyan-500/30 backdrop-blur-md shadow-lg flex items-center justify-between text-xs">
-            <div className="flex items-center space-x-2 text-cyan-300">
-              <span className="p-1 rounded bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">SOP GUIDANCE</span>
-              <span>
-                {isZh
-                  ? '💡 即時製程平衡：點選下方機台微調 RF (產能) 與特氣 (良率)，注意洗滌塔負載超過 90% 將引發外溢！'
-                  : '💡 Fab Balancing: Tune RF (Throughput) & Gas Flow (Yield). Keep Scrubber <90% to avoid toxic spill!'}
+          /* Educational Target Recipe & Balancing Banner */
+          <div className="px-3 py-1.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center space-x-2 text-slate-200">
+              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/40">
+                {isZh ? '製程配方目標' : 'RECIPE TARGET'}
+              </span>
+              <span className="font-bold text-white">
+                {selectedSector.code.split('/')[0]}:
+              </span>
+              <span className="text-slate-300 text-[11px]">
+                {selectedSector.id === 'PHOTOLITHOGRAPHY'
+                  ? (isZh ? '最佳範圍: RF 800~1100W | 特氣 30~50 sccm (常壓大氣微影吸附)' : 'Optimal: RF 800-1100W | Gas 30-50 sccm (Atmospheric chuck)')
+                  : selectedSector.id === 'ION_IMPLANTATION'
+                  ? (isZh ? '最佳範圍: RF 1100~1400W | 真空 < 20 Torr (深真空防 200kV 擊穿電弧)' : 'Optimal: RF 1100-1400W | Vac < 20T (Deep vacuum prevents 200kV arcing)')
+                  : selectedSector.id === 'ETCH_CVD'
+                  ? (isZh ? '最佳範圍: RF 1300~1700W | 特氣 70~110 sccm | 監控洗滌塔負載 < 88%' : 'Optimal: RF 1300-1700W | Gas 70-110 sccm | Scrubber < 88%')
+                  : selectedSector.id === 'CMP_WET_BENCH'
+                  ? (isZh ? '最佳範圍: 研磨 RF 700~950W | 漿料 20~40 sccm (化學酸槽負壓排氣)' : 'Optimal: RF 700-950W | Slurry 20-40 sccm (Acid bench negative draft)')
+                  : (isZh ? '最佳範圍: RF 900~1200W | 爐溫 1020~1100°C (石英管均勻氧化)' : 'Optimal: RF 900-1200W | Temp 1020-1100°C (Nano oxide film)')}
               </span>
             </div>
-            <div className="hidden sm:flex items-center space-x-2 text-[10px] text-slate-400">
-              <span>{isZh ? '當前操作員:' : 'Operator:'}</span>
-              <strong className="text-white">{playerName || 'Tech #402'}</strong>
+
+            <div className="flex items-center space-x-2 text-[10px]">
+              {selectedSector.scrubberLoadPct > 88 ? (
+                <span className="px-2 py-0.5 rounded bg-rose-500/20 border border-rose-500 text-rose-300 font-bold animate-pulse">
+                  🚨 洗滌塔高背壓！請調降特氣
+                </span>
+              ) : selectedSector.rfPowerWatts >= 2100 ? (
+                <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500 text-amber-300 font-bold animate-pulse">
+                  ⚠️ RF 功率過載！腔體過熱
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500 text-emerald-300 font-bold">
+                  ✓ 製程參數最佳平衡中
+                </span>
+              )}
             </div>
           </div>
         )}
-      </div>
 
-      {/* ==================================================== */}
-      {/* 3. PERMANENT DOCKED BAY 101~105 TUNING RACK          */}
-      {/* ==================================================== */}
-      <div className="pointer-events-auto mx-auto w-full max-w-4xl font-mono">
+        {/* Permanent Bay Tuning Rack */}
         <div className="rounded-xl border border-slate-700/70 bg-slate-950/95 backdrop-blur-lg p-2.5 shadow-2xl text-xs">
           {/* Bay Selector Tabs (Bay 101 ~ 105) */}
           <div className="flex items-center justify-between gap-1.5 pb-2 mb-2 border-b border-slate-800 overflow-x-auto">
@@ -606,7 +633,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 if (!s) return null;
                 const isSelected = selectedSectorId === secId;
                 const isAlert = s.activeHazardId !== null;
-                const isWarn = s.scrubberLoadPct > 85 || s.health < 80;
+                const isWarn = s.scrubberLoadPct > 88 || s.health < 80;
                 const bayCode = s.code.split('/')[0].trim();
 
                 return (
@@ -645,8 +672,21 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
 
             {/* Quick Status of currently inspected bay */}
             <div className="flex items-center space-x-3 text-[11px] text-slate-400 shrink-0">
-              <span className="hidden sm:inline">
-                {isZh ? '腔溫' : 'Temp'}: <strong className="text-white">{selectedSector.temperatureC.toFixed(0)}°C</strong>
+              <span>
+                {isZh ? '腔溫' : 'Temp'}:{' '}
+                <strong
+                  className={
+                    selectedSector.id === 'DIFFUSION_FURNACE'
+                      ? selectedSector.temperatureC > 1150
+                        ? 'text-rose-400'
+                        : 'text-amber-300'
+                      : selectedSector.temperatureC > 300
+                      ? 'text-rose-400'
+                      : 'text-white'
+                  }
+                >
+                  {selectedSector.temperatureC.toFixed(0)}°C
+                </strong>
               </span>
               <span>
                 {isZh ? '健康度' : 'Health'}: <strong className="text-emerald-400">{selectedSector.health}%</strong>
@@ -672,9 +712,15 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <div className="flex items-center justify-between text-[11px] mb-1">
                 <span className="text-slate-300 font-bold flex items-center gap-1">
                   <Zap className="w-3 h-3 text-amber-400" />
-                  <span>RF 功率 (Power)</span>
+                  <span>RF 射頻功率</span>
                 </span>
-                <span className="font-bold text-amber-400 tabular-nums">{selectedSector.rfPowerWatts} W</span>
+                <span
+                  className={`font-bold tabular-nums ${
+                    selectedSector.rfPowerWatts >= 2100 ? 'text-rose-400 animate-pulse' : 'text-amber-400'
+                  }`}
+                >
+                  {selectedSector.rfPowerWatts} W
+                </span>
               </div>
               <input
                 type="range"
@@ -687,10 +733,27 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 }
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
               />
-              <div className="flex justify-between text-[9px] text-slate-500 mt-1">
-                <span>500W</span>
-                <span className="text-cyan-400 font-bold">產出 +{Math.round(selectedSector.efficiency * 1.2)}/h</span>
-                <span>2500W</span>
+              <div className="flex items-center justify-between gap-1 text-[9px] mt-1.5">
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: Math.max(500, selectedSector.rfPowerWatts - 100) })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                  title="降低 100W"
+                >
+                  -100W
+                </button>
+                <span className="text-slate-400 font-bold">產速: {selectedSector.efficiency}%</span>
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: Math.min(2500, selectedSector.rfPowerWatts + 100) })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                  title="提升 100W"
+                >
+                  +100W
+                </button>
+              </div>
+              <div className="text-[9px] mt-1 text-center">
+                <span className={selectedSector.rfPowerWatts >= 2100 ? 'text-rose-400 font-bold animate-pulse' : 'text-cyan-400'}>
+                  {selectedSector.rfPowerWatts >= 2100 ? '⚠️ 電漿電弧風險！腔體過熱' : `腔溫 ${selectedSector.temperatureC}°C (安全)`}
+                </span>
               </div>
             </div>
 
@@ -699,7 +762,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <div className="flex items-center justify-between text-[11px] mb-1">
                 <span className="text-slate-300 font-bold flex items-center gap-1">
                   <Flame className="w-3 h-3 text-cyan-400" />
-                  <span>特氣流量 (Gas Flow)</span>
+                  <span>特氣流量 (Gas)</span>
                 </span>
                 <span className="font-bold text-cyan-400 tabular-nums">{selectedSector.gasFlowSccm} sccm</span>
               </div>
@@ -714,12 +777,39 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 }
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               />
-              <div className="flex justify-between text-[9px] text-slate-500 mt-1">
-                <span>0 sccm</span>
-                <span className="text-emerald-400 font-bold">
-                  良率 +{Math.min(15, selectedSector.gasFlowSccm / 20).toFixed(1)}%
+              <div className="flex items-center justify-between gap-1 text-[9px] mt-1.5">
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: Math.max(0, selectedSector.gasFlowSccm - 20) })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                  title="減少 20 sccm"
+                >
+                  -20
+                </button>
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: 0 })}
+                  className="px-1.5 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-700/60 font-bold cursor-pointer"
+                  title="緊急氣閥切斷 (0 sccm)"
+                >
+                  切斷 (0)
+                </button>
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: Math.min(300, selectedSector.gasFlowSccm + 20) })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                  title="增加 20 sccm"
+                >
+                  +20
+                </button>
+              </div>
+              <div className="text-[9px] mt-1 text-center">
+                <span
+                  className={
+                    selectedSector.scrubberLoadPct > 88
+                      ? 'text-rose-400 font-bold animate-pulse'
+                      : 'text-emerald-400 font-bold'
+                  }
+                >
+                  {selectedSector.scrubberLoadPct > 88 ? '🚨 排氣背壓超載！洗滌塔危機' : `洗滌塔負載 ${Math.round(selectedSector.scrubberLoadPct)}%`}
                 </span>
-                <span>300 sccm</span>
               </div>
             </div>
 
@@ -728,7 +818,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <div className="flex items-center justify-between text-[11px] mb-1">
                 <span className="text-slate-300 font-bold flex items-center gap-1">
                   <Activity className="w-3 h-3 text-purple-400" />
-                  <span>腔體真空 (Vacuum)</span>
+                  <span>腔體真空度</span>
                 </span>
                 <span className="font-bold text-purple-400 tabular-nums">{selectedSector.chamberVacuumTorr} Torr</span>
               </div>
@@ -743,10 +833,33 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 }
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
               />
-              <div className="flex justify-between text-[9px] text-slate-500 mt-1">
-                <span>0.01T (真空)</span>
-                <span className="text-slate-400">微塵 {selectedSector.particleCountPPM.toFixed(1)} PPM</span>
-                <span>760T (大氣)</span>
+              <div className="flex items-center justify-between gap-1 text-[9px] mt-1.5">
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: 1 })}
+                  className="px-1.5 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-700/60 font-bold cursor-pointer"
+                  title="抽高真空 (1 Torr)"
+                >
+                  抽真空 (1T)
+                </button>
+                <span className="text-slate-400">微塵: {selectedSector.particleCountPPM.toFixed(1)} PPM</span>
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: 760 })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                  title="洩壓至大氣壓 (760 Torr)"
+                >
+                  常壓 (760T)
+                </button>
+              </div>
+              <div className="text-[9px] mt-1 text-center">
+                <span
+                  className={
+                    selectedSector.particleCountPPM > 3.0
+                      ? 'text-rose-400 font-bold'
+                      : 'text-slate-300 font-bold'
+                  }
+                >
+                  {selectedSector.particleCountPPM > 3.0 ? '⚠️ 顆粒缺陷超標 (良率受損)' : '✓ 潔淨真空'}
+                </span>
               </div>
             </div>
 
@@ -756,9 +869,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 <span className="text-slate-300 font-bold">洗滌塔排氣負載</span>
                 <span
                   className={`font-bold tabular-nums ${
-                    selectedSector.scrubberLoadPct > 90
+                    selectedSector.scrubberLoadPct > 88
                       ? 'text-rose-400 animate-pulse'
-                      : selectedSector.scrubberLoadPct > 75
+                      : selectedSector.scrubberLoadPct > 70
                       ? 'text-amber-400'
                       : 'text-emerald-400'
                   }`}
@@ -769,9 +882,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
                 <div
                   className={`h-full transition-all duration-300 ${
-                    selectedSector.scrubberLoadPct > 90
+                    selectedSector.scrubberLoadPct > 88
                       ? 'bg-rose-500'
-                      : selectedSector.scrubberLoadPct > 75
+                      : selectedSector.scrubberLoadPct > 70
                       ? 'bg-amber-500'
                       : 'bg-emerald-500'
                   }`}

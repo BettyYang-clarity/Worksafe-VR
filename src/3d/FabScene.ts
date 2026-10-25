@@ -739,11 +739,11 @@ export class FabScene {
   // 3D Floating Holographic Billboards for each machine bay (Elevated and Unobstructed)
   private buildBayBillboards() {
     const bays: { id: SectorId; code: string; name: string; nameZh: string; pos: THREE.Vector3 }[] = [
-      { id: 'PHOTOLITHOGRAPHY', code: 'BAY 101', name: 'DUV SCANNER', nameZh: '微影曝光機', pos: new THREE.Vector3(-11, 4.85, -7.2) },
-      { id: 'ION_IMPLANTATION', code: 'BAY 105', name: 'ION IMPLANTER (200kV)', nameZh: '離子植入機', pos: new THREE.Vector3(0, 5.3, -8.2) },
-      { id: 'ETCH_CVD', code: 'BAY 102', name: 'PLASMA ETCH / CVD', nameZh: '電漿蝕刻 / CVD', pos: new THREE.Vector3(11, 4.85, -7.2) },
-      { id: 'CMP_WET_BENCH', code: 'BAY 103', name: 'CMP & WET BENCH', nameZh: '化學研磨與酸槽', pos: new THREE.Vector3(-11, 4.85, 4.8) },
-      { id: 'DIFFUSION_FURNACE', code: 'BAY 104', name: 'DIFFUSION FURNACE', nameZh: '高溫擴散氧化爐', pos: new THREE.Vector3(11, 4.85, 4.8) },
+      { id: 'PHOTOLITHOGRAPHY', code: 'BAY 101', name: 'DUV SCANNER', nameZh: '微影曝光機', pos: new THREE.Vector3(-11, 3.85, -7.2) },
+      { id: 'ION_IMPLANTATION', code: 'BAY 105', name: 'ION IMPLANTER (200kV)', nameZh: '高能離子植入機', pos: new THREE.Vector3(0, 4.15, -8.5) },
+      { id: 'ETCH_CVD', code: 'BAY 102', name: 'PLASMA ETCH / CVD', nameZh: '電漿乾蝕刻/CVD', pos: new THREE.Vector3(11, 3.85, -7.2) },
+      { id: 'CMP_WET_BENCH', code: 'BAY 103', name: 'CMP & WET BENCH', nameZh: '化學研磨與酸槽', pos: new THREE.Vector3(-11, 3.4, 4.8) },
+      { id: 'DIFFUSION_FURNACE', code: 'BAY 104', name: 'DIFFUSION FURNACE', nameZh: '高溫擴散氧化爐', pos: new THREE.Vector3(11, 3.9, 4.8) },
     ];
 
     bays.forEach((bay) => {
@@ -864,9 +864,10 @@ export class FabScene {
       const b = this.bayBillboards.get(sec.id);
       if (!b) return;
 
+      const shortName = sec.nameZh.split('(')[0].replace(/第[1-5]區 · /, '').trim();
       const sub = `RF: ${sec.rfPowerWatts}W | 廢氣: ${Math.round(sec.scrubberLoadPct)}% | 效率: ${Math.round(sec.efficiency)}%`;
       const bayCode = sec.code.split('/')[0].trim();
-      const displayName = `${sec.nameZh} · ${bayCode}`;
+      const displayName = `${bayCode} · ${shortName}`;
       this.renderBillboardCanvas(b.ctx, bayCode, displayName, sec.status, sub);
       b.texture.needsUpdate = true;
     });

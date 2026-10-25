@@ -393,33 +393,100 @@ export default function App() {
     [addDecisionEvent, addFloatingDelta]
   );
 
-  // Dynamic Parameter Tuning with Real-Time Hazards
+  // Dynamic Parameter Tuning with Real-Time Physical Feedback & Consequences
   const handleUpdateSectorParams = useCallback(
     (sectorId: SectorId, params: Partial<SectorState>) => {
+      soundManager.playUiClick();
       setSectors((prev) => {
         const sec = prev[sectorId];
-        const next = { ...sec, ...params };
+        if (!sec) return prev;
 
-        if (params.rfPowerWatts && params.rfPowerWatts >= 2100) {
-          addDecisionEvent(sec.code, `Pushed RF Power to ${params.rfPowerWatts}W (Arcing hazard threshold)`, false, 'NFPA 70E');
-        }
-        if (params.gasFlowSccm && params.gasFlowSccm >= 140) {
-          addDecisionEvent(sec.code, `Pushed Gas Flow to ${params.gasFlowSccm} sccm (High scrubber load)`, false, 'SEMI S2');
+        const rf = params.rfPowerWatts !== undefined ? params.rfPowerWatts : sec.rfPowerWatts;
+        const gas = params.gasFlowSccm !== undefined ? params.gasFlowSccm : sec.gasFlowSccm;
+        const vac = params.chamberVacuumTorr !== undefined ? params.chamberVacuumTorr : sec.chamberVacuumTorr;
+        const bypass = params.bypassActive !== undefined ? params.bypassActive : sec.bypassActive;
+
+        // Dynamic Physical Feedback formulas:
+        // 1. RF Power -> Throughput speed & temperature & arcing risk
+        const eff = Math.min(100, Math.max(30, Math.round(40 + (rf / 2500) * 60)));
+        const temp =
+          sectorId === 'DIFFUSION_FURNACE'
+            ? Math.round(1000 + (rf / 2500) * 160)
+            : Math.round(22 + (rf / 2500) * 330);
+
+        // 2. Gas Flow -> Uniformity vs Scrubber Backpressure load
+        const scrubber = Math.min(120, Math.max(10, Math.round((gas / 300) * 90 + (rf / 2500) * 20)));
+
+        // 3. Chamber Vacuum -> Particle defects
+        const particles = Math.max(0.1, Number(((vac / 760) * 6.5).toFixed(1)));
+
+        // Warning & Safety Threshold checks
+        const isFurnaceOverheat = sectorId === 'DIFFUSION_FURNACE' && temp > 1150;
+        const isGeneralOverheat = sectorId !== 'DIFFUSION_FURNACE' && temp > 300;
+        const isScrubberWarn = scrubber > 88;
+
+        let status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'SHUTDOWN' = sec.status;
+        if (sec.activeHazardId) {
+          status = 'CRITICAL';
+        } else if (isScrubberWarn || isFurnaceOverheat || isGeneralOverheat) {
+          status = 'WARNING';
+        } else {
+          status = 'OPTIMAL';
         }
 
-        // Check if scrubber overloaded > 100%
-        if (next.scrubberLoadPct >= 100 && !activeHazard) {
+        const next = {
+          ...sec,
+          ...params,
+          rfPowerWatts: rf,
+          gasFlowSccm: gas,
+          chamberVacuumTorr: vac,
+          bypassActive: bypass,
+          efficiency: eff,
+          temperatureC: temp,
+          scrubberLoadPct: scrubber,
+          particleCountPPM: particles,
+          status,
+        };
+
+        if (params.rfPowerWatts !== undefined) {
+          if (rf >= 2100) {
+            addDecisionEvent(sec.code, `Pushed RF Power to ${rf}W (Arcing hazard threshold exceeded)`, false, 'NFPA 70E');
+            addFloatingDelta(`⚠️ RF 過高 (${rf}W)：電漿跳火風險！`, 'WAFER_SCRAP');
+          } else {
+            addFloatingDelta(`⚡ 產速調整: ${eff}% (${rf}W)`, 'YIELD_UP');
+          }
+        }
+
+        if (params.gasFlowSccm !== undefined) {
+          if (scrubber >= 90) {
+            addDecisionEvent(sec.code, `Gas Flow ${gas} sccm overloaded scrubber (${scrubber}%)`, false, 'SEMI S2');
+            addFloatingDelta(`🚨 洗滌塔高負載 (${scrubber}%)：背壓劇增！`, 'WAFER_SCRAP');
+          } else {
+            addFloatingDelta(`🧪 洗滌塔負載: ${scrubber}% (特氣 ${gas} sccm)`, 'YIELD_UP');
+          }
+        }
+
+        if (params.chamberVacuumTorr !== undefined) {
+          if (particles > 3.0) {
+            addFloatingDelta(`⚠️ 腔體微塵: ${particles} PPM (缺陷率上升)`, 'WAFER_SCRAP');
+          } else {
+            addFloatingDelta(`🌀 高真空微塵優化: ${particles} PPM`, 'YIELD_UP');
+          }
+        }
+
+        // Check if scrubber overloaded > 100% -> triggers toxic leak incident
+        if (scrubber >= 100 && !activeHazard) {
           setTimeout(() => {
-            spawnHazard('ARSINE_GAS_LEAK');
-            addDecisionEvent(sec.code, 'Scrubber load exceeded 100% backflow limit -> Catastrophic leak', false, 'SEMI S2 / OSHA 1910.119');
-            addFloatingDelta('CRITICAL LEAK!', 'WAFER_SCRAP');
-          }, 400);
-        } else if (next.rfPowerWatts >= 2200 && next.temperatureC > 360 && !activeHazard) {
+            spawnHazard('ASH3_TOXIC_GAS');
+            addDecisionEvent(sec.code, 'Scrubber load exceeded 100% limit -> Toxic hydride backflow rupture', false, 'SEMI S2 / OSHA 1910.119');
+            addFloatingDelta('CRITICAL TOXIC LEAK!', 'WAFER_SCRAP');
+          }, 600);
+        } else if (rf >= 2300 && temp > 330 && !activeHazard) {
           setTimeout(() => {
             spawnHazard('ION_HV_ARC_XRAY');
-            addDecisionEvent(sec.code, 'RF Power arc-flash 200kV triggered', false, 'NFPA 70E');
-            addFloatingDelta('200kV ARC FLASH!', 'WAFER_SCRAP');
-          }, 400);
+            addDecisionEvent(sec.code, 'RF Power extreme overload -> 200kV Dielectric breakdown', false, 'NFPA 70E');
+            addFloatingDelta('200kV ARC FLASH DETONATION!', 'WAFER_SCRAP');
+          }, 600);
         }
 
         const nextAll = { ...prev, [sectorId]: next };
@@ -913,10 +980,18 @@ export default function App() {
             continue;
           }
 
-          // Production throughput rate
-          const rate = (curr.efficiency / 100) * 0.55;
+          // Production throughput rate (directly boosted by RF Power & efficiency!)
+          const rate = (curr.efficiency / 100) * 0.75;
           const isHazard = curr.activeHazardId !== null;
-          const defectChance = isHazard ? 0.35 : (100 - curr.health) * 0.0025;
+          // Defect probability physically driven by Vacuum particle count & Gas Flow uniformity:
+          const defectChance = isHazard
+            ? 0.35
+            : Math.max(
+                0.005,
+                (curr.particleCountPPM * 0.02) +
+                  (curr.gasFlowSccm < 35 ? 0.06 : 0) +
+                  (100 - curr.health) * 0.002
+              );
 
           // Process wafers if input queue has inventory
           if (curr.inputQueue > 0 && Math.random() < rate) {
