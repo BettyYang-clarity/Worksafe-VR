@@ -227,6 +227,8 @@ export default function App() {
   const [shiftTimeRemaining, setShiftTimeRemaining] = useState<number>(360);
   const [totalWafersProduced, setTotalWafersProduced] = useState<number>(0);
   const [totalDefectiveWafers, setTotalDefectiveWafers] = useState<number>(0);
+  const totalWafers = totalWafersProduced + totalDefectiveWafers;
+  const overallYieldPct = totalWafers > 0 ? (totalWafersProduced / totalWafers) * 100 : 96.5;
   const [safetyComplianceScore, setSafetyComplianceScore] = useState<number>(100);
   const [accumulatedFines, setAccumulatedFines] = useState<number>(0);
   const [flowStateSeconds, setFlowStateSeconds] = useState<number>(0);
@@ -1704,9 +1706,6 @@ export default function App() {
     isFeedbackModalOpen,
     handleChangeCameraView,
   ]);
-
-  const totalWafers = totalWafersProduced + totalDefectiveWafers;
-  const overallYieldPct = totalWafers > 0 ? (totalWafersProduced / totalWafers) * 100 : 96.5;
 
   const currentMetrics: SimulationMetrics = {
     totalShiftTimeSec: shiftDurationSec - shiftTimeRemaining,
