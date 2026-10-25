@@ -9,6 +9,8 @@ import {
   BookOpen,
   Globe,
   User,
+  MessageSquare,
+  Linkedin,
 } from 'lucide-react';
 import { UserCareerRecord } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
@@ -20,6 +22,7 @@ interface TitleScreenProps {
   careerRecord: UserCareerRecord;
   onOpenManagerAudit: () => void;
   onOpenInstructions: () => void;
+  onOpenFeedback: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
   playerName: string;
@@ -33,6 +36,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   careerRecord,
   onOpenManagerAudit,
   onOpenInstructions,
+  onOpenFeedback,
   isMuted,
   onToggleMute,
   playerName,
@@ -98,6 +102,16 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           >
             <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
             <span className="hidden sm:inline">{t.managerAudit}</span>
+          </button>
+
+          {/* In-Game Direct Feedback */}
+          <button
+            onClick={onOpenFeedback}
+            className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-sm shadow-amber-500/10"
+            title="Open Feedback Form / 填寫意見回饋"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isZh ? '問卷回饋' : 'Feedback'}</span>
           </button>
 
           {/* Audio Mute */}
@@ -294,9 +308,23 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       </div>
 
       {/* Flat Control Hints Footer */}
-      <div className="flex items-center justify-between text-xs font-mono text-slate-500 pt-4 border-t border-slate-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-500 pt-4 border-t border-slate-900/80">
         <div className="text-slate-400">{t.controlsHint}</div>
-        <div className="text-slate-500 hidden sm:block">{t.standardsCompliance}</div>
+
+        <div className="flex items-center space-x-3">
+          <a
+            href="https://www.linkedin.com/in/betty-yu-ting-yang-a1bb8aaa/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center space-x-1.5 text-slate-400 hover:text-cyan-300 transition-colors py-0.5 px-2 rounded hover:bg-slate-800/60 cursor-pointer"
+            title="Betty Yu-Ting Yang - LinkedIn Profile"
+          >
+            <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
+            <span className="text-slate-300 hover:text-cyan-200">Betty Yang · LinkedIn</span>
+          </a>
+          <span className="text-slate-700 hidden sm:inline">|</span>
+          <div className="text-slate-500 hidden sm:block">{t.standardsCompliance}</div>
+        </div>
       </div>
     </div>
   );

@@ -1762,6 +1762,7 @@ export default function App() {
           careerRecord={careerRecord}
           onOpenManagerAudit={() => setIsManagerAuditOpen(true)}
           onOpenInstructions={() => setIsInstructionsOpen(true)}
+          onOpenFeedback={() => setIsFeedbackModalOpen(true)}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
           playerName={playerName}
