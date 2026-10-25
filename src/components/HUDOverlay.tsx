@@ -413,7 +413,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             <button
               onClick={onOpenFeedback}
               className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-amber-300 hover:text-white cursor-pointer transition-colors"
-              title={isZh ? '遊戲內回饋表單' : 'In-Game Feedback'}
+              title={isZh ? '問卷回饋' : 'Feedback'}
             >
               <MessageSquare className="w-3.5 h-3.5" />
             </button>

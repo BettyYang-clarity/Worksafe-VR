@@ -82,13 +82,13 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
             <div>
               <h3 className="text-base font-bold text-white tracking-wide">
                 {isZh
-                  ? '遊戲內直接回饋表單 (免跳轉 Google Forms 同步)'
-                  : 'In-Game Feedback Form (Zero-Redirect Google Forms Sync)'}
+                  ? '體驗心得與工安建議'
+                  : 'Experience Feedback & Suggestions'}
               </h3>
               <p className="text-xs text-cyan-400/80">
                 {isZh
-                  ? '無需離開遊戲畫面即可直接填寫並送出您的體驗心得與工安建議'
-                  : 'Fill out and submit directly inside the game without leaving your screen'}
+                  ? '歡迎分享您對模擬操作、SOP 指引或遊戲體驗的想法'
+                  : 'Share your thoughts on cleanroom scenarios, guidance, and gameplay.'}
               </p>
             </div>
           </div>
@@ -111,13 +111,9 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
                 {isZh ? '感謝您的寶貴回饋！' : 'Thank You for Your Feedback!'}
               </h4>
               <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                {sentToRemote
-                  ? isZh
-                    ? '您的問卷與當班遙測數據已透過背景直連成功送達 Google Forms 雲端試算表，同時已建立本機備份。'
-                    : 'Your response and shift telemetry were submitted directly to Google Forms in the background and backed up locally.'
-                  : isZh
-                  ? '您的問卷與本輪表現數據已安全儲存於系統中（待部署後填入 Google Form Action URL 即可自動雲端同步）。'
-                  : 'Your feedback and shift metrics have been saved locally (and will auto-sync to Google Sheets once GOOGLE_FORM_CONFIG.formActionUrl is set).'}
+                {isZh
+                  ? '感謝您的寶貴回饋！您的意見與本班次紀錄已成功送達。'
+                  : 'Thank you for your feedback! Your response has been submitted successfully.'}
               </p>
               <div className="pt-3 flex items-center justify-center gap-3">
                 <button
@@ -311,14 +307,13 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
                 />
               </div>
 
-              {/* Auto-attached telemetry preview */}
-              <div className="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <div className="flex items-center space-x-1.5 truncate">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="truncate">{telemetrySummary}</span>
-                </div>
-                <span className="text-[10px] text-cyan-400 shrink-0 ml-2">
-                  {GOOGLE_FORM_CONFIG.formActionUrl ? 'GOOGLE SYNC ON' : 'IN-GAME DIRECT'}
+              {/* Privacy & Impact reassurance footer */}
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center space-x-2 text-[11px] font-mono text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>
+                  {isZh
+                    ? '您的回饋將作為後續優化工安模擬訓練與機台情境之參考'
+                    : 'Your feedback directly helps improve cleanroom safety training.'}
                 </span>
               </div>
 
@@ -343,8 +338,8 @@ export const GoogleFormModal: React.FC<GoogleFormModalProps> = ({
                         ? '送出中...'
                         : 'Submitting...'
                       : isZh
-                      ? '直接送出回饋 (不跳轉頁面)'
-                      : 'Submit Directly In-Game'}
+                      ? '送出回饋'
+                      : 'Submit Feedback'}
                   </span>
                 </button>
               </div>

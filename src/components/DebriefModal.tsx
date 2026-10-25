@@ -387,7 +387,7 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
             className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>{isZh ? '遊戲內直接回饋 (免跳轉)' : 'In-Game Feedback'}</span>
+            <span>{isZh ? '問卷回饋' : 'Feedback'}</span>
           </button>
         </div>
 

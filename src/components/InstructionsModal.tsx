@@ -385,12 +385,12 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({
 
                 <div className="p-4 rounded-xl bg-slate-900/80 border border-amber-500/40 space-y-2">
                   <div className="font-bold text-amber-300">
-                    {isZh ? '📸 一頁式社群分享證書與無跳轉回饋' : '📸 1-Page Social Share Card & In-Game Feedback'}
+                    {isZh ? '📸 一頁式工程師認證卡與心得回饋' : '📸 Qualification Share Card & Feedback'}
                   </div>
                   <p className="text-slate-300">
                     {isZh
-                      ? '輪班結束後將生成專屬「一頁式半導體環安工程師認證卡」，可一鍵下載 1200×630 高畫質證書圖片或複製連結邀請朋友挑戰，亦可在視窗內直接填寫回饋表單（免跳轉頁面）。'
-                      : 'At the end of your shift, download a 1200×630 HD Qualification Card showing your Grade, Yield, Lives Protected, and Fab Value Saved ($M), or submit feedback directly in-game without any page redirect.'}
+                      ? '輪班結束後將生成專屬「一頁式半導體環安工程師認證卡」，可一鍵下載 1200×630 高畫質證書圖片或複製連結邀請朋友挑戰，亦可直接在遊戲內分享您的體驗心得與建議。'
+                      : 'At the end of your shift, download a 1200×630 HD Qualification Card showing your Grade, Yield, Lives Protected, and Fab Value Saved ($M), or share your feedback directly inside the game.'}
                   </p>
                 </div>
               </div>
