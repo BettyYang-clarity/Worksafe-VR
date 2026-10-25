@@ -47,6 +47,25 @@ export const GOOGLE_FORM_CONFIG = {
 };
 
 /**
+ * Dedicated Google Form used ONLY for silent visit / play counting (PAGE_VIEW, GAME_START, GAME_COMPLETE).
+ * It is intentionally separate from the player feedback form above, so automatic pings never
+ * pollute the ratings collected from real players.
+ *   - 事件類型 (Event Type)  -> entry.1012958305
+ *   - 詳細資料 (Details)     -> entry.560609663
+ */
+export const TELEMETRY_FORM_CONFIG = {
+  formActionUrl:
+    'https://docs.google.com/forms/d/e/1FAIpQLSeJErQsBvKZsNVu6b0RIPl2MzW_0OXbax7VltA_1q6X4ecFAQ/formResponse',
+  entries: {
+    eventType: 'entry.1012958305',
+    details: 'entry.560609663',
+  },
+};
+
+// Bump when gameplay / scoring rules change so old and new records are not mixed in analysis.
+export const GAME_VERSION = 'v5.0-two-phase';
+
+/**
  * Submits feedback directly from the in-game modal to Google Forms using `mode: 'no-cors'`
  * so the player never experiences a page redirect or pop-up blocker.
  * Also stores a local backup in `localStorage` (`worksafe_vr_feedback_submissions_v4`).
@@ -136,69 +155,81 @@ export interface TelemetryPingData {
  * to Google Forms so the admin can monitor total visits, plays, and completions in Google Sheets.
  */
 export async function sendTelemetryPing(data: TelemetryPingData): Promise<void> {
-  if (!GOOGLE_FORM_CONFIG.formActionUrl) return;
+  if (!TELEMETRY_FORM_CONFIG.formActionUrl) return;
 
   const sessionId = getOrCreateSessionId();
   const screenInfo = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'N/A';
   const language = typeof navigator !== 'undefined' ? navigator.language : 'N/A';
   const referrer = typeof document !== 'undefined' && document.referrer ? document.referrer : 'Direct / Bookmark';
 
-  let title = '';
-  let role = '';
+  // Shift ID pairs GAME_START with its GAME_COMPLETE; completion is only counted once per shift.
+  let shiftId = 'N/A';
+  try {
+    if (data.eventType === 'GAME_START') {
+      shiftId = 'shift_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+      sessionStorage.setItem('worksafe_vr_current_shift_id', shiftId);
+    } else if (data.eventType === 'GAME_COMPLETE') {
+      shiftId = sessionStorage.getItem('worksafe_vr_current_shift_id') || 'shift_unknown';
+      const doneKey = 'worksafe_vr_shift_completed_' + shiftId;
+      if (sessionStorage.getItem(doneKey)) return;
+      sessionStorage.setItem(doneKey, 'true');
+    }
+  } catch {
+    // Ignore sessionStorage restriction errors
+  }
+
   let details = '';
 
   const nowStr = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
 
   if (data.eventType === 'PAGE_VIEW') {
-    title = '[自動統計] 訪客連線 / Page View';
-    role = '[Telemetry] 網頁訪客 (Visitor)';
     details = [
       '【WorkSafe VR 自動遙測 - 網頁瀏覽】',
       `事件類別: PAGE_VIEW (訪客開啟遊戲首頁)`,
+      `遊戲版本: ${GAME_VERSION}`,
       `連線代號: ${sessionId}`,
       `記錄時間: ${nowStr} (Taipei)`,
       `裝置解析度: ${screenInfo} | 語系: ${language}`,
       `來源網址: ${referrer}`,
     ].join('\n');
   } else if (data.eventType === 'GAME_START') {
-    title = '[自動統計] 開始遊玩 / Shift Started';
-    role = '[Telemetry] 當班操作員 (Operator)';
+    const modeSec = data.shiftMode === 'HAZARD_DRILL' ? 240 : 360;
     details = [
       '【WorkSafe VR 自動遙測 - 開始當班】',
       `事件類別: GAME_START (玩家開始值班)`,
+      `遊戲版本: ${GAME_VERSION}`,
+      `班次代號: ${shiftId}`,
       `連線代號: ${sessionId}`,
       `操作員代號: ${data.playerName || 'Anonymous'}`,
-      `班別模式: ${data.shiftMode || 'FULL_SHIFT'} (6-min / 360s SIM)`,
+      `班別模式: ${data.shiftMode || 'FULL_SHIFT'} (${modeSec / 60}-min / ${modeSec}s SIM)`,
       `記錄時間: ${nowStr} (Taipei)`,
     ].join('\n');
   } else if (data.eventType === 'GAME_COMPLETE') {
-    title = '[自動統計] 班次結算 / Shift Completed';
-    role = '[Telemetry] 結算完成 (Debrief)';
     details = [
       '【WorkSafe VR 自動遙測 - 班次通關結算】',
       `事件類別: GAME_COMPLETE (值班完成進入結算)`,
+      `遊戲版本: ${GAME_VERSION}`,
+      `班次代號: ${shiftId}`,
       `連線代號: ${sessionId}`,
       `操作員代號: ${data.playerName || 'Anonymous'}`,
+      `班別模式: ${data.shiftMode || 'FULL_SHIFT'}`,
       `晶圓良率: ${data.yieldPct !== undefined ? data.yieldPct.toFixed(1) + '%' : 'N/A'}`,
       `工安合規分: ${data.safetyScore !== undefined ? data.safetyScore + '/100' : 'N/A'}`,
-      `合格產出: ${data.wafersProduced || 0} 片`,
-      `預警防範: ${data.preAlarmsPrevented || 0} 起`,
-      `事故化解: ${data.incidentsResolved || 0} / ${data.incidentsEncountered || 0}`,
+      `合格產出: ${data.wafersProduced ?? 0} 片`,
+      `第一階段排障成功: ${data.preAlarmsPrevented ?? 0} 起`,
+      `第二階段處置成功: ${data.incidentsResolved ?? 0} / ${data.incidentsEncountered ?? 0}`,
       `保全廠區價值: $${data.fabValueSavedM !== undefined ? data.fabValueSavedM.toFixed(1) + 'M USD' : 'N/A'}`,
       `記錄時間: ${nowStr} (Taipei)`,
     ].join('\n');
   }
 
   try {
+    // Sent to the dedicated telemetry form only (no rating fields), so real feedback ratings stay clean.
     const formData = new URLSearchParams();
-    formData.append(GOOGLE_FORM_CONFIG.entries.overallRating, '5');
-    formData.append(GOOGLE_FORM_CONFIG.entries.ehsClarity, 'Very Clear and Practical');
-    formData.append(GOOGLE_FORM_CONFIG.entries.memorableHazard, title);
-    formData.append(GOOGLE_FORM_CONFIG.entries.gameplayFunRating, '5');
-    formData.append(GOOGLE_FORM_CONFIG.entries.playerBackground, role);
-    formData.append(GOOGLE_FORM_CONFIG.entries.commentsAndTelemetry, details);
+    formData.append(TELEMETRY_FORM_CONFIG.entries.eventType, data.eventType);
+    formData.append(TELEMETRY_FORM_CONFIG.entries.details, details);
 
-    await fetch(GOOGLE_FORM_CONFIG.formActionUrl, {
+    await fetch(TELEMETRY_FORM_CONFIG.formActionUrl, {
       method: 'POST',
       mode: 'no-cors',
       headers: {

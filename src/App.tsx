@@ -1508,8 +1508,8 @@ export default function App() {
 
     const updatedCareer: UserCareerRecord = {
       totalShiftsCompleted: careerRecord.totalShiftsCompleted + 1,
-      totalIncidentsHandled:
-        careerRecord.totalIncidentsHandled + totalIncidents + preAlarmsPrevented,
+      // Every pre-alarm now leads into a Phase 2 incident record, so counting preAlarmsPrevented again would double count.
+      totalIncidentsHandled: careerRecord.totalIncidentsHandled + totalIncidents,
       bestComplianceScore: Math.max(careerRecord.bestComplianceScore, safetyComplianceScore),
       averageReactionTimeMs: avgReaction,
       certificationLevel: newCert,
