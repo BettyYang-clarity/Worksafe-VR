@@ -141,43 +141,24 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
         `👤 認證工程師：${metrics.operatorName || 'Alex Chen #402'}\n` +
         `🏅 榮譽稱號：${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
         `📈 晶圓良率：${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} 片良品) | 🛡️ 工安合規：${metrics.safetyComplianceScore}/100\n` +
-        `🔧 預警防範：${metrics.preAlarmsPrevented} 次 | ⚡ 危機排除：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 件\n` +
-        `💎 守護人員與資產價值：保護 ${metrics.livesProtected} 名同仁 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元晶圓廠資產！\n` +
+        `🔧 第一階段排障：${metrics.preAlarmsPrevented} 起成功 | ⚡ 第二階段處置：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 起\n` +
+        `💎 守護廠區成果：保護 ${metrics.livesProtected} 名同仁安全 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元資產！\n` +
         `👉 你能在衝刺良率的同時守住零工安事故嗎？立即挑戰：${shareUrl}`
       : `🏭 I just completed a 300mm cleanroom shift in WorkSafe VR Semiconductor Fab Simulator!\n` +
         `👤 Engineer: ${metrics.operatorName || 'Alex Chen #402'}\n` +
         `🏅 Rank: ${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
-        `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} wafers) | 🛡️ EHS Compliance: ${metrics.safetyComplianceScore}/100\n` +
-        `🔧 Pre-Alarms Prevented: ${metrics.preAlarmsPrevented} | ⚡ Crises Resolved: ${metrics.incidentsResolved}/${metrics.incidentsEncountered}\n` +
-        `💎 Impact: ${metrics.livesProtected} Lives Protected · $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M Fab Value Saved!\n` +
-        `👉 Can you balance 300mm wafer yield & SEMI S2 safety? Play now: ${shareUrl}`;
+        `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} good wafers) | 🛡️ EHS Compliance: ${metrics.safetyComplianceScore}/100\n` +
+        `🔧 Phase 1 Troubleshooting: ${metrics.preAlarmsPrevented} Saved | ⚡ Phase 2 Containment: ${metrics.incidentsResolved}/${metrics.incidentsEncountered}\n` +
+        `💎 Fab Impact: ${metrics.livesProtected} Lives Protected · $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M Fab Value Saved!\n` +
+        `👉 Can you balance 300mm wafer yield & SEMI S2 safety? Challenge WorkSafe VR: ${shareUrl}`;
 
-  const handleShareOrCopy = async () => {
-    const text = buildShareText();
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: 'WorkSafe VR — Semiconductor Fab Safety Certification',
-          text,
-          url: shareUrl,
-        });
-        return;
-      } catch {
-        // Fallback to clipboard copy
-      }
-    }
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2800);
-  };
-
-  // Generate 1200x630 Social OpenGraph / LinkedIn / IG Share PNG Card
-  const handleDownloadBadge = () => {
+  // Generate 1200x630 Social OpenGraph / LinkedIn / IG Share PNG Card (Bilingual matched to user language)
+  const generateShareCardCanvas = (): HTMLCanvasElement | null => {
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
     canvas.height = 630;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
 
     // 1. Deep Cleanroom Gradient Background
     const grad = ctx.createLinearGradient(0, 0, 1200, 630);
@@ -211,11 +192,23 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     // Top Header Banner
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 24px "JetBrains Mono", monospace, sans-serif';
-    ctx.fillText('WORKSAFE VR · 300MM SEMICONDUCTOR FAB EHS CERTIFICATION', 48, 66);
+    ctx.fillText(
+      isZh
+        ? 'WORKSAFE VR · 300MM 半導體晶圓廠工安榮譽證書'
+        : 'WORKSAFE VR · 300MM SEMICONDUCTOR FAB EHS CERTIFICATION',
+      48,
+      66
+    );
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '16px monospace';
-    ctx.fillText('SEMI S2 / OSHA 1910.147 / NFPA 318 CLEANROOM QUALIFICATION CARD', 48, 94);
+    ctx.fillText(
+      isZh
+        ? 'SEMI S2 / OSHA 1910.147 / NFPA 318 無塵室製程與工安合規認證卡'
+        : 'SEMI S2 / OSHA 1910.147 / NFPA 318 CLEANROOM QUALIFICATION CARD',
+      48,
+      94
+    );
 
     // Grade Emblem Box (Top Right)
     ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
@@ -226,7 +219,7 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = 'bold 14px monospace';
-    ctx.fillText('AUDIT GRADE', 1018, 70);
+    ctx.fillText(isZh ? '稽核評級' : 'AUDIT GRADE', 1018, 70);
 
     ctx.fillStyle = gradeInfo.hex;
     ctx.font = 'bold 68px system-ui, sans-serif';
@@ -241,7 +234,11 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
 
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 18px monospace';
-    ctx.fillText(`ENGINEER ID: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}`, 68, 145);
+    ctx.fillText(
+      `${isZh ? '認證工程師' : 'ENGINEER ID'}: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}`,
+      68,
+      145
+    );
 
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 30px system-ui, sans-serif';
@@ -282,9 +279,11 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       220,
       355,
       135,
-      'FAB YIELD (晶圓良率)',
+      isZh ? '晶圓良率 (FAB YIELD)' : 'FAB YIELD',
       `${metrics.overallYieldPct.toFixed(1)}%`,
-      `${metrics.totalWafersProduced} Good Wafers Produced`,
+      isZh
+        ? `合格良品產出 ${metrics.totalWafersProduced} 片`
+        : `${metrics.totalWafersProduced} Good Wafers Produced`,
       '#10b981'
     );
     drawStat(
@@ -292,9 +291,13 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       220,
       355,
       135,
-      'EHS COMPLIANCE (工安合規)',
+      isZh ? '工安合規 (COMPLIANCE)' : 'EHS COMPLIANCE',
       `${metrics.safetyComplianceScore}/100`,
-      metrics.regulatoryFinesTotal === 0 ? 'Zero OSHA Violations' : `Fines: $${metrics.regulatoryFinesTotal.toLocaleString()}`,
+      metrics.regulatoryFinesTotal === 0
+        ? isZh
+          ? '零 OSHA 違規裁罰'
+          : 'Zero OSHA Violations'
+        : `${isZh ? '裁罰' : 'Fines'}: $${metrics.regulatoryFinesTotal.toLocaleString()}`,
       '#38bdf8'
     );
     drawStat(
@@ -302,9 +305,11 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       220,
       355,
       135,
-      'FAB VALUE SAVED (保護資產)',
+      isZh ? '保護資產 (VALUE SAVED)' : 'FAB VALUE SAVED',
       `$${metrics.fabValueSavedMillionsUSD.toFixed(1)}M`,
-      `${metrics.livesProtected} Cleanroom Lives Protected`,
+      isZh
+        ? `守護 ${metrics.livesProtected} 名同仁現場安全`
+        : `${metrics.livesProtected} Cleanroom Lives Protected`,
       '#fbbf24'
     );
 
@@ -313,9 +318,9 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       375,
       355,
       135,
-      'PRE-ALARMS PREVENTED (預警防範)',
-      `${metrics.preAlarmsPrevented} SAVED`,
-      'Proactive recipe & N2 maintenance',
+      isZh ? '第一階段排障 (PHASE 1)' : 'PHASE 1 TROUBLESHOOTING',
+      `${metrics.preAlarmsPrevented} ${isZh ? '起成功' : 'SAVED'}`,
+      isZh ? '根因排除 · 晶圓零損毀' : 'Root-cause prevented wafer scrap',
       '#22d3ee'
     );
     drawStat(
@@ -323,9 +328,9 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       375,
       355,
       135,
-      'CRISES RESOLVED (危機排除)',
+      isZh ? '第二階段處置 (PHASE 2)' : 'PHASE 2 SOP CONTAINMENT',
       `${metrics.incidentsResolved} / ${metrics.incidentsEncountered}`,
-      'SEMI S2 / LOTO Emergency SOPs',
+      isZh ? 'SEMI S2 / LOTO 緊急 SOP 處置' : 'SEMI S2 / LOTO Emergency SOPs',
       '#a855f7'
     );
     drawStat(
@@ -333,9 +338,9 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       375,
       355,
       135,
-      'MEAN DECISION TIME (決策時間)',
+      isZh ? '平均決策時間 (DECISION TIME)' : 'MEAN DECISION TIME',
       `${(metrics.averageReactionTimeMs / 1000).toFixed(1)}s`,
-      'Calm, accurate hazard response',
+      isZh ? '沉著冷靜、精準應變' : 'Calm, accurate hazard response',
       '#34d399'
     );
 
@@ -343,16 +348,71 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     ctx.fillStyle = 'rgba(6, 182, 212, 0.18)';
     ctx.fillRect(48, 530, 1103, 56);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 20px system-ui, sans-serif';
+    ctx.font = 'bold 18px system-ui, sans-serif';
     ctx.fillText(
-      '🚀 Can you balance 300mm wafer yield & zero-accident cleanroom safety? Challenge WorkSafe VR:',
+      isZh
+        ? '🚀 你能在衝刺良率的同時守住零工安事故嗎？挑戰 WorkSafe VR：'
+        : '🚀 Can you balance 300mm wafer yield & zero-accident cleanroom safety? Play now:',
       68,
       565
     );
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 20px monospace';
-    ctx.fillText(shareUrl, 910, 565);
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText(shareUrl, isZh ? 700 : 800, 565);
 
+    return canvas;
+  };
+
+  const handleShareOrCopy = async () => {
+    const text = buildShareText();
+    const canvas = generateShareCardCanvas();
+
+    if (canvas && typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (blob) {
+          const file = new File(
+            [blob],
+            `WorkSafe_VR_Result_${(metrics.operatorName || 'Engineer').replace(/\s+/g, '_')}.png`,
+            { type: 'image/png' }
+          );
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: isZh ? 'WorkSafe VR 半導體工安榮譽證書' : 'WorkSafe VR Fab Safety Certificate',
+              text,
+              url: shareUrl,
+              files: [file],
+            });
+            return;
+          }
+        }
+      } catch {
+        // Fall back to text share or clipboard
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: isZh ? 'WorkSafe VR 半導體工安榮譽證書' : 'WorkSafe VR Fab Safety Certificate',
+          text,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // Fallback to clipboard copy
+      }
+    }
+
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2800);
+  };
+
+  const handleDownloadBadge = () => {
+    const canvas = generateShareCardCanvas();
+    if (!canvas) return;
     const link = document.createElement('a');
     link.download = `WorkSafe_VR_Certificate_${(metrics.operatorName || 'Engineer').replace(/\s+/g, '_')}.png`;
     link.href = canvas.toDataURL('image/png');
