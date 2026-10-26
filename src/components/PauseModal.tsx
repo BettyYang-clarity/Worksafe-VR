@@ -27,7 +27,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   const isZh = language === 'zh-TW';
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 overflow-y-auto pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="hud-border rounded-2xl max-w-md w-full p-6 shadow-2xl text-center space-y-6">
         <div>
           <span className="px-3 py-1 rounded bg-amber-500/20 border border-amber-500/40 text-amber-400 text-xs font-mono font-semibold tracking-wider">
