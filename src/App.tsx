@@ -6,6 +6,7 @@ import { DebriefModal } from './components/DebriefModal';
 import { GoogleFormModal } from './components/GoogleFormModal';
 import { HUDOverlay } from './components/HUDOverlay';
 import { InstructionsModal } from './components/InstructionsModal';
+import { InteractiveTutorialOverlay } from './components/InteractiveTutorialOverlay';
 import { ManagerAnalyticsModal } from './components/ManagerAnalyticsModal';
 import { PauseModal } from './components/PauseModal';
 import { TitleScreen } from './components/TitleScreen';
@@ -240,6 +241,7 @@ export default function App() {
   const [activePreAlarm, setActivePreAlarm] = useState<PreAlarmState | null>(null);
   const [incidentRecords, setIncidentRecords] = useState<IncidentRecord[]>([]);
   const [ehsDecisionFeedback, setEhsDecisionFeedback] = useState<EhsDecisionFeedback | null>(null);
+  const [tutorialStep, setTutorialStep] = useState<1 | 2 | 3 | null>(null);
 
   // Shift Telemetry & Impact Counters
   const [shiftMode, setShiftMode] = useState<'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM'>(
@@ -599,6 +601,57 @@ export default function App() {
 
       // If an Amber Pre-Alarm is active on this bay, resolve Phase 1 Troubleshooting and transition to Phase 2 On-Site PPE & SOP Containment:
       if (pre) {
+        // Special safe handling for New Player Onboarding Tutorial Step 3:
+        if (tutorialStep === 3) {
+          const solveOpt = pre.troubleshootingOptions.find((o) => o.outcomeType === 'SOLVE');
+          const chosenOpt = option || solveOpt || pre.troubleshootingOptions[0];
+
+          if (chosenOpt.outcomeType !== 'SOLVE') {
+            soundManager.playErrorBuzzer();
+            addFloatingDelta(
+              isZh
+                ? '💡 實習提示：請點選標有 [推薦] 的正確工程方案哦！'
+                : '💡 Tutorial Tip: Please click the option marked [Best]!',
+              'COMBO_REFLEX'
+            );
+            return;
+          }
+
+          // Player selected the recommended fix!
+          soundManager.playSuccessChime();
+          sceneInstanceRef.current?.triggerActionEffect('N2_PURGE', sectorId);
+          setActivePreAlarm(null);
+          setSectors((prev) => {
+            const curr = prev[sectorId];
+            const next = {
+              ...prev,
+              [sectorId]: {
+                ...curr,
+                preAlarm: null,
+                health: 100,
+                efficiency: 92,
+                status: 'OPTIMAL' as const,
+                rfPowerWatts: nominal.nominalRfPowerWatts,
+                gasFlowSccm: nominal.nominalGasFlowSccm,
+                scrubberLoadPct: nominal.nominalScrubberLoadPct,
+                temperatureC: nominal.nominalTemp,
+              },
+            };
+            sceneInstanceRef.current?.updateSectorStatus(next);
+            return next;
+          });
+
+          addFloatingDelta(
+            isZh
+              ? '🎉 實習完成！已掌握三大核心操作，正式輪班開始！'
+              : '🎉 Onboarding Complete! Shift starting now!',
+            'YIELD_UP'
+          );
+
+          setTutorialStep(null);
+          nextEventTimerRef.current = 22;
+          return;
+        }
         const solveOpt = pre.troubleshootingOptions.find((o) => o.outcomeType === 'SOLVE');
         const escalateOpt = pre.troubleshootingOptions.find((o) => o.outcomeType === 'ESCALATE');
         const chosenOpt = option || solveOpt || pre.troubleshootingOptions[0];
@@ -806,6 +859,7 @@ export default function App() {
       addDecisionEvent,
       addFloatingDelta,
       spawnHazard,
+      tutorialStep,
     ]
   );
 
@@ -1285,6 +1339,22 @@ export default function App() {
   const handleUpdateSectorParams = useCallback(
     (sectorId: SectorId, params: Partial<SectorState>) => {
       soundManager.playUiClick();
+
+      // Tutorial Step 2 Completion Trigger
+      if (tutorialStep === 2) {
+        soundManager.playSuccessChime();
+        addFloatingDelta(
+          language === 'zh-TW'
+            ? '🎯 第 2 步完成：已掌握配方微調與良率控制！'
+            : '🎯 Step 2 Complete: Recipe tuning mastered!',
+          'YIELD_UP'
+        );
+        setTutorialStep(3);
+        setTimeout(() => {
+          spawnPreAlarm('ROBOTIC_FOUP_PINCH');
+        }, 500);
+      }
+
       setSectors((prev) => {
         const sec = prev[sectorId];
         if (!sec) return prev;
@@ -1362,7 +1432,15 @@ export default function App() {
         return nextAll;
       });
     },
-    [activeHazard, spawnHazard, handlePreventPreAlarm]
+    [
+      activeHazard,
+      spawnHazard,
+      handlePreventPreAlarm,
+      tutorialStep,
+      language,
+      addFloatingDelta,
+      spawnPreAlarm,
+    ]
   );
 
   // Start new game / shift (6:00 / 360s standard shift with calm engineering intervals)
@@ -1372,6 +1450,7 @@ export default function App() {
       difficulty: GameDifficulty = 'ASSISTED'
     ) => {
       setDifficultyMode(difficulty);
+      setTutorialStep(difficulty === 'ASSISTED' ? 1 : null);
       const duration = mode === 'HAZARD_DRILL' ? 240 : mode === 'CERTIFICATION_EXAM' ? 360 : 360;
       setShiftMode(mode);
       setShiftDurationSec(duration);
@@ -1574,6 +1653,7 @@ export default function App() {
   // Main 1-Second Simulation Tick Loop
   useEffect(() => {
     if (gameState !== 'PLAYING') return;
+    if (tutorialStep !== null) return;
 
     const interval = setInterval(() => {
       // 1. Shift Clock
@@ -1775,7 +1855,52 @@ export default function App() {
     spawnPreAlarm,
     finishShift,
     language,
+    tutorialStep,
   ]);
+
+  // Tutorial Step 1: Detect arrival at Bay 101 (<5.5m)
+  useEffect(() => {
+    if (gameState !== 'PLAYING' || tutorialStep !== 1) return;
+    const lithoDist = bayDistances['PHOTOLITHOGRAPHY'] ?? 10;
+    if (lithoDist <= ON_SITE_DISTANCE_THRESHOLD_M) {
+      soundManager.playSuccessChime();
+      addFloatingDelta(
+        language === 'zh-TW'
+          ? '🎯 第 1 步完成：已抵達 Bay 101 現場！'
+          : '🎯 Step 1 Complete: Arrived at Bay 101!',
+        'YIELD_UP'
+      );
+      setTutorialStep(2);
+    }
+  }, [gameState, tutorialStep, bayDistances, language, addFloatingDelta]);
+
+  // Skip Tutorial Handler
+  const handleSkipTutorial = useCallback(() => {
+    soundManager.playUiClick();
+    if (activePreAlarm && tutorialStep === 3) {
+      setActivePreAlarm(null);
+      setSectors((prev) => {
+        const next = { ...prev };
+        (Object.keys(next) as SectorId[]).forEach((sId) => {
+          next[sId] = {
+            ...next[sId],
+            preAlarm: null,
+            status: 'OPTIMAL',
+          };
+        });
+        sceneInstanceRef.current?.updateSectorStatus(next);
+        return next;
+      });
+    }
+    setTutorialStep(null);
+    nextEventTimerRef.current = 20;
+    addFloatingDelta(
+      language === 'zh-TW'
+        ? '⏩ 已跳過實習引導，正式輪班開始！'
+        : '⏩ Skipped tutorial, shift started!',
+      'YIELD_UP'
+    );
+  }, [activePreAlarm, tutorialStep, language, addFloatingDelta]);
 
   // Keyboard shortcuts (`1/2/3` Camera Views including Whole Fab View `2`, `Esc` Pause)
   useEffect(() => {
@@ -1880,7 +2005,24 @@ export default function App() {
 
       {/* Active In-Game HUD Overlay */}
       {gameState === 'PLAYING' && (
-        <HUDOverlay
+        <>
+          {tutorialStep !== null && (
+            <InteractiveTutorialOverlay
+              language={language}
+              step={tutorialStep}
+              onSkip={handleSkipTutorial}
+              onCompleteStep={(s) => {
+                if (s === 3) handleSkipTutorial();
+                else setTutorialStep((prev) => ((prev ? prev + 1 : null) as any));
+              }}
+              isBay101Nearby={(bayDistances['PHOTOLITHOGRAPHY'] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M}
+              onWalkToBay101={() => handleWalkToSector('PHOTOLITHOGRAPHY')}
+              onAutoTuneSlider={() =>
+                handleUpdateSectorParams('PHOTOLITHOGRAPHY', { rfPowerWatts: 1200 })
+              }
+            />
+          )}
+          <HUDOverlay
           language={language}
           onToggleLanguage={toggleLanguage}
           onOpenInstructions={() => setIsInstructionsOpen(true)}
@@ -1929,6 +2071,7 @@ export default function App() {
           lotMission={lotMission}
           difficultyMode={difficultyMode}
         />
+        </>
       )}
 
       {/* Pause Modal */}
@@ -1940,7 +2083,7 @@ export default function App() {
             setGameState('PLAYING');
             if (activeHazard && !activeHazard.isSilenced) soundManager.startEmergencyAlarm();
           }}
-          onRestart={() => handleStartGame(shiftMode)}
+          onRestart={() => handleStartGame(shiftMode, difficultyMode)}
           onReturnToTitle={() => {
             setGameState('TITLE');
             soundManager.stopEmergencyAlarm();
@@ -1958,7 +2101,7 @@ export default function App() {
           language={language}
           metrics={currentMetrics}
           incidentRecords={incidentRecords}
-          onRestart={() => handleStartGame(shiftMode)}
+          onRestart={() => handleStartGame(shiftMode, difficultyMode)}
           onOpenTrainingManual={() => setIsInstructionsOpen(true)}
           onReturnToTitle={() => setGameState('TITLE')}
         />
