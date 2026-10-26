@@ -242,6 +242,7 @@ export default function App() {
   const [incidentRecords, setIncidentRecords] = useState<IncidentRecord[]>([]);
   const [ehsDecisionFeedback, setEhsDecisionFeedback] = useState<EhsDecisionFeedback | null>(null);
   const [tutorialStep, setTutorialStep] = useState<1 | 2 | 3 | null>(null);
+  const [tutorialStep3Resolved, setTutorialStep3Resolved] = useState<boolean>(false);
 
   // Shift Telemetry & Impact Counters
   const [shiftMode, setShiftMode] = useState<'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM'>(
@@ -643,13 +644,12 @@ export default function App() {
 
           addFloatingDelta(
             isZh
-              ? '🎉 實習完成！已掌握三大核心操作，正式輪班開始！'
-              : '🎉 Onboarding Complete! Shift starting now!',
+              ? '🎉 成功排除異常！請點擊上方按鈕開始輪班！'
+              : '🎉 Alarm resolved! Click above to start shift!',
             'YIELD_UP'
           );
 
-          setTutorialStep(null);
-          nextEventTimerRef.current = 22;
+          setTutorialStep3Resolved(true);
           return;
         }
         const solveOpt = pre.troubleshootingOptions.find((o) => o.outcomeType === 'SOLVE');
@@ -1340,21 +1340,6 @@ export default function App() {
     (sectorId: SectorId, params: Partial<SectorState>) => {
       soundManager.playUiClick();
 
-      // Tutorial Step 2 Completion Trigger
-      if (tutorialStep === 2) {
-        soundManager.playSuccessChime();
-        addFloatingDelta(
-          language === 'zh-TW'
-            ? '🎯 第 2 步完成：已掌握配方微調與良率控制！'
-            : '🎯 Step 2 Complete: Recipe tuning mastered!',
-          'YIELD_UP'
-        );
-        setTutorialStep(3);
-        setTimeout(() => {
-          spawnPreAlarm('ROBOTIC_FOUP_PINCH');
-        }, 500);
-      }
-
       setSectors((prev) => {
         const sec = prev[sectorId];
         if (!sec) return prev;
@@ -1451,6 +1436,7 @@ export default function App() {
     ) => {
       setDifficultyMode(difficulty);
       setTutorialStep(difficulty === 'ASSISTED' ? 1 : null);
+      setTutorialStep3Resolved(false);
       const duration = mode === 'HAZARD_DRILL' ? 240 : mode === 'CERTIFICATION_EXAM' ? 360 : 360;
       setShiftMode(mode);
       setShiftDurationSec(duration);
@@ -1858,21 +1844,45 @@ export default function App() {
     tutorialStep,
   ]);
 
-  // Tutorial Step 1: Detect arrival at Bay 101 (<5.5m)
-  useEffect(() => {
-    if (gameState !== 'PLAYING' || tutorialStep !== 1) return;
-    const lithoDist = bayDistances['PHOTOLITHOGRAPHY'] ?? 10;
-    if (lithoDist <= ON_SITE_DISTANCE_THRESHOLD_M) {
-      soundManager.playSuccessChime();
-      addFloatingDelta(
-        language === 'zh-TW'
-          ? '🎯 第 1 步完成：已抵達 Bay 101 現場！'
-          : '🎯 Step 1 Complete: Arrived at Bay 101!',
-        'YIELD_UP'
-      );
-      setTutorialStep(2);
-    }
-  }, [gameState, tutorialStep, bayDistances, language, addFloatingDelta]);
+  // Tutorial Step Progression Handlers (Requires explicit player action/confirmation)
+  const handleAdvanceToStep2 = useCallback(() => {
+    soundManager.playSuccessChime();
+    addFloatingDelta(
+      language === 'zh-TW'
+        ? '🎯 第 1 步完成：已抵達 Bay 101 現場！'
+        : '🎯 Step 1 Complete: Arrived at Bay 101!',
+      'YIELD_UP'
+    );
+    setTutorialStep(2);
+  }, [language, addFloatingDelta]);
+
+  const handleAdvanceToStep3 = useCallback(() => {
+    soundManager.playSuccessChime();
+    addFloatingDelta(
+      language === 'zh-TW'
+        ? '🎯 第 2 步完成：已掌握配方微調與良率控制！'
+        : '🎯 Step 2 Complete: Recipe tuning mastered!',
+      'YIELD_UP'
+    );
+    setTutorialStep(3);
+    setTutorialStep3Resolved(false);
+    setTimeout(() => {
+      spawnPreAlarm('ROBOTIC_FOUP_PINCH');
+    }, 400);
+  }, [language, addFloatingDelta, spawnPreAlarm]);
+
+  const handleStartShiftFromTutorial = useCallback(() => {
+    soundManager.playSuccessChime();
+    setTutorialStep(null);
+    setTutorialStep3Resolved(false);
+    nextEventTimerRef.current = 22;
+    addFloatingDelta(
+      language === 'zh-TW'
+        ? '🚀 實習圓滿完成！正式輪班開始，請守護晶圓產線！'
+        : '🚀 Onboarding Complete! Shift started!',
+      'YIELD_UP'
+    );
+  }, [language, addFloatingDelta]);
 
   // Skip Tutorial Handler
   const handleSkipTutorial = useCallback(() => {
@@ -1893,6 +1903,7 @@ export default function App() {
       });
     }
     setTutorialStep(null);
+    setTutorialStep3Resolved(false);
     nextEventTimerRef.current = 20;
     addFloatingDelta(
       language === 'zh-TW'
@@ -2011,15 +2022,18 @@ export default function App() {
               language={language}
               step={tutorialStep}
               onSkip={handleSkipTutorial}
-              onCompleteStep={(s) => {
-                if (s === 3) handleSkipTutorial();
-                else setTutorialStep((prev) => ((prev ? prev + 1 : null) as any));
-              }}
               isBay101Nearby={(bayDistances['PHOTOLITHOGRAPHY'] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M}
+              distanceToBay101={bayDistances['PHOTOLITHOGRAPHY'] ?? 14.5}
               onWalkToBay101={() => handleWalkToSector('PHOTOLITHOGRAPHY')}
+              onAdvanceToStep2={handleAdvanceToStep2}
+              currentRfPowerWatts={sectors['PHOTOLITHOGRAPHY']?.rfPowerWatts ?? 800}
+              currentEfficiency={sectors['PHOTOLITHOGRAPHY']?.efficiency ?? 85}
               onAutoTuneSlider={() =>
                 handleUpdateSectorParams('PHOTOLITHOGRAPHY', { rfPowerWatts: 1200 })
               }
+              onAdvanceToStep3={handleAdvanceToStep3}
+              isStep3Resolved={tutorialStep3Resolved}
+              onStartShift={handleStartShiftFromTutorial}
             />
           )}
           <HUDOverlay
