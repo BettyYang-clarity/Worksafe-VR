@@ -50,44 +50,82 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       ? window.location.origin
       : 'https://github.com/BettyYang-clarity/Worksafe-VR';
 
+  const isPro = metrics.difficulty === 'PRO';
+
   const getSocialTitle = (): { title: string; tag: string; emoji: string } => {
     if (metrics.fatalShutdownTriggered) {
       return {
-        title: isZh ? '停線檢討中 · 廠區引渡者' : 'Mandatory Fab Shutdown · Fab Hazard',
+        title: isZh
+          ? isPro
+            ? '停線檢討中 · 廠區引渡者'
+            : '體驗中斷 · 觸發防護停機'
+          : isPro
+          ? 'Mandatory Fab Shutdown · Fab Hazard'
+          : 'Simulation Halted · Safety Shutdown',
         tag: 'CRITICAL_INCIDENT',
         emoji: '💥',
       };
     }
     if (metrics.safetyComplianceScore >= 95 && metrics.overallYieldPct >= 95) {
       return {
-        title: isZh ? '雙料傳奇 · 無塵室環安救世主' : 'Dual Ace · Cleanroom EHS Savior',
+        title: isZh
+          ? isPro
+            ? '雙料傳奇 · 無塵室環安救世主'
+            : '雙料達人 · 無塵室防護模範生'
+          : isPro
+          ? 'Dual Ace · Cleanroom EHS Savior'
+          : 'Dual Ace · Cleanroom Safety Model',
         tag: 'DUAL_ACE',
         emoji: '👑',
       };
     }
     if (metrics.preAlarmsPrevented >= 2 && metrics.safetyComplianceScore >= 90) {
       return {
-        title: isZh ? '先知級製程工程師 · 零事故防範大師' : 'Preventive Oracle · Zero-Incident Master',
+        title: isZh
+          ? isPro
+            ? '先知級製程工程師 · 零事故防範大師'
+            : '敏銳學員 · 零事故通關達人'
+          : isPro
+          ? 'Preventive Oracle · Zero-Incident Master'
+          : 'Sharp Observer · Zero-Incident Explorer',
         tag: 'PREVENTIVE_MASTER',
         emoji: '🛡️',
       };
     }
     if (metrics.overallYieldPct >= 96 && metrics.safetyComplianceScore < 75) {
       return {
-        title: isZh ? '良率狂魔 · 工安稽核黑名單' : 'Yield Demon · OSHA Audit Target',
+        title: isZh
+          ? isPro
+            ? '良率狂魔 · 工安稽核黑名單'
+            : '良率衝刺者 · 工安待加強'
+          : isPro
+          ? 'Yield Demon · OSHA Audit Target'
+          : 'Yield Chaser · Safety In Progress',
         tag: 'YIELD_DEMON',
         emoji: '🔥',
       };
     }
     if (metrics.safetyComplianceScore >= 90) {
       return {
-        title: isZh ? '聖人級工安官 · 零失誤守護者' : 'Safety Compliance Saint · Flawless Warden',
+        title: isZh
+          ? isPro
+            ? '聖人級工安官 · 零失誤守護者'
+            : '模範守護者 · 零失誤通關'
+          : isPro
+          ? 'Safety Compliance Saint · Flawless Warden'
+          : 'Model Guardian · Zero-Error Explorer',
         tag: 'SAFETY_SAINT',
         emoji: '✨',
       };
     }
     return {
-      title: isZh ? '資深晶圓製程與環安工程師' : 'Senior Fab Process & Safety Engineer',
+      title: isZh
+        ? isPro
+          ? '資深晶圓製程與環安工程師'
+          : '半導體科普體驗學員 · 順利結業'
+        : isPro
+        ? 'Senior Fab Process & Safety Engineer'
+        : 'Semiconductor Explorer · Shift Completed',
       tag: 'SENIOR_EE',
       emoji: '⚡',
     };
@@ -99,7 +137,13 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     if (fatal) {
       return {
         grade: 'F',
-        text: isZh ? '重大工安停線處分 (OSHA 立即停工令)' : 'FATAL FAILURE: Mandatory Fab Shutdown',
+        text: isZh
+          ? isPro
+            ? '重大工安停線處分 (OSHA 立即停工令)'
+            : '未能通關 (觸發防護停機 · 建議複習指引)'
+          : isPro
+          ? 'FATAL FAILURE: Mandatory Fab Shutdown'
+          : 'Failed to Pass (Safety Shutdown Triggered)',
         color: 'text-rose-500',
         hex: '#f43f5e',
       };
@@ -107,27 +151,51 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     if (score >= 95)
       return {
         grade: 'S',
-        text: isZh ? '特級無塵室工安總監 (卓越零災害合規)' : 'Master Cleanroom Safety Director',
+        text: isZh
+          ? isPro
+            ? '特級無塵室工安總監 (卓越零災害合規)'
+            : '特優體驗評級 (AI 導航卓越通關)'
+          : isPro
+          ? 'Master Cleanroom Safety Director'
+          : 'Excellence Pass (AI-Guided Excellence)',
         color: 'text-emerald-400',
         hex: '#10b981',
       };
     if (score >= 85)
       return {
         grade: 'A',
-        text: isZh ? '合格半導體防災工程師 (高度合規)' : 'Certified Fab Safety Engineer',
+        text: isZh
+          ? isPro
+            ? '合格半導體防災工程師 (高度合規)'
+            : '良好體驗評級 (高度安全合規)'
+          : isPro
+          ? 'Certified Fab Safety Engineer'
+          : 'High Pass (High Safety Compliance)',
         color: 'text-cyan-400',
         hex: '#22d3ee',
       };
     if (score >= 70)
       return {
         grade: 'B',
-        text: isZh ? '合格操作工程師 (具輕微知識缺口)' : 'Qualified Engineer (Minor Gaps)',
+        text: isZh
+          ? isPro
+            ? '合格操作工程師 (具輕微知識缺口)'
+            : '合格體驗評級 (順利完成輪班)'
+          : isPro
+          ? 'Qualified Engineer (Minor Gaps)'
+          : 'Qualified Pass (Shift Completed)',
         color: 'text-blue-400',
         hex: '#60a5fa',
       };
     return {
       grade: 'C',
-      text: isZh ? '附條件通過 (建議複習工安四大支柱手冊)' : 'Conditional Pass (Review EHS Field Guide)',
+      text: isZh
+        ? isPro
+          ? '附條件通過 (建議複習工安四大支柱手冊)'
+          : '基礎體驗評級 (建議複習科普指引)'
+        : isPro
+        ? 'Conditional Pass (Review EHS Field Guide)'
+        : 'Basic Pass (Review Safety Concepts)',
       color: 'text-amber-400',
       hex: '#fbbf24',
     };
@@ -137,20 +205,36 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
 
   const buildShareText = () =>
     isZh
-      ? `🏭 我剛在《WorkSafe VR 半導體晶圓廠工安模擬器》完成了 300mm 無塵室輪班挑戰！\n` +
-        `👤 認證工程師：${metrics.operatorName || 'Alex Chen #402'} [${metrics.difficulty === 'PRO' ? '專業模式' : 'AI 引導'}]\n` +
-        `🏅 榮譽稱號：${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
-        `📈 晶圓良率：${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} 片良品) | 🛡️ 工安合規：${metrics.safetyComplianceScore}/100\n` +
-        `🔧 第一階段排障：${metrics.preAlarmsPrevented} 起成功 | ⚡ 第二階段處置：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 起\n` +
-        `💎 守護廠區成果：保護 ${metrics.livesProtected} 名同仁安全 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元資產！\n` +
-        `👉 你能在衝刺良率的同時守住零工安事故嗎？立即挑戰：${shareUrl}`
-      : `🏭 I just completed a 300mm cleanroom shift in WorkSafe VR Semiconductor Fab Simulator!\n` +
-        `👤 Engineer: ${metrics.operatorName || 'Alex Chen #402'} [${metrics.difficulty === 'PRO' ? 'PRO' : 'AI GUIDED'}]\n` +
-        `🏅 Rank: ${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
+      ? isPro
+        ? `🏭 我剛在《WorkSafe VR 半導體工安模擬器》以【🔴 專業模式（實戰零輔助）】完成了 300mm 無塵室輪班認證！\n` +
+          `👤 認證工程師：${metrics.operatorName || 'Alex Chen #402'}\n` +
+          `🏅 榮譽稱號：${socialTitle.emoji} ${socialTitle.title} (PRO GRADE ${gradeInfo.grade})\n` +
+          `📈 晶圓良率：${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} 片良品) | 🛡️ 工安合規：${metrics.safetyComplianceScore}/100\n` +
+          `🔧 第一階段排障：${metrics.preAlarmsPrevented} 起成功 | ⚡ 第二階段處置：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 起\n` +
+          `💎 守護廠區成果：保護 ${metrics.livesProtected} 名同仁安全 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元資產！\n` +
+          `👉 你能通過半導體 SEMI S2 實戰考驗嗎？立即挑戰：${shareUrl}`
+        : `🏭 我剛在《WorkSafe VR 半導體工安模擬器》以【🟢 AI 引導模式】完成了無塵室工安科普體驗！\n` +
+          `👤 體驗學員：${metrics.operatorName || 'Alex Chen #402'}\n` +
+          `🏅 結業成果：${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
+          `📈 晶圓良率：${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} 片良品) | 🛡️ 工安合規：${metrics.safetyComplianceScore}/100\n` +
+          `🔧 預警故障排除：${metrics.preAlarmsPrevented} 起成功 | ⚡ 緊急處置：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 起\n` +
+          `💎 守護成果：保護 ${metrics.livesProtected} 名同仁安全 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元資產！\n` +
+          `👉 零門檻親身體驗晶圓廠無塵室工安：${shareUrl}`
+      : isPro
+      ? `🏭 I just passed the 300mm cleanroom shift in WorkSafe VR [PRO MODE: ZERO HINTS]!\n` +
+        `👤 Engineer: ${metrics.operatorName || 'Alex Chen #402'}\n` +
+        `🏅 Rank: ${socialTitle.emoji} ${socialTitle.title} (PRO GRADE ${gradeInfo.grade})\n` +
         `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} good wafers) | 🛡️ EHS Compliance: ${metrics.safetyComplianceScore}/100\n` +
         `🔧 Phase 1 Troubleshooting: ${metrics.preAlarmsPrevented} Saved | ⚡ Phase 2 Containment: ${metrics.incidentsResolved}/${metrics.incidentsEncountered}\n` +
         `💎 Fab Impact: ${metrics.livesProtected} Lives Protected · $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M Fab Value Saved!\n` +
-        `👉 Can you balance 300mm wafer yield & SEMI S2 safety? Challenge WorkSafe VR: ${shareUrl}`;
+        `👉 Challenge SEMI S2 Cleanroom Safety: ${shareUrl}`
+      : `🏭 I just completed the Cleanroom Safety Experience in WorkSafe VR [AI GUIDED MODE]!\n` +
+        `👤 Explorer: ${metrics.operatorName || 'Alex Chen #402'}\n` +
+        `🏅 Honors: ${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
+        `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} good wafers) | 🛡️ EHS Compliance: ${metrics.safetyComplianceScore}/100\n` +
+        `🔧 Diagnostics: ${metrics.preAlarmsPrevented} Saved | ⚡ Emergency Actions: ${metrics.incidentsResolved}/${metrics.incidentsEncountered}\n` +
+        `💎 Impact: ${metrics.livesProtected} Lives Protected · $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M Fab Value Saved!\n` +
+        `👉 Try the semiconductor cleanroom experience: ${shareUrl}`;
 
   // Generate 1200x630 Social OpenGraph / LinkedIn / IG Share PNG Card (Bilingual matched to user language)
   const generateShareCardCanvas = (): HTMLCanvasElement | null => {
@@ -184,18 +268,22 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
       ctx.stroke();
     }
 
-    // Outer Neon Frame
-    ctx.strokeStyle = '#06b6d4';
+    // Outer Neon Frame (Cyan for PRO, Emerald for ASSISTED)
+    ctx.strokeStyle = isPro ? '#06b6d4' : '#10b981';
     ctx.lineWidth = 5;
     ctx.strokeRect(20, 20, 1160, 590);
 
     // Top Header Banner
-    ctx.fillStyle = '#38bdf8';
+    ctx.fillStyle = isPro ? '#38bdf8' : '#34d399';
     ctx.font = 'bold 24px "JetBrains Mono", monospace, sans-serif';
     ctx.fillText(
       isZh
-        ? 'WORKSAFE VR · 300MM 半導體晶圓廠工安榮譽證書'
-        : 'WORKSAFE VR · 300MM SEMICONDUCTOR FAB EHS CERTIFICATION',
+        ? isPro
+          ? 'WORKSAFE VR · 300MM 半導體晶圓廠專業工安資格證書'
+          : 'WORKSAFE VR · 無塵室工安科普體驗 · 榮譽結業證書'
+        : isPro
+        ? 'WORKSAFE VR · 300MM SEMICONDUCTOR FAB PRO QUALIFICATION'
+        : 'WORKSAFE VR · CLEANROOM EHS EXPLORER CERTIFICATE',
       48,
       66
     );
@@ -204,8 +292,12 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     ctx.font = '16px monospace';
     ctx.fillText(
       isZh
-        ? 'SEMI S2 / OSHA 1910.147 / NFPA 318 無塵室製程與工安合規認證卡'
-        : 'SEMI S2 / OSHA 1910.147 / NFPA 318 CLEANROOM QUALIFICATION CARD',
+        ? isPro
+          ? 'SEMI S2 / OSHA 1910.147 晶圓廠專業工程師實戰認證卡'
+          : '半導體無塵室科普體驗 · AI 智慧導引結業證明'
+        : isPro
+        ? 'SEMI S2 / OSHA 1910.147 PROFESSIONAL EHS QUALIFICATION'
+        : 'SEMICONDUCTOR CLEANROOM SAFETY · AI-ASSISTED COMPLETION',
       48,
       94
     );
@@ -219,32 +311,41 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = 'bold 14px monospace';
-    ctx.fillText(isZh ? '稽核評級' : 'AUDIT GRADE', 1018, 70);
+    ctx.fillText(
+      isZh
+        ? isPro
+          ? '專業稽核評級'
+          : 'AI 體驗評級'
+        : isPro
+        ? 'PRO AUDIT'
+        : 'AI GRADE',
+      1018,
+      70
+    );
 
     ctx.fillStyle = gradeInfo.hex;
     ctx.font = 'bold 68px system-ui, sans-serif';
     ctx.fillText(gradeInfo.grade, 1038, 145);
 
     // Operator & Title Banner
-    ctx.fillStyle = 'rgba(8, 145, 178, 0.25)';
+    ctx.fillStyle = isPro ? 'rgba(8, 145, 178, 0.25)' : 'rgba(5, 150, 105, 0.25)';
     ctx.fillRect(48, 115, 905, 82);
-    ctx.strokeStyle = '#0ea5e9';
+    ctx.strokeStyle = isPro ? '#0ea5e9' : '#10b981';
     ctx.lineWidth = 2;
     ctx.strokeRect(48, 115, 905, 82);
 
-    const difficultyTag =
-      metrics.difficulty === 'PRO'
-        ? isZh
-          ? ' [ 模式：專業認證 ]'
-          : ' [ MODE: PRO ]'
-        : isZh
-        ? ' [ 模式：AI 引導 ]'
-        : ' [ MODE: AI GUIDED ]';
+    const difficultyTag = isPro
+      ? isZh
+        ? ' [ 模式：🔴 專業實戰認證 (難度：高) ]'
+        : ' [ MODE: PRO CERTIFIED (High) ]'
+      : isZh
+      ? ' [ 模式：🟢 AI 引導體驗 (難度：低) ]'
+      : ' [ MODE: AI GUIDED (Low) ]';
 
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 18px monospace';
     ctx.fillText(
-      `${isZh ? '認證工程師' : 'ENGINEER ID'}: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}${difficultyTag}`,
+      `${isZh ? (isPro ? '認證工程師' : '體驗學員') : (isPro ? 'ENGINEER ID' : 'EXPLORER ID')}: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}${difficultyTag}`,
       68,
       145
     );
@@ -434,18 +535,34 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
         {/* Compact Top Header */}
         <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <div
+              className={`p-2 rounded-xl border ${
+                isPro
+                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              }`}
+            >
               <Award className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base md:text-lg font-bold font-display text-white">
                   {isZh
-                    ? '半導體晶圓廠 · 輪班結算榮譽證書與社群分享卡'
-                    : 'Semiconductor Fab · Shift Qualification Certificate & Share Card'}
+                    ? isPro
+                      ? '半導體晶圓廠 · SEMI S2 專業工程師實戰認證書'
+                      : '半導體晶圓廠 · 無塵室工安科普體驗榮譽結業卡'
+                    : isPro
+                    ? 'Semiconductor Fab · SEMI S2 Professional Qualification'
+                    : 'Semiconductor Fab · Cleanroom Safety Explorer Certificate'}
                 </h2>
-                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-500/30">
-                  1-PAGE SHARE CARD
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                    isPro
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  }`}
+                >
+                  {isPro ? 'PRO AUDIT CARD' : 'AI EXPLORER CARD'}
                 </span>
               </div>
             </div>
@@ -465,48 +582,119 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
           {/* ==================================================== */}
           {/* 1-PAGE VISUAL SOCIAL SHARE CERTIFICATE CARD           */}
           {/* ==================================================== */}
-          <div className="p-5 md:p-6 rounded-2xl border-2 border-cyan-500/50 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-44 h-44 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div
+            className={`p-5 md:p-6 rounded-2xl border-2 shadow-2xl relative overflow-hidden ${
+              isPro
+                ? 'border-cyan-500/50 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 shadow-cyan-500/10'
+                : 'border-emerald-500/50 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/40 shadow-emerald-500/10'
+            }`}
+          >
+            <div
+              className={`absolute top-0 right-0 transform translate-x-8 -translate-y-8 w-44 h-44 rounded-full blur-2xl pointer-events-none ${
+                isPro ? 'bg-cyan-500/10' : 'bg-emerald-500/10'
+              }`}
+            />
 
             {/* Certificate Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-cyan-500/30">
+            <div
+              className={`flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b ${
+                isPro ? 'border-cyan-500/30' : 'border-emerald-500/30'
+              }`}
+            >
               <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                <div
+                  className={`p-2 rounded-xl border ${
+                    isPro
+                      ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                  }`}
+                >
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-mono text-cyan-400 font-bold tracking-widest uppercase">
-                    WORKSAFE VR · 300MM CLEANROOM EHS QUALIFICATION
+                  <div
+                    className={`text-[11px] font-mono font-bold tracking-widest uppercase ${
+                      isPro ? 'text-cyan-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {isPro
+                      ? 'WORKSAFE VR · 300MM PROFESSIONAL EHS QUALIFICATION'
+                      : 'WORKSAFE VR · CLEANROOM SAFETY EXPLORER HONORS'}
                   </div>
                   <div className="text-sm font-display font-bold text-slate-200">
                     {isZh
-                      ? 'SEMI S2 / OSHA 1910.147 製程與環安衛認證卡'
-                      : 'SEMI S2 / OSHA 1910.147 Process & Safety Qualification'}
+                      ? isPro
+                        ? 'SEMI S2 / OSHA 1910.147 晶圓廠專業工程師實戰認證卡'
+                        : '半導體無塵室工安科普體驗 · 榮譽結業證書'
+                      : isPro
+                      ? 'SEMI S2 / OSHA 1910.147 Process & Safety Qualification'
+                      : 'Semiconductor Cleanroom Safety · Explorer Honors Certificate'}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-mono">
-                <span className="text-slate-400">{isZh ? '認證工程師:' : 'Engineer:'}</span>
-                <strong className="text-cyan-300 font-bold">
-                  {metrics.operatorName || 'Alex Chen #402'}
-                </strong>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-mono">
+                  <span className="text-slate-400">
+                    {isZh ? (isPro ? '認證工程師:' : '體驗學員:') : isPro ? 'Engineer:' : 'Explorer:'}
+                  </span>
+                  <strong className={isPro ? 'text-cyan-300 font-bold' : 'text-emerald-300 font-bold'}>
+                    {metrics.operatorName || 'Alex Chen #402'}
+                  </strong>
+                </div>
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                    metrics.difficulty === 'PRO'
-                      ? 'bg-rose-950/80 border-rose-500/60 text-rose-300'
-                      : 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300'
+                  className={`px-2 py-1 rounded-lg text-xs font-bold font-mono border ${
+                    isPro
+                      ? 'bg-rose-950/90 border-rose-500/80 text-rose-300'
+                      : 'bg-emerald-950/90 border-emerald-500/80 text-emerald-300'
                   }`}
                 >
-                  {metrics.difficulty === 'PRO'
+                  {isPro
                     ? isZh
-                      ? '🔴 專業模式'
-                      : '🔴 PRO'
+                      ? '🔴 專業模式 (實戰零輔助)'
+                      : '🔴 PRO (Zero Hints)'
                     : isZh
-                    ? '🟢 AI 引導'
-                    : '🟢 AI GUIDED'}
+                    ? '🟢 AI 引導模式 (普通人)'
+                    : '🟢 AI GUIDED (Explorer)'}
                 </span>
               </div>
+            </div>
+
+            {/* Mode Certification Seal Strip */}
+            <div
+              className={`mb-4 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs font-mono ${
+                isPro
+                  ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+                  : 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">{isPro ? '🎖️' : '🎓'}</span>
+                <span>
+                  {isZh
+                    ? isPro
+                      ? '考核規格：半導體標準 SEMI S2 / OSHA 實戰考核（純工程術語 · 無提示）'
+                      : '結業規格：半導體無塵室科普體驗（AI 即時導航 · 白話術語輔助）'
+                    : isPro
+                    ? 'Standard: Full SEMI S2 / OSHA Professional Drill (Zero hints)'
+                    : 'Standard: Educational Explorer Edition (AI Guided & Plain-terms)'}
+                </span>
+              </div>
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                  isPro
+                    ? 'bg-rose-900/60 border-rose-400 text-rose-300'
+                    : 'bg-emerald-900/60 border-emerald-400 text-emerald-300'
+                }`}
+              >
+                {isPro
+                  ? isZh
+                    ? '難度：高 (專業實戰)'
+                    : 'DIFFICULTY: HIGH (PRO)'
+                  : isZh
+                  ? '難度：低 (AI 導引)'
+                  : 'DIFFICULTY: LOW (GUIDED)'}
+              </span>
             </div>
 
             {/* Rank & Grade Hero Banner */}
@@ -523,7 +711,15 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
 
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-[10px] font-mono text-slate-400 uppercase">SHIFT GRADE</div>
+                  <div className="text-[10px] font-mono text-slate-400 uppercase">
+                    {isPro
+                      ? isZh
+                        ? '專業稽核評級'
+                        : 'PRO AUDIT GRADE'
+                      : isZh
+                      ? 'AI 體驗評級'
+                      : 'AI EXPLORER GRADE'}
+                  </div>
                   <div className={`text-3xl font-black font-display ${gradeInfo.color}`}>
                     GRADE {gradeInfo.grade}
                   </div>
