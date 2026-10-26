@@ -156,12 +156,14 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
 }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
-  const [isDockCollapsed, setIsDockCollapsed] = useState(false);
+  const [isDockCollapsed, setIsDockCollapsed] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
 
   // Auto-collapse bottom dock on short screens (mobile landscape <= 540px) during incidents
   // On desktop / laptop (where window.innerHeight >= 700px), this NEVER triggers so PC layout is 100% untouched.
   useEffect(() => {
-    if ((activeHazard || activePreAlarm) && typeof window !== 'undefined' && window.innerHeight <= 540) {
+    if ((activeHazard || activePreAlarm) && typeof window !== 'undefined' && window.innerWidth < 768) {
       setIsDockCollapsed(true);
     }
   }, [activeHazard, activePreAlarm]);
@@ -563,7 +565,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 3. AMBER EQUIPMENT DIAGNOSTIC & TROUBLESHOOTING CARD */}
       {/* ==================================================== */}
       {activePreAlarm && !activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[50vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
           <div className="rounded-2xl border-2 border-amber-400/90 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 pb-2">
               <div className="flex items-center space-x-2">
@@ -743,7 +745,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
       {/* ==================================================== */}
       {activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[50vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
           <div className="rounded-2xl border-2 border-rose-500/95 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             {/* Header with Level Tier, Mute Siren & Comfortable 60s Timer */}
             <div className="flex flex-wrap items-center justify-between gap-2">

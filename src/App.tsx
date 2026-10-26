@@ -10,6 +10,7 @@ import { InteractiveTutorialOverlay } from './components/InteractiveTutorialOver
 import { ManagerAnalyticsModal } from './components/ManagerAnalyticsModal';
 import { PauseModal } from './components/PauseModal';
 import { TitleScreen } from './components/TitleScreen';
+import { VirtualJoystick } from './components/VirtualJoystick';
 import { sendTelemetryPing } from './config/feedbackConfig';
 import { HAZARD_DEFINITIONS, INITIAL_SECTORS, shuffleChoices } from './data/protocols';
 import { Language } from './i18n/translations';
@@ -2030,6 +2031,10 @@ export default function App() {
       {/* Active In-Game HUD Overlay */}
       {gameState === 'PLAYING' && (
         <>
+          <VirtualJoystick
+            onMove={(vector) => sceneInstanceRef.current?.setVirtualJoystick(vector)}
+            onEnd={() => sceneInstanceRef.current?.setVirtualJoystick({ x: 0, y: 0 })}
+          />
           {tutorialStep !== null && (
             <InteractiveTutorialOverlay
               language={language}

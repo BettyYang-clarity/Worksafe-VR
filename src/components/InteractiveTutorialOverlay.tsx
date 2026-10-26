@@ -96,9 +96,19 @@ export const InteractiveTutorialOverlay: React.FC<InteractiveTutorialOverlayProp
                     : 'Step 1: Walk & inspect the machines'}
                 </h4>
                 <p className="text-xs text-slate-300 mt-0.5 leading-relaxed font-sans">
-                  {isZh
-                    ? '請使用鍵盤 W / A / S / D 走動，或點擊右側按鈕直接前往【Bay 101 微影曝光機】現場 (<5.5m)。'
-                    : 'Use WASD keys to walk, or click below to walk to [Bay 101 Lithography] (<5.5m).'}
+                  {isZh ? (
+                    <>
+                      <span className="hidden md:inline">請使用鍵盤 W / A / S / D 走動</span>
+                      <span className="md:hidden">請滑動左下角搖桿走動</span>
+                      ，或點擊右側按鈕直接前往【Bay 101 微影曝光機】現場 (&lt;5.5m)。
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden md:inline">Use WASD keys to walk</span>
+                      <span className="md:hidden">Use the bottom-left joystick to walk</span>
+                      , or click below to walk to [Bay 101 Lithography] (&lt;5.5m).
+                    </>
+                  )}
                 </p>
               </div>
             </div>

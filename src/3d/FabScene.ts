@@ -102,6 +102,7 @@ export class FabScene {
   private isDragging = false;
   private prevMouseX = 0;
   private prevMouseY = 0;
+  private virtualJoystickVector = { x: 0, y: 0 };
 
   // Scene Objects
   private machineGroups: Map<SectorId, THREE.Group> = new Map();
@@ -1558,6 +1559,13 @@ export class FabScene {
   }
 
   /**
+   * Sets the mobile virtual joystick input vector (-1 to 1 for x and y).
+   */
+  public setVirtualJoystick(vector: { x: number; y: number }) {
+    this.virtualJoystickVector = vector;
+  }
+
+  /**
    * Smoothly walks the player engineer across the cleanroom floor to stand right in front of `sectorId` (< 4.0m).
    */
   public walkToSector(sectorId: SectorId) {
@@ -1592,6 +1600,10 @@ export class FabScene {
     this.container.addEventListener('mousedown', this.handleMouseDown);
     window.addEventListener('mousemove', this.handleMouseMove);
     window.addEventListener('mouseup', this.handleMouseUp);
+    this.container.addEventListener('touchstart', this.handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', this.handleTouchMove, { passive: true });
+    window.addEventListener('touchend', this.handleTouchEnd);
+    window.addEventListener('touchcancel', this.handleTouchEnd);
     this.container.addEventListener('click', this.handleClick);
     window.addEventListener('resize', this.handleResize);
   }
@@ -1636,6 +1648,36 @@ export class FabScene {
   };
 
   private handleMouseUp = () => {
+    this.isDragging = false;
+  };
+
+  private handleTouchStart = (e: TouchEvent) => {
+    if (e.touches.length === 1) {
+      this.isDragging = true;
+      this.prevMouseX = e.touches[0].clientX;
+      this.prevMouseY = e.touches[0].clientY;
+    }
+  };
+
+  private handleTouchMove = (e: TouchEvent) => {
+    if (!this.isDragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - this.prevMouseX;
+    const dy = e.touches[0].clientY - this.prevMouseY;
+    this.prevMouseX = e.touches[0].clientX;
+    this.prevMouseY = e.touches[0].clientY;
+
+    if (this.viewMode === 'VR_FIRST_PERSON') {
+      this.vrPlayerYaw += dx * 0.005;
+      this.vrPlayerPitch -= dy * 0.004;
+      this.vrPlayerPitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.vrPlayerPitch));
+      this.updateVrLookAt();
+    } else if (this.viewMode === 'SUPERVISOR_ISOMETRIC') {
+      this.targetCameraPos.x -= dx * 0.035;
+      this.targetCameraPos.z -= dy * 0.035;
+    }
+  };
+
+  private handleTouchEnd = () => {
     this.isDragging = false;
   };
 
@@ -1690,7 +1732,11 @@ export class FabScene {
     const aKey = this.keysHeld['a'] || this.keysHeld['arrowleft'];
     const dKey = this.keysHeld['d'] || this.keysHeld['arrowright'];
 
-    if (wKey || sKey || aKey || dKey) {
+    const joyX = this.virtualJoystickVector.x;
+    const joyZ = this.virtualJoystickVector.y;
+    const hasJoy = Math.abs(joyX) > 0.05 || Math.abs(joyZ) > 0.05;
+
+    if (wKey || sKey || aKey || dKey || hasJoy) {
       // Cancel auto-walk if player takes manual control
       this.autoWalkTargetPos = null;
       this.autoWalkSector = null;
@@ -1702,18 +1748,27 @@ export class FabScene {
         if (sKey) this.vrPlayerPos.addScaledVector(forward, -moveSpeed);
         if (aKey) this.vrPlayerPos.addScaledVector(right, -moveSpeed);
         if (dKey) this.vrPlayerPos.addScaledVector(right, moveSpeed);
+
+        if (hasJoy) {
+          this.vrPlayerPos.addScaledVector(forward, joyZ * moveSpeed);
+          this.vrPlayerPos.addScaledVector(right, joyX * moveSpeed);
+        }
       } else {
         // World-space WASD in Whole Fab View (2) & Inspect View (3)
         if (wKey) this.vrPlayerPos.z -= moveSpeed;
         if (sKey) this.vrPlayerPos.z += moveSpeed;
         if (aKey) this.vrPlayerPos.x -= moveSpeed;
         if (dKey) this.vrPlayerPos.x += moveSpeed;
-        if (wKey || sKey || aKey || dKey) {
-          const dx = (dKey ? 1 : 0) - (aKey ? 1 : 0);
-          const dz = (sKey ? 1 : 0) - (wKey ? 1 : 0);
-          if (dx !== 0 || dz !== 0) {
-            this.vrPlayerYaw = Math.atan2(dx, -dz);
-          }
+
+        if (hasJoy) {
+          this.vrPlayerPos.z -= joyZ * moveSpeed;
+          this.vrPlayerPos.x += joyX * moveSpeed;
+        }
+
+        const dx = (dKey ? 1 : 0) - (aKey ? 1 : 0) + joyX;
+        const dz = (sKey ? 1 : 0) - (wKey ? 1 : 0) - joyZ;
+        if (dx !== 0 || dz !== 0) {
+          this.vrPlayerYaw = Math.atan2(dx, -dz);
         }
       }
       movedManual = true;
@@ -2099,6 +2154,10 @@ export class FabScene {
     this.container.removeEventListener('mousedown', this.handleMouseDown);
     window.removeEventListener('mousemove', this.handleMouseMove);
     window.removeEventListener('mouseup', this.handleMouseUp);
+    this.container.removeEventListener('touchstart', this.handleTouchStart);
+    window.removeEventListener('touchmove', this.handleTouchMove);
+    window.removeEventListener('touchend', this.handleTouchEnd);
+    window.removeEventListener('touchcancel', this.handleTouchEnd);
     this.container.removeEventListener('click', this.handleClick);
     window.removeEventListener('resize', this.handleResize);
 
