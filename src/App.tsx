@@ -19,6 +19,7 @@ import {
   EhsDecisionFeedback,
   EquippedPPE,
   FloatingDelta,
+  GameDifficulty,
   GameState,
   HazardIncident,
   IncidentRecord,
@@ -102,9 +103,12 @@ const LOT_MISSION_TEMPLATES: Omit<WaferLotMission, 'id' | 'startWaferCount'>[] =
 type ContainmentMode = 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED';
 
 // Phase 2 (On-Site PPE & SOP) decision window per stage, graded by Phase 1 troubleshooting outcome.
-// Kept generous so players can still read SOP choices carefully. Undefined = direct crisis (no Phase 1).
-const getPhase2TimeLimit = (mode?: ContainmentMode): number =>
-  mode === 'CONTROLLED' ? 70 : mode === 'MODERATE' ? 60 : mode === 'UNCONTROLLED' ? 50 : 60;
+// In ASSISTED (AI 引導) mode, +15s extra time is provided for calm, thoughtful learning.
+const getPhase2TimeLimit = (mode?: ContainmentMode, difficulty?: GameDifficulty): number => {
+  const base =
+    mode === 'CONTROLLED' ? 70 : mode === 'MODERATE' ? 60 : mode === 'UNCONTROLLED' ? 50 : 60;
+  return difficulty === 'ASSISTED' ? base + 15 : base;
+};
 
 // Initial 3D hazard scale (flames / gas / arcs) graded by Phase 1 outcome.
 const getPhase2BaseScale = (mode?: ContainmentMode): number =>
@@ -240,6 +244,7 @@ export default function App() {
   const [shiftMode, setShiftMode] = useState<'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM'>(
     'FULL_SHIFT'
   );
+  const [difficultyMode, setDifficultyMode] = useState<GameDifficulty>('ASSISTED');
   const [shiftDurationSec, setShiftDurationSec] = useState<number>(360);
   const [shiftTimeRemaining, setShiftTimeRemaining] = useState<number>(360);
   const [totalWafersProduced, setTotalWafersProduced] = useState<number>(0);
@@ -442,7 +447,7 @@ export default function App() {
       const sectorId = randDef.defaultSector;
       const stage0 = randDef.steps[0];
       const isZh = language === 'zh-TW';
-      const timeLimit = getPhase2TimeLimit(containmentMode);
+      const timeLimit = getPhase2TimeLimit(containmentMode, difficultyMode);
 
       const localizedChoices: ProtocolStep[] = shuffleChoices(
         stage0.choices.map((c) => ({
@@ -515,7 +520,7 @@ export default function App() {
       }
       soundManager.startEmergencyAlarm();
     },
-    [activeHazard, language]
+    [activeHazard, language, difficultyMode]
   );
 
   // Spawn an Amber Equipment Diagnostic & Troubleshooting Pre-Alarm (comfortable 45s window)
@@ -549,8 +554,8 @@ export default function App() {
         waferDefectPattern: def.preAlarmConfig.waferDefectPattern,
         waferDefectPatternZh: def.preAlarmConfig.waferDefectPatternZh,
         troubleshootingOptions: shuffleChoices(def.preAlarmConfig.troubleshootingOptions),
-        timeRemainingSec: 45,
-        totalTimeSec: 45,
+        timeRemainingSec: difficultyMode === 'ASSISTED' ? 60 : 45,
+        totalTimeSec: difficultyMode === 'ASSISTED' ? 60 : 45,
       };
 
       setActivePreAlarm(pre);
@@ -571,7 +576,7 @@ export default function App() {
         return next;
       });
     },
-    [activeHazard, activePreAlarm]
+    [activeHazard, activePreAlarm, difficultyMode]
   );
 
   // Handle Equipment Troubleshooting Option or Routine On-Site Calibration
@@ -1064,8 +1069,8 @@ export default function App() {
             currentPrompt: nextStage.prompt,
             currentPromptZh: nextStage.promptZh,
             protocolSteps: localizedChoices,
-            timeRemainingSec: getPhase2TimeLimit(activeHazard.containmentMode),
-            timeLimitSec: getPhase2TimeLimit(activeHazard.containmentMode),
+            timeRemainingSec: getPhase2TimeLimit(activeHazard.containmentMode, difficultyMode),
+            timeLimitSec: getPhase2TimeLimit(activeHazard.containmentMode, difficultyMode),
             isSilenced: true,
           });
         }
@@ -1194,6 +1199,7 @@ export default function App() {
       handleTriggerActionEffect,
       addDecisionEvent,
       addFloatingDelta,
+      difficultyMode,
     ]
   );
 
@@ -1353,7 +1359,11 @@ export default function App() {
 
   // Start new game / shift (6:00 / 360s standard shift with calm engineering intervals)
   const handleStartGame = useCallback(
-    (mode: 'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM') => {
+    (
+      mode: 'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM',
+      difficulty: GameDifficulty = 'ASSISTED'
+    ) => {
+      setDifficultyMode(difficulty);
       const duration = mode === 'HAZARD_DRILL' ? 240 : mode === 'CERTIFICATION_EXAM' ? 360 : 360;
       setShiftMode(mode);
       setShiftDurationSec(duration);
@@ -1430,6 +1440,7 @@ export default function App() {
         eventType: 'GAME_START',
         playerName,
         shiftMode: mode,
+        difficulty,
       });
     },
     [playerName]
@@ -1504,6 +1515,7 @@ export default function App() {
       fabValueSavedM: fabValueSavedMillionsUSD,
       grade,
       fatalShutdown: fatalShutdownTriggered,
+      difficulty: difficultyMode,
     };
 
     const updatedCareer: UserCareerRecord = {
@@ -1530,6 +1542,7 @@ export default function App() {
       incidentsResolved: incidentRecords.filter((r) => r.success).length,
       incidentsEncountered: incidentRecords.length,
       fabValueSavedM: fabValueSavedMillionsUSD,
+      difficulty: difficultyMode,
     });
   }, [
     incidentRecords,
@@ -1543,6 +1556,7 @@ export default function App() {
     totalWafersProduced,
     fabValueSavedMillionsUSD,
     fatalShutdownTriggered,
+    difficultyMode,
   ]);
 
   // Main 1-Second Simulation Tick Loop
@@ -1815,6 +1829,7 @@ export default function App() {
     decisionTimeline,
     choiceOutcomes,
     fatalShutdownTriggered,
+    difficulty: difficultyMode,
     operatorName: playerName,
     socialTitle:
       overallYieldPct >= 95 && safetyComplianceScore >= 95
@@ -1900,6 +1915,7 @@ export default function App() {
           equippedPPE={equippedPPE}
           onTogglePPE={handleTogglePPE}
           lotMission={lotMission}
+          difficultyMode={difficultyMode}
         />
       )}
 

@@ -141,6 +141,7 @@ export interface TelemetryPingData {
   eventType: 'PAGE_VIEW' | 'GAME_START' | 'GAME_COMPLETE';
   playerName?: string;
   shiftMode?: string;
+  difficulty?: 'ASSISTED' | 'PRO';
   yieldPct?: number;
   safetyScore?: number;
   wafersProduced?: number;
@@ -202,6 +203,7 @@ export async function sendTelemetryPing(data: TelemetryPingData): Promise<void> 
       `連線代號: ${sessionId}`,
       `操作員代號: ${data.playerName || 'Anonymous'}`,
       `班別模式: ${data.shiftMode || 'FULL_SHIFT'} (${modeSec / 60}-min / ${modeSec}s SIM)`,
+      `難度模式: ${data.difficulty === 'PRO' ? '專業模式 (半導體經驗 · 難度高)' : 'AI 引導模式 (普通人 · 難度低)'}`,
       `記錄時間: ${nowStr} (Taipei)`,
     ].join('\n');
   } else if (data.eventType === 'GAME_COMPLETE') {
@@ -213,6 +215,7 @@ export async function sendTelemetryPing(data: TelemetryPingData): Promise<void> 
       `連線代號: ${sessionId}`,
       `操作員代號: ${data.playerName || 'Anonymous'}`,
       `班別模式: ${data.shiftMode || 'FULL_SHIFT'}`,
+      `難度模式: ${data.difficulty === 'PRO' ? '專業模式 (半導體經驗 · 難度高)' : 'AI 引導模式 (普通人 · 難度低)'}`,
       `晶圓良率: ${data.yieldPct !== undefined ? data.yieldPct.toFixed(1) + '%' : 'N/A'}`,
       `工安合規分: ${data.safetyScore !== undefined ? data.safetyScore + '/100' : 'N/A'}`,
       `合格產出: ${data.wafersProduced ?? 0} 片`,

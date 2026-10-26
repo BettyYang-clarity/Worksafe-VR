@@ -12,13 +12,16 @@ import {
   Linkedin,
   Info,
 } from 'lucide-react';
-import { UserCareerRecord } from '../types/game';
+import { UserCareerRecord, GameDifficulty } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
 
 interface TitleScreenProps {
   language: Language;
   onToggleLanguage: () => void;
-  onStartGame: (mode: 'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM') => void;
+  onStartGame: (
+    mode: 'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM',
+    difficulty: GameDifficulty
+  ) => void;
   careerRecord: UserCareerRecord;
   onOpenManagerAudit: () => void;
   onOpenInstructions: () => void;
@@ -52,9 +55,9 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         return;
       }
-      if (e.key === 'Enter' || e.key === ' ') {
+      if (e.key === 'Enter') {
         e.preventDefault();
-        onStartGame('FULL_SHIFT');
+        onStartGame('FULL_SHIFT', 'ASSISTED');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -235,28 +238,70 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3.5 items-center">
-          <button
-            onClick={() => onStartGame('FULL_SHIFT')}
-            className="px-7 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-display font-bold text-base tracking-wide flex items-center space-x-2.5 shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 cursor-pointer"
-          >
-            <Play className="w-5 h-5 fill-current" />
-            <span>{t.startSimulation}</span>
-          </button>
+        {/* Mode Selection Cards */}
+        <div className="space-y-2 mb-4 max-w-2xl">
+          <div className="text-[11px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <span>{isZh ? '選擇值班難度模式' : 'SELECT SHIFT DIFFICULTY'}</span>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Mode 1: Assisted (Low difficulty) */}
+            <button
+              onClick={() => onStartGame('FULL_SHIFT', 'ASSISTED')}
+              className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-950/80 to-slate-900/90 border-2 border-emerald-500/60 hover:border-emerald-400 hover:from-emerald-900/90 text-left transition-all transform hover:-translate-y-0.5 shadow-lg shadow-emerald-950/50 group cursor-pointer"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="font-bold text-white group-hover:text-emerald-300 text-sm flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {isZh ? 'AI 引導模式 (普通人)' : 'AI Guided Mode (Beginner)'}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                  {isZh ? '難度：低' : 'Difficulty: Low'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                {isZh
+                  ? '無無塵室經驗推薦 · 附 AI 白話提示與操作指引'
+                  : 'Beginner-friendly · AI plain-English hints & clues'}
+              </p>
+            </button>
+
+            {/* Mode 2: Pro (High difficulty) */}
+            <button
+              onClick={() => onStartGame('FULL_SHIFT', 'PRO')}
+              className="p-3.5 rounded-xl bg-gradient-to-br from-cyan-950/60 to-slate-900/90 border-2 border-cyan-500/50 hover:border-cyan-400 hover:from-cyan-900/80 text-left transition-all transform hover:-translate-y-0.5 shadow-lg shadow-cyan-950/50 group cursor-pointer"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="font-bold text-white group-hover:text-cyan-300 text-sm flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                  {isZh ? '專業模式 (半導體經驗)' : 'Pro Mode (Fab Experienced)'}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
+                  {isZh ? '難度：高' : 'Difficulty: High'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                {isZh
+                  ? '具半導體經驗挑戰 · SEMI S2 標準無提示考驗'
+                  : 'Fab-experienced challenge · Pure SEMI S2 test'}
+              </p>
+            </button>
+          </div>
+        </div>
+
+        {/* Action Buttons: Instructions & Achievements */}
+        <div className="flex flex-wrap gap-2.5 items-center">
           <button
             onClick={onOpenInstructions}
-            className="px-5 py-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 font-display font-semibold text-sm tracking-wide flex items-center space-x-2 transition-all cursor-pointer shadow-md"
+            className="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-white font-medium text-xs flex items-center space-x-1.5 transition-all cursor-pointer"
           >
             <BookOpen className="w-4 h-4 text-cyan-400" />
             <span>{t.howToPlay}</span>
           </button>
 
-          {/* Achievements & Shift History Button */}
           <button
             onClick={onOpenManagerAudit}
-            className="px-5 py-3.5 rounded-xl bg-slate-900/90 border border-purple-500/50 hover:border-purple-400 text-purple-300 font-display font-semibold text-sm tracking-wide flex items-center space-x-2 transition-all cursor-pointer shadow-md hover:bg-purple-950/30"
+            className="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-purple-400 text-slate-300 hover:text-white font-medium text-xs flex items-center space-x-1.5 transition-all cursor-pointer hover:bg-purple-950/20"
             title="Achievements & Play Records / 查看成就紀錄與這幾次遊玩的成績"
           >
             <Award className="w-4 h-4 text-purple-400" />

@@ -1,5 +1,7 @@
 export type GameState = 'TITLE' | 'PLAYING' | 'PAUSED' | 'DEBRIEF';
 
+export type GameDifficulty = 'ASSISTED' | 'PRO';
+
 export type CameraViewMode = 'VR_FIRST_PERSON' | 'SUPERVISOR_ISOMETRIC' | 'INSPECTION';
 
 export type SectorId =
@@ -245,6 +247,7 @@ export interface SimulationMetrics {
   decisionTimeline: DecisionTimelineEvent[];
   choiceOutcomes?: ChoiceOutcomeRecord[];
   operatorName?: string;
+  difficulty?: GameDifficulty;
   socialTitle?: SocialEngineerTitle;
   knowledgeGaps: {
     category: string;
@@ -274,6 +277,7 @@ export interface ShiftHistoryEntry {
   fabValueSavedM: number;
   grade: 'S' | 'A' | 'B' | 'C' | 'FAIL';
   fatalShutdown?: boolean;
+  difficulty?: GameDifficulty;
 }
 
 export interface UserCareerRecord {

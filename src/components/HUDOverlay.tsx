@@ -39,6 +39,7 @@ import {
   SectorTuneParams,
   TroubleshootingOption,
   WaferLotMission,
+  GameDifficulty,
 } from '../types/game';
 import { INITIAL_SECTORS } from '../data/protocols';
 import { ON_SITE_DISTANCE_THRESHOLD_M, OffscreenIndicator } from '../3d/FabScene';
@@ -84,6 +85,7 @@ interface HUDOverlayProps {
   equippedPPE: EquippedPPE;
   onTogglePPE: (key: keyof EquippedPPE) => void;
   lotMission: WaferLotMission | null;
+  difficultyMode?: GameDifficulty;
 }
 
 const PPE_META: Record<
@@ -148,6 +150,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   equippedPPE,
   onTogglePPE,
   lotMission,
+  difficultyMode = 'ASSISTED',
 }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
@@ -265,6 +268,16 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               <span className="truncate max-w-[125px]">{playerName || 'Alex Chen #402'}</span>
             </div>
+
+            {difficultyMode === 'ASSISTED' ? (
+              <span className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/60 text-[10px] text-emerald-300 font-bold shrink-0">
+                🟢 {isZh ? 'AI 引導' : 'AI Guided'}
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded bg-rose-950/80 border border-rose-500/60 text-[10px] text-rose-300 font-bold shrink-0">
+                🔴 {isZh ? '專業模式' : 'PRO'}
+              </span>
+            )}
 
             <div className="flex items-center space-x-2 text-[11px] font-bold shrink-0">
               <span className="text-cyan-400">
@@ -651,6 +664,19 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                       {isZh ? '不同選擇將產生截然不同的結果！' : 'Choices have distinct outcomes!'}
                     </span>
                   </div>
+
+                  {difficultyMode === 'ASSISTED' && activePreAlarm.howToPreventZh && (
+                    <div className="p-2 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-xs flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="text-[11px] leading-tight">
+                        <span className="font-bold text-emerald-300">
+                          {isZh ? '💡 AI 診斷導引：' : '💡 AI Diagnostic Hint: '}
+                        </span>
+                        <span>{isZh ? activePreAlarm.howToPreventZh : activePreAlarm.howToPrevent}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {activePreAlarm.troubleshootingOptions.map((opt, idx) => (
                       <button
@@ -658,11 +684,41 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                         onClick={() => onPreventPreAlarm(activePreAlarm.sectorId, opt)}
                         className="p-2.5 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 hover:bg-slate-800/95 text-left transition-all group cursor-pointer flex flex-col justify-between"
                       >
-                        <div className="text-xs font-bold text-slate-100 group-hover:text-amber-300 leading-snug">
-                          🔧 {isZh ? opt.labelZh : opt.label}
+                        <div>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {isZh ? `方案 ${idx + 1}` : `Option ${idx + 1}`}
+                            </span>
+                            {difficultyMode === 'ASSISTED' && (
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                  opt.outcomeType === 'SOLVE'
+                                    ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                                    : opt.outcomeType === 'PARTIAL'
+                                    ? 'bg-amber-950/80 border-amber-400 text-amber-300'
+                                    : 'bg-rose-950/80 border-rose-400 text-rose-300'
+                                }`}
+                              >
+                                {opt.outcomeType === 'SOLVE'
+                                  ? isZh
+                                    ? '推薦'
+                                    : 'Best'
+                                  : opt.outcomeType === 'PARTIAL'
+                                  ? isZh
+                                    ? '治標'
+                                    : 'Partial'
+                                  : isZh
+                                  ? '誤判'
+                                  : 'Risk'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs font-bold text-slate-100 group-hover:text-amber-300 leading-snug">
+                            🔧 {isZh ? opt.labelZh : opt.label}
+                          </div>
                         </div>
                         <div className="mt-2 pt-1 border-t border-slate-800 text-[10px] font-mono text-cyan-400 flex items-center justify-between">
-                          <span>{isZh ? `工程方案 ${idx + 1}` : `Fix Option ${idx + 1}`}</span>
+                          <span>{isZh ? '執行此方案' : 'Execute Fix'}</span>
                           <span>👉</span>
                         </div>
                       </button>
@@ -893,6 +949,23 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                       : `📍 On-Site (${hazardBayDist.toFixed(1)}m) · Choose the correct SOP`}
                   </span>
                 </div>
+
+                {difficultyMode === 'ASSISTED' && activeHazard.ehsPillars?.whatShouldDoZh && (
+                  <div className="p-2 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-xs flex items-center space-x-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="text-[11px] leading-tight">
+                      <span className="font-bold text-emerald-300">
+                        {isZh ? '💡 AI 應變建議：' : '💡 AI SOP Hint: '}
+                      </span>
+                      <span>
+                        {isZh
+                          ? activeHazard.ehsPillars.whatShouldDoZh
+                          : activeHazard.ehsPillars.whatShouldDo}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {activeHazard.protocolSteps.map((step, idx) => (
                     <button
@@ -901,6 +974,34 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                       className="p-3 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-cyan-400 hover:bg-slate-800/90 text-left transition-all group cursor-pointer flex flex-col justify-between"
                     >
                       <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {isZh ? `選項 ${idx + 1}` : `Option ${idx + 1}`}
+                          </span>
+                          {difficultyMode === 'ASSISTED' && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                step.isCorrect
+                                  ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                                  : step.isFatalError
+                                  ? 'bg-rose-950/80 border-rose-400 text-rose-300'
+                                  : 'bg-amber-950/80 border-amber-400 text-amber-300'
+                              }`}
+                            >
+                              {step.isCorrect
+                                ? isZh
+                                  ? '標準 SOP'
+                                  : 'Standard SOP'
+                                : step.isFatalError
+                                ? isZh
+                                  ? '危險'
+                                  : 'Danger'
+                                : isZh
+                                ? '非標準'
+                                : 'Non-Standard'}
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs font-bold text-slate-100 group-hover:text-cyan-300 leading-snug">
                           {isZh ? step.labelZh : step.label}
                         </div>
@@ -909,7 +1010,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                         </div>
                       </div>
                       <div className="mt-2 pt-1.5 border-t border-slate-800/80 text-[10px] font-mono text-cyan-400 opacity-80 group-hover:opacity-100">
-                        {isZh ? `👉 執行方案 ${idx + 1}` : `👉 Execute Option ${idx + 1}`}
+                        {isZh ? `👉 執行此方案` : `👉 Execute Option`}
                       </div>
                     </button>
                   ))}
@@ -1185,7 +1286,15 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 <div className="flex items-center justify-between text-[11px] mb-1">
                   <span className="text-slate-300 font-bold flex items-center gap-1">
                     <Zap className="w-3 h-3 text-amber-400" />
-                    <span>{isZh ? 'RF 射頻功率 (遠端可調)' : 'RF Power (Remote)'}</span>
+                    <span>
+                      {difficultyMode === 'ASSISTED'
+                        ? isZh
+                          ? 'RF 射頻功率 (電漿火力)'
+                          : 'RF Power (Plasma Firepower)'
+                        : isZh
+                        ? 'RF 射頻功率 (遠端可調)'
+                        : 'RF Power (Remote)'}
+                    </span>
                   </span>
                   <span
                     className={`font-bold tabular-nums ${
@@ -1223,7 +1332,15 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 <div className="flex items-center justify-between text-[11px] mb-1">
                   <span className="text-slate-300 font-bold flex items-center gap-1">
                     <Flame className="w-3 h-3 text-cyan-400" />
-                    <span>{isZh ? '特氣流量 (遠端可調)' : 'Gas Flow (Remote)'}</span>
+                    <span>
+                      {difficultyMode === 'ASSISTED'
+                        ? isZh
+                          ? '特氣流量 (原料氣體)'
+                          : 'Gas Flow (Precursor Gas)'
+                        : isZh
+                        ? '特氣流量 (遠端可調)'
+                        : 'Gas Flow (Remote)'}
+                    </span>
                   </span>
                   <span className="font-bold text-cyan-400 tabular-nums">
                     {selectedSector.gasFlowSccm} sccm
@@ -1263,7 +1380,15 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 <div className="flex items-center justify-between text-[11px] mb-1">
                   <span className="text-slate-300 font-bold flex items-center gap-1">
                     <Activity className="w-3 h-3 text-purple-400" />
-                    <span>{isZh ? '腔體真空度 (遠端可調)' : 'Vacuum (Remote)'}</span>
+                    <span>
+                      {difficultyMode === 'ASSISTED'
+                        ? isZh
+                          ? '腔體真空度 (氣密程度)'
+                          : 'Vacuum (Air Tightness)'
+                        : isZh
+                        ? '腔體真空度 (遠端可調)'
+                        : 'Vacuum (Remote)'}
+                    </span>
                   </span>
                   <span className="font-bold text-purple-400 tabular-nums">
                     {selectedSector.chamberVacuumTorr} Torr

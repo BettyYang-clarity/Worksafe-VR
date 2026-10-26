@@ -138,14 +138,14 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   const buildShareText = () =>
     isZh
       ? `🏭 我剛在《WorkSafe VR 半導體晶圓廠工安模擬器》完成了 300mm 無塵室輪班挑戰！\n` +
-        `👤 認證工程師：${metrics.operatorName || 'Alex Chen #402'}\n` +
+        `👤 認證工程師：${metrics.operatorName || 'Alex Chen #402'} [${metrics.difficulty === 'PRO' ? '專業模式' : 'AI 引導'}]\n` +
         `🏅 榮譽稱號：${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
         `📈 晶圓良率：${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} 片良品) | 🛡️ 工安合規：${metrics.safetyComplianceScore}/100\n` +
         `🔧 第一階段排障：${metrics.preAlarmsPrevented} 起成功 | ⚡ 第二階段處置：${metrics.incidentsResolved}/${metrics.incidentsEncountered} 起\n` +
         `💎 守護廠區成果：保護 ${metrics.livesProtected} 名同仁安全 · 挽救 $${metrics.fabValueSavedMillionsUSD.toFixed(1)}M 美元資產！\n` +
         `👉 你能在衝刺良率的同時守住零工安事故嗎？立即挑戰：${shareUrl}`
       : `🏭 I just completed a 300mm cleanroom shift in WorkSafe VR Semiconductor Fab Simulator!\n` +
-        `👤 Engineer: ${metrics.operatorName || 'Alex Chen #402'}\n` +
+        `👤 Engineer: ${metrics.operatorName || 'Alex Chen #402'} [${metrics.difficulty === 'PRO' ? 'PRO' : 'AI GUIDED'}]\n` +
         `🏅 Rank: ${socialTitle.emoji} ${socialTitle.title} (GRADE ${gradeInfo.grade})\n` +
         `📈 Fab Yield: ${metrics.overallYieldPct.toFixed(1)}% (${metrics.totalWafersProduced} good wafers) | 🛡️ EHS Compliance: ${metrics.safetyComplianceScore}/100\n` +
         `🔧 Phase 1 Troubleshooting: ${metrics.preAlarmsPrevented} Saved | ⚡ Phase 2 Containment: ${metrics.incidentsResolved}/${metrics.incidentsEncountered}\n` +
@@ -232,10 +232,19 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
     ctx.lineWidth = 2;
     ctx.strokeRect(48, 115, 905, 82);
 
+    const difficultyTag =
+      metrics.difficulty === 'PRO'
+        ? isZh
+          ? ' [ 模式：專業認證 ]'
+          : ' [ MODE: PRO ]'
+        : isZh
+        ? ' [ 模式：AI 引導 ]'
+        : ' [ MODE: AI GUIDED ]';
+
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 18px monospace';
     ctx.fillText(
-      `${isZh ? '認證工程師' : 'ENGINEER ID'}: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}`,
+      `${isZh ? '認證工程師' : 'ENGINEER ID'}: ${(metrics.operatorName || 'ALEX CHEN #402').toUpperCase()}${difficultyTag}`,
       68,
       145
     );
@@ -482,6 +491,21 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
                 <strong className="text-cyan-300 font-bold">
                   {metrics.operatorName || 'Alex Chen #402'}
                 </strong>
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                    metrics.difficulty === 'PRO'
+                      ? 'bg-rose-950/80 border-rose-500/60 text-rose-300'
+                      : 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300'
+                  }`}
+                >
+                  {metrics.difficulty === 'PRO'
+                    ? isZh
+                      ? '🔴 專業模式'
+                      : '🔴 PRO'
+                    : isZh
+                    ? '🟢 AI 引導'
+                    : '🟢 AI GUIDED'}
+                </span>
               </div>
             </div>
 
