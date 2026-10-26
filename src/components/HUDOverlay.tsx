@@ -483,18 +483,24 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 <span>{isZh ? '工程師即時指引' : 'ENGINEER CO-PILOT'}</span>
               </span>
               {lotMission ? (
-                <div className="text-slate-200 truncate">
-                  <strong className="text-amber-300 font-mono">[{lotMission.lotCode}]</strong>{' '}
-                  <span>{isZh ? lotMission.titleZh : lotMission.title}</span>
-                  <span className="text-slate-400 ml-1.5 hidden sm:inline">
-                    — {isZh ? lotMission.hintZh : lotMission.hint}
+                <div className="text-slate-200 truncate flex items-center space-x-1.5">
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">
+                    {lotMission.lotCode}
+                  </span>
+                  <span className="text-slate-100 font-bold">
+                    {isZh ? '巡廠目標：' : 'Shift Goal: '}
+                  </span>
+                  <span className="text-slate-300">
+                    {isZh
+                      ? `巡視機台或微調下方滑桿提升良率；請隨時留意突發警報 (${lotMission.titleZh})`
+                      : `Inspect bays or tune sliders to boost yield; watch for alarms (${lotMission.title})`}
                   </span>
                 </div>
               ) : (
                 <div className="text-slate-200">
                   {isZh
-                    ? '各區運轉穩定！請巡視無塵室並微調下方 RF / 特氣 / 真空滑桿以提升良率，注意洗滌塔負載勿超過 85%。'
-                    : 'All bays nominal! Walk the fab and tune RF / Gas / Vacuum sliders for yield while keeping Scrubber < 85%.'}
+                    ? '各區運轉正常！請巡視機台並微調下方配方滑桿以提升良率，隨時留意突發警報。'
+                    : 'All bays nominal! Walk fab and tune recipe sliders to boost yield; watch for alerts.'}
                 </div>
               )}
             </div>

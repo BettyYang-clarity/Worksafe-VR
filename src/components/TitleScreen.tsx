@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Play,
   Award,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { UserCareerRecord, GameDifficulty } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
+import { PreShiftBriefingModal } from './PreShiftBriefingModal';
 
 interface TitleScreenProps {
   language: Language;
@@ -47,22 +48,26 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
+  const [pendingStart, setPendingStart] = useState<{
+    mode: 'FULL_SHIFT' | 'HAZARD_DRILL' | 'CERTIFICATION_EXAM';
+    difficulty: GameDifficulty;
+  } | null>(null);
 
-  // Listen for Enter or Space to start game ONLY when not typing inside an input field
+  // Listen for Enter to open briefing card when on title screen and not typing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         return;
       }
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !pendingStart) {
         e.preventDefault();
-        onStartGame('FULL_SHIFT', 'ASSISTED');
+        setPendingStart({ mode: 'FULL_SHIFT', difficulty: 'ASSISTED' });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onStartGame]);
+  }, [pendingStart]);
 
   return (
     <div className="absolute inset-0 pointer-events-auto flex flex-col justify-between p-4 md:p-10 z-20 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-slate-950/75 overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
@@ -247,7 +252,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Mode 1: Assisted (Low difficulty) */}
             <button
-              onClick={() => onStartGame('FULL_SHIFT', 'ASSISTED')}
+              onClick={() => setPendingStart({ mode: 'FULL_SHIFT', difficulty: 'ASSISTED' })}
               className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-950/80 to-slate-900/90 border-2 border-emerald-500/60 hover:border-emerald-400 hover:from-emerald-900/90 text-left transition-all transform hover:-translate-y-0.5 shadow-lg shadow-emerald-950/50 group cursor-pointer"
             >
               <div className="flex items-center justify-between gap-2 mb-1">
@@ -268,7 +273,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
             {/* Mode 2: Pro (High difficulty) */}
             <button
-              onClick={() => onStartGame('FULL_SHIFT', 'PRO')}
+              onClick={() => setPendingStart({ mode: 'FULL_SHIFT', difficulty: 'PRO' })}
               className="p-3.5 rounded-xl bg-gradient-to-br from-cyan-950/60 to-slate-900/90 border-2 border-cyan-500/50 hover:border-cyan-400 hover:from-cyan-900/80 text-left transition-all transform hover:-translate-y-0.5 shadow-lg shadow-cyan-950/50 group cursor-pointer"
             >
               <div className="flex items-center justify-between gap-2 mb-1">
@@ -379,6 +384,21 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div className="text-slate-500 hidden sm:block">{t.standardsCompliance}</div>
         </div>
       </div>
+
+      {/* Pre-Shift 3-Core-Task Briefing Modal (for Both Modes) */}
+      {pendingStart && (
+        <PreShiftBriefingModal
+          language={language}
+          difficulty={pendingStart.difficulty}
+          playerName={playerName}
+          onConfirm={() => {
+            const { mode, difficulty } = pendingStart;
+            setPendingStart(null);
+            onStartGame(mode, difficulty);
+          }}
+          onCancel={() => setPendingStart(null)}
+        />
+      )}
     </div>
   );
 };
