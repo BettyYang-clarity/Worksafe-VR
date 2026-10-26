@@ -266,6 +266,13 @@ export default function App() {
   const [lotMission, setLotMission] = useState<WaferLotMission | null>(null);
   const [isMobileTuningOpen, setIsMobileTuningOpen] = useState(false);
 
+  // Crisis Priority: Auto-close recipe tuning drawer immediately when incident occurs
+  useEffect(() => {
+    if (activeHazard || activePreAlarm) {
+      setIsMobileTuningOpen(false);
+    }
+  }, [activeHazard, activePreAlarm]);
+
   // Gamification states
   const [floatingDeltas, setFloatingDeltas] = useState<FloatingDelta[]>([]);
   const [decisionTimeline, setDecisionTimeline] = useState<DecisionTimelineEvent[]>([]);
