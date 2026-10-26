@@ -264,6 +264,7 @@ export default function App() {
   const [fabValueSavedMillionsUSD, setFabValueSavedMillionsUSD] = useState<number>(1.2);
   const [lotMissionIndex, setLotMissionIndex] = useState<number>(0);
   const [lotMission, setLotMission] = useState<WaferLotMission | null>(null);
+  const [isMobileTuningOpen, setIsMobileTuningOpen] = useState(false);
 
   // Gamification states
   const [floatingDeltas, setFloatingDeltas] = useState<FloatingDelta[]>([]);
@@ -2031,12 +2032,30 @@ export default function App() {
       {/* Active In-Game HUD Overlay */}
       {gameState === 'PLAYING' && (
         <>
-          <VirtualJoystick
-            onMove={(vector) => sceneInstanceRef.current?.setVirtualJoystick(vector)}
-            onEnd={() => sceneInstanceRef.current?.setVirtualJoystick({ x: 0, y: 0 })}
-            onWalkToSector={handleWalkToSector}
-            currentSectorId={selectedSectorId}
-          />
+          {(() => {
+            const isPreAlarmOnSite = activePreAlarm
+              ? (bayDistances[activePreAlarm.sectorId] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M
+              : false;
+            const isHazardOnSite = activeHazard
+              ? (bayDistances[activeHazard.sectorId] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M
+              : false;
+            const shouldHideJoystick =
+              isMobileTuningOpen ||
+              isPreAlarmOnSite ||
+              isHazardOnSite ||
+              isInstructionsOpen ||
+              isFeedbackModalOpen;
+
+            return (
+              <VirtualJoystick
+                onMove={(vector) => sceneInstanceRef.current?.setVirtualJoystick(vector)}
+                onEnd={() => sceneInstanceRef.current?.setVirtualJoystick({ x: 0, y: 0 })}
+                onWalkToSector={handleWalkToSector}
+                currentSectorId={selectedSectorId}
+                hidden={shouldHideJoystick}
+              />
+            );
+          })()}
           {tutorialStep !== null && (
             <InteractiveTutorialOverlay
               language={language}
@@ -2057,6 +2076,8 @@ export default function App() {
             />
           )}
           <HUDOverlay
+          isMobileTuningOpen={isMobileTuningOpen}
+          onToggleMobileTuning={setIsMobileTuningOpen}
           language={language}
           onToggleLanguage={toggleLanguage}
           onOpenInstructions={() => setIsInstructionsOpen(true)}

@@ -7,6 +7,7 @@ interface VirtualJoystickProps {
   onEnd: () => void;
   onWalkToSector?: (sectorId: SectorId) => void;
   currentSectorId?: SectorId;
+  hidden?: boolean;
 }
 
 const BAYS: { id: SectorId; code: string; label: string }[] = [
@@ -22,6 +23,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
   onEnd,
   onWalkToSector,
   currentSectorId,
+  hidden = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [knobPos, setKnobPos] = useState({ x: 0, y: 0 });
@@ -124,9 +126,11 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
     };
   }, [handleTouchMove, handleTouchEnd]);
 
+  if (hidden) return null;
+
   return (
     <div
-      className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-[60] pointer-events-auto block lg:hidden select-none"
+      className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-[50] pointer-events-auto block lg:hidden select-none"
       style={{ touchAction: 'none' }}
     >
       {/* Virtual Joystick Disc (Lowered to bottom edge for thumb ergonomics) */}

@@ -89,6 +89,8 @@ interface HUDOverlayProps {
   onTogglePPE: (key: keyof EquippedPPE) => void;
   lotMission: WaferLotMission | null;
   difficultyMode?: GameDifficulty;
+  isMobileTuningOpen?: boolean;
+  onToggleMobileTuning?: (open: boolean) => void;
   isTutorialActive?: boolean;
 }
 
@@ -155,6 +157,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   onTogglePPE,
   lotMission,
   difficultyMode = 'ASSISTED',
+  isMobileTuningOpen: externalIsMobileTuningOpen,
+  onToggleMobileTuning,
   isTutorialActive = false,
 }) => {
   const t = TRANSLATIONS[language];
@@ -163,7 +167,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileTuningOpen, setIsMobileTuningOpen] = useState(false);
+  const [internalIsMobileTuningOpen, setInternalIsMobileTuningOpen] = useState(false);
+  const isMobileTuningOpen = externalIsMobileTuningOpen ?? internalIsMobileTuningOpen;
+  const setIsMobileTuningOpen = onToggleMobileTuning ?? setInternalIsMobileTuningOpen;
 
   // Auto-collapse bottom dock on short screens (mobile landscape <= 540px) during incidents
   // On desktop / laptop (where window.innerHeight >= 700px), this NEVER triggers so PC layout is 100% untouched.
@@ -378,36 +384,42 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               )}
             </div>
           ) : lotMission ? (
-            <div className="flex items-center justify-between px-2.5 py-1 rounded-xl bg-cyan-950/90 border border-cyan-500/60 shadow-lg text-[11px]">
-              <div className="flex items-center space-x-1.5 min-w-0">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span className="font-bold text-cyan-200 truncate">
-                  {isZh
-                    ? `🎯 巡廠目標：${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]} (${(bayDistances[lotMission.targetSectorId] ?? 10).toFixed(0)}m)`
-                    : `Goal: ${lotMission.targetSectorId}`}
-                </span>
+            <div className="flex flex-col px-2.5 py-1.5 rounded-xl bg-cyan-950/95 border border-cyan-500/70 shadow-lg text-[11px] space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 min-w-0">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span className="font-bold text-cyan-200 truncate">
+                    {isZh
+                      ? `🎯 巡廠目標：${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]} (${(bayDistances[lotMission.targetSectorId] ?? 10).toFixed(0)}m)`
+                      : `Goal: ${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]}`}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1 shrink-0 ml-1.5">
+                  {(bayDistances[lotMission.targetSectorId] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M ? (
+                    <button
+                      onClick={() => setIsMobileTuningOpen(true)}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-bold flex items-center gap-1 cursor-pointer active:scale-95 shadow"
+                    >
+                      <Sliders className="w-3 h-3" />
+                      <span>{isZh ? '現場調配方' : 'Tune'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        onSelectSector(lotMission.targetSectorId);
+                        onWalkToSector(lotMission.targetSectorId);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold flex items-center gap-1 cursor-pointer active:scale-95 shadow"
+                    >
+                      <Footprints className="w-3 h-3" />
+                      <span>{isZh ? '前往機台' : 'Walk'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center space-x-1 shrink-0 ml-1.5">
-                {(bayDistances[lotMission.targetSectorId] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M ? (
-                  <button
-                    onClick={() => setIsMobileTuningOpen(true)}
-                    className="px-2 py-0.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-bold flex items-center gap-1 cursor-pointer active:scale-95 shadow"
-                  >
-                    <Sliders className="w-2.5 h-2.5" />
-                    <span>{isZh ? '現場調配方' : 'Tune'}</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      onSelectSector(lotMission.targetSectorId);
-                      onWalkToSector(lotMission.targetSectorId);
-                    }}
-                    className="px-2 py-0.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold flex items-center gap-0.5 cursor-pointer active:scale-95 shadow"
-                  >
-                    <Footprints className="w-2.5 h-2.5" />
-                    <span>{isZh ? '前往機台' : 'Walk'}</span>
-                  </button>
-                )}
+              {/* Mission Goal & Exact Tuning Instruction */}
+              <div className="text-[10px] text-amber-200/90 font-mono truncate pl-5">
+                📝 {isZh ? lotMission.hintZh : lotMission.hint}
               </div>
             </div>
           ) : (
@@ -538,20 +550,40 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               </button>
             </div>
 
-            {/* Fullscreen Mode Toggle Button */}
+            {/* Fullscreen Mode Toggle Button with iOS Safari / LINE Webview Handling */}
             <div className="pt-1 border-t border-slate-800">
               <button
                 onClick={() => {
-                  if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen?.().catch(() => {});
+                  const docEl = document.documentElement as any;
+                  const doc = document as any;
+                  const reqFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                  const exitFs = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+                  const isFs = !!(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement);
+
+                  if (reqFs) {
+                    if (!isFs) {
+                      reqFs.call(docEl).catch(() => {});
+                    } else {
+                      exitFs?.call(doc).catch(() => {});
+                    }
                   } else {
-                    document.exitFullscreen?.().catch(() => {});
+                    // Friendly prompt on iPhone Safari / LINE in-app webview
+                    alert(
+                      isZh
+                        ? '📱 iPhone 沉浸全螢幕指引：\n因 Apple iOS 系統安全限制，iPhone 網頁無法直接強制全螢幕。\n\n如需隱藏網址列與選單享受純淨全螢幕：\n1. 點擊右上角「...」或「分享」\n2. 選擇「以 Safari 開啟」\n3. 在 Safari 點擊底部「分享」圖示 >「加入主畫面」\n\n即可像 App 一樣以無網址列全螢幕遊玩！'
+                        : 'iPhone Fullscreen Guide:\nDue to iOS restrictions, tap Share in Safari > "Add to Home Screen" to enjoy fullscreen App mode!'
+                    );
                   }
                   setIsMobileMenuOpen(false);
                 }}
                 className="w-full py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300 text-[10px] font-bold flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
               >
-                <span>⛶ {isZh ? '切換全螢幕沉浸模式' : 'Toggle Fullscreen Mode'}</span>
+                <span>
+                  {typeof document !== 'undefined' &&
+                  (document.fullscreenEnabled || (document.documentElement as any)?.webkitRequestFullscreen)
+                    ? (isZh ? '⛶ 切換全螢幕沉浸模式' : '⛶ Toggle Fullscreen Mode')
+                    : (isZh ? '📱 iOS 全螢幕安裝指引' : '📱 iOS Fullscreen Tip')}
+                </span>
               </button>
             </div>
           </div>
@@ -1035,16 +1067,18 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
         </div>
 
           {/* Mobile Bottom Sheet Drawer (block md:hidden) - Zero Occlusion for Cleanroom 3D View */}
-          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 max-h-[42vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[70] max-h-[46vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
             <div className="w-10 h-1 bg-amber-400/50 rounded-full mx-auto mb-1.5 shrink-0" />
+            
+            {/* Header: Title + Timer + Distance */}
             <div className="flex items-center justify-between gap-1.5 border-b border-amber-500/30 pb-1.5 shrink-0">
-              <div className="flex items-center space-x-1.5 min-w-0">
+              <div className="flex items-center space-x-1.5 min-w-0 flex-1">
                 <Cpu className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
-                <span className="font-bold text-white text-[12px] truncate">
+                <span className="font-bold text-white text-[12px] leading-snug line-clamp-2">
                   {isZh ? activePreAlarm.titleZh : activePreAlarm.title}
                 </span>
               </div>
-              <div className="flex items-center space-x-1.5 shrink-0 font-mono">
+              <div className="flex items-center space-x-1.5 shrink-0 font-mono ml-1">
                 <span
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                     isPreAlarmBayOnSite
@@ -1063,7 +1097,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             {!isPreAlarmBayOnSite ? (
               <div className="py-2 space-y-2 shrink-0">
                 <div className="text-[11px] text-slate-300 leading-snug">
-                  <span className="text-amber-400 font-bold">📊 異常線索：</span>
+                  <span className="text-amber-400 font-bold">📊 異常原因：</span>
                   <span>{(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms)[0]}</span>
                 </div>
                 <button
@@ -1071,7 +1105,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     onSelectSector(activePreAlarm.sectorId);
                     onWalkToSector(activePreAlarm.sectorId);
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-amber-500/25 active:scale-95 cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-amber-500/25 active:scale-95 cursor-pointer"
                 >
                   <Footprints className="w-4 h-4" />
                   <span>
@@ -1087,25 +1121,41 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               </div>
             ) : (
               <div className="flex-1 min-h-0 flex flex-col pt-1.5">
-                {(difficultyMode === 'ASSISTED' || isTutorialActive) && activePreAlarm.howToPreventZh ? (
-                  <div className="mb-1.5 p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-[11px] flex items-center space-x-1.5 shrink-0">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="truncate">
-                      {isZh ? `💡 ${activePreAlarm.howToPreventZh}` : `💡 ${activePreAlarm.howToPrevent}`}
-                    </span>
+                {/* Equipment Incident Cause & Sensor Symptoms */}
+                <div className="mb-1.5 p-2 rounded-xl bg-slate-900/95 border border-amber-500/40 text-[10.5px] space-y-1 shrink-0">
+                  <div className="font-bold text-amber-300 flex items-center justify-between">
+                    <span>📊 異常原因與即時線索：</span>
+                    <span className="text-[9.5px] text-rose-300">⚠️ 誤判晶圓報廢</span>
                   </div>
-                ) : (
-                  <div className="mb-1 text-[10px] text-amber-300/90 truncate shrink-0">
-                    📊 線索：{(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).join(' | ')}
+                  <div className="space-y-0.5 text-slate-200 font-mono">
+                    {(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).map((s, idx) => (
+                      <div key={idx} className="flex items-start gap-1">
+                        <span className="text-amber-400 shrink-0">▸</span>
+                        <span className="leading-tight">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-0.5 border-t border-slate-800 text-[10px] text-cyan-300 flex items-center justify-between">
+                    <span>🔬 晶圓缺陷圖譜：{isZh ? activePreAlarm.waferDefectPatternZh : activePreAlarm.waferDefectPattern}</span>
+                  </div>
+                </div>
+
+                {(difficultyMode === 'ASSISTED' || isTutorialActive) && activePreAlarm.howToPreventZh && (
+                  <div className="mb-1.5 p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-[10.5px] flex items-center space-x-1.5 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="leading-tight truncate">
+                      {isZh ? `💡 AI建議：${activePreAlarm.howToPreventZh}` : `💡 AI Hint: ${activePreAlarm.howToPrevent}`}
+                    </span>
                   </div>
                 )}
 
+                {/* Scrollable Thumb-Friendly Options (Vertical Scroll with Details) */}
                 <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 overscroll-contain">
                   {activePreAlarm.troubleshootingOptions.map((opt, idx) => (
                     <button
                       key={opt.id || idx}
                       onClick={() => onPreventPreAlarm(activePreAlarm.sectorId, opt)}
-                      className="w-full p-2 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
+                      className="w-full p-2.5 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-1.5 mb-0.5">
@@ -1114,7 +1164,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                           </span>
                           {(difficultyMode === 'ASSISTED' || isTutorialActive) && (
                             <span
-                              className={`px-1 py-0.2 rounded text-[9px] font-bold border ${
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
                                 opt.outcomeType === 'SOLVE'
                                   ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
                                   : opt.outcomeType === 'PARTIAL'
@@ -1130,11 +1180,17 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] font-bold text-white line-clamp-2 leading-snug">
+                        <div className="text-[11.5px] font-bold text-white leading-snug">
                           🔧 {isZh ? opt.labelZh : opt.label}
                         </div>
+                        {/* Option Details & Consequences */}
+                        <div className="text-[10px] text-slate-300 mt-0.5 leading-snug font-sans">
+                          {isZh
+                            ? (opt.explanationZh || opt.consequenceSummaryZh)
+                            : (opt.explanation || opt.consequenceSummary)}
+                        </div>
                       </div>
-                      <span className="text-[11px] font-bold text-amber-400 shrink-0 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-400/30">
+                      <span className="text-[11px] font-bold text-amber-400 shrink-0 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-400/30">
                         {isZh ? '選擇' : 'Pick'}
                       </span>
                     </button>
@@ -1143,9 +1199,10 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               </div>
             )}
           </div>
-
         </>
-      )}{/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
+      )}
+
+      {/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
       {/* ==================================================== */}
       {activeHazard && (
         <>
@@ -1435,16 +1492,18 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
         </div>
 
           {/* Mobile Bottom Sheet Drawer (block md:hidden) - Unobstructed Cleanroom 3D View */}
-          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 max-h-[44vh] flex flex-col rounded-2xl border-2 border-rose-500 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[70] max-h-[46vh] flex flex-col rounded-2xl border-2 border-rose-500 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
             <div className="w-10 h-1 bg-rose-500/50 rounded-full mx-auto mb-1.5 shrink-0" />
+            
+            {/* Header: Title + Timer + Mute */}
             <div className="flex items-center justify-between gap-1.5 pb-1 shrink-0">
-              <div className="flex items-center space-x-1.5 min-w-0">
+              <div className="flex items-center space-x-1.5 min-w-0 flex-1">
                 <Flame className="w-4 h-4 text-rose-500 animate-bounce shrink-0" />
-                <span className="font-bold text-rose-300 text-[12px] truncate">
+                <span className="font-bold text-rose-300 text-[12px] leading-snug line-clamp-2">
                   {isZh ? activeHazard.titleZh : activeHazard.title}
                 </span>
               </div>
-              <div className="flex items-center space-x-1.5 shrink-0 font-mono">
+              <div className="flex items-center space-x-1.5 shrink-0 font-mono ml-1">
                 {!activeHazard.isSilenced && (
                   <button
                     onClick={onSilenceAlarm}
@@ -1535,6 +1594,17 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               </div>
             ) : (
               <div className="flex-1 min-h-0 flex flex-col pt-1">
+                {/* Incident Description / Root Cause */}
+                <div className="mb-1.5 p-2 rounded-xl bg-rose-950/40 border border-rose-500/50 text-[10.5px] space-y-0.5 shrink-0">
+                  <div className="font-bold text-rose-300 flex items-center justify-between">
+                    <span>🚨 現場事故原因：</span>
+                    <span className="text-[9.5px] text-amber-300">{activeHazard.regulatoryStandard}</span>
+                  </div>
+                  <p className="text-slate-200 leading-snug">
+                    {isZh ? activeHazard.descZh : activeHazard.description}
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-between text-[11px] mb-1 shrink-0">
                   <span className="font-bold text-cyan-300 truncate">
                     🧠 {isZh ? activeHazard.currentPromptZh : activeHazard.currentPrompt}
@@ -1544,12 +1614,13 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   </span>
                 </div>
 
+                {/* Scrollable Thumb-Friendly SOP Steps with Details */}
                 <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 overscroll-contain">
                   {activeHazard.protocolSteps.map((step, idx) => (
                     <button
                       key={step.id || idx}
                       onClick={() => onSelectProtocolStep(step)}
-                      className="w-full p-2 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-cyan-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
+                      className="w-full p-2.5 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-cyan-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-1.5 mb-0.5">
@@ -1558,7 +1629,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                           </span>
                           {difficultyMode === 'ASSISTED' && (
                             <span
-                              className={`px-1 py-0.2 rounded text-[9px] font-bold border ${
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
                                 step.isCorrect
                                   ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
                                   : step.isFatalError
@@ -1567,21 +1638,21 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                               }`}
                             >
                               {step.isCorrect
-                                ? (isZh ? 'SOP' : 'SOP')
+                                ? (isZh ? '標準 SOP' : 'SOP')
                                 : step.isFatalError
                                 ? (isZh ? '危險' : 'Danger')
-                                : (isZh ? '非標' : 'Sub')}
+                                : (isZh ? '非標準' : 'Sub')}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] font-bold text-white line-clamp-1 leading-snug">
+                        <div className="text-[11.5px] font-bold text-white leading-snug">
                           {isZh ? step.labelZh : step.label}
                         </div>
-                        <div className="text-[10px] text-slate-400 line-clamp-1">
+                        <div className="text-[10px] text-slate-300 mt-0.5 leading-snug font-sans">
                           {isZh ? step.descZh : step.description}
                         </div>
                       </div>
-                      <span className="text-[11px] font-bold text-cyan-400 shrink-0 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-400/30">
+                      <span className="text-[11px] font-bold text-cyan-400 shrink-0 px-2.5 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/30">
                         {isZh ? '執行' : 'Exec'}
                       </span>
                     </button>
@@ -2177,28 +2248,53 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 6B. MOBILE COLLAPSIBLE RECIPE DRAWER (配方良率收攏盤) */}
       {/* ==================================================== */}
       {/* (Persistent collapsed pill removed per mobile UX: triggered via live prompt when on-site) */}
-      {/* 2. Expanded Bottom Sheet Drawer (Full Thumb Controls) */}
+      {/* 2. Expanded Bottom Sheet Drawer (Max height <= 38vh: Unobstructed 3D Machine View) */}
       {isMobileTuningOpen && (
-        <div className="fixed inset-x-2 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 block md:hidden max-w-lg mx-auto rounded-3xl bg-slate-950/98 border-2 border-amber-400 shadow-2xl backdrop-blur-2xl p-3.5 space-y-2.5 animate-fade-in font-mono text-xs pointer-events-auto max-h-[70vh] overflow-y-auto">
+        <div className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[70] block md:hidden max-w-lg mx-auto rounded-3xl bg-slate-950/98 border-2 border-amber-400 shadow-2xl backdrop-blur-2xl p-2.5 space-y-2 animate-fade-in font-mono text-xs pointer-events-auto max-h-[38vh] overflow-y-auto overscroll-contain">
           {/* Header Row */}
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center space-x-2">
-              <Sliders className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-bold text-white">
-                {isZh ? '🎛️ 5大製程配方良率微調盤' : '🎛️ 5-Bay Recipe Tuning Drawer'}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+            <div className="flex items-center space-x-1.5 min-w-0">
+              <Sliders className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="text-xs font-bold text-white truncate">
+                {isZh ? `🎛️ ${selectedSector.nameZh.substring(0, 8)} 配方調校` : '🎛️ Recipe Tuning'}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">
+                {selectedBayDist <= ON_SITE_DISTANCE_THRESHOLD_M ? (isZh ? '現場' : 'On-Site') : `${selectedBayDist.toFixed(0)}m`}
               </span>
             </div>
             <button
               onClick={() => setIsMobileTuningOpen(false)}
-              className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold flex items-center space-x-1 cursor-pointer active:scale-95"
+              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-[11px] font-bold flex items-center space-x-1 cursor-pointer active:scale-95"
             >
-              <ChevronDown className="w-3.5 h-3.5" />
-              <span>{isZh ? '收攏盤' : 'Collapse'}</span>
+              <ChevronDown className="w-3 h-3" />
+              <span>{isZh ? '收攏盤' : 'Close'}</span>
             </button>
           </div>
 
-          {/* 5-Bay Switcher Tabs */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
+          {/* Mission Target Banner (What to Adjust) */}
+          {lotMission && (
+            <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-400/50 flex items-center justify-between gap-1.5 text-xs">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-bold text-amber-300">
+                  🎯 {lotMission.lotCode} · {isZh ? '批次配方目標' : 'Target'}
+                </div>
+                <div className="text-[11px] text-white font-mono truncate">
+                  {isZh ? lotMission.hintZh : lotMission.hint}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1200, gasFlowSccm: 45 });
+                }}
+                className="px-2 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[10px] shrink-0 cursor-pointer active:scale-95 shadow"
+              >
+                ✨ {isZh ? '一鍵最佳配方' : 'Auto Set'}
+              </button>
+            </div>
+          )}
+
+          {/* 5-Bay Switcher Tabs (Compact) */}
+          <div className="flex items-center space-x-1 overflow-x-auto pb-0.5">
             {pipelineOrder.map((sId) => {
               const s = sectors[sId];
               if (!s) return null;
@@ -2212,50 +2308,30 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 <button
                   key={sId}
                   onClick={() => onSelectSector(sId)}
-                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold shrink-0 transition-all flex items-center space-x-1 cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 transition-all flex items-center space-x-0.5 cursor-pointer ${
                     isSel
-                      ? 'bg-cyan-500/30 border-2 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-500/30'
+                      ? 'bg-cyan-500/30 border-2 border-cyan-400 text-cyan-200'
                       : isCris
-                      ? 'bg-rose-500/30 border border-rose-500 text-rose-200 animate-pulse'
+                      ? 'bg-rose-500/30 border border-rose-500 text-rose-200'
                       : isPre
-                      ? 'bg-amber-500/30 border border-amber-400 text-amber-200 animate-pulse'
+                      ? 'bg-amber-500/30 border border-amber-400 text-amber-200'
                       : 'bg-slate-900 border border-slate-800 text-slate-400'
                   }`}
                 >
                   <span>{s.code.split('/')[0].replace('BAY-', 'B')}</span>
                   <span>{isZh ? s.nameZh.substring(5, 7) : ''}</span>
-                  {onSite && <span className="text-[9px] text-cyan-300">📍</span>}
+                  {onSite && <span className="text-[8px] text-cyan-300">📍</span>}
                 </button>
               );
             })}
           </div>
 
-          {/* Selected Bay Telemetry & Proximity */}
-          <div className="flex items-center justify-between text-xs bg-slate-900/90 rounded-xl px-2.5 py-1.5 border border-slate-800">
-            <span className="text-slate-200 font-bold">
-              {selectedSector.nameZh} ({selectedBayDist.toFixed(1)}m)
-            </span>
-            {isSelectedBayOnSite ? (
-              <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
-                📍 已在機台現場
-              </span>
-            ) : (
-              <button
-                onClick={() => onWalkToSector(selectedSectorId)}
-                className="px-2 py-0.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[10px] flex items-center gap-1 cursor-pointer active:scale-95 shadow"
-              >
-                <Footprints className="w-3 h-3" />
-                <span>走往機台現場</span>
-              </button>
-            )}
-          </div>
-
           {/* Slider: RF Power */}
-          <div className="p-2.5 rounded-2xl bg-slate-900/95 border border-slate-800 space-y-1.5">
+          <div className="p-2 rounded-xl bg-slate-900/95 border border-slate-800 space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-300 font-bold flex items-center gap-1">
                 <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>{isZh ? 'RF 射頻功率 (電漿火力)' : 'RF Power'}</span>
+                <span>{isZh ? 'RF 射頻功率' : 'RF Power'}</span>
               </span>
               <span
                 className={`font-bold tabular-nums ${
@@ -2276,10 +2352,10 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   rfPowerWatts: Number(e.target.value),
                 })
               }
-              className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
             />
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
-              <span>{isZh ? '安全區: 800~1750W' : 'Safe: 800~1750W'}</span>
+            <div className="flex items-center justify-between text-[9.5px] text-slate-400">
+              <span>{isZh ? '安全: 800~1750W' : 'Safe: 800~1750W'}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 800 })}
@@ -2291,7 +2367,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1200 })}
                   className="px-1.5 py-0.5 rounded bg-cyan-900/80 border border-cyan-400 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
                 >
-                  1200W (最佳良率)
+                  1200W (最佳)
                 </button>
                 <button
                   onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1600 })}
@@ -2303,44 +2379,34 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
           </div>
 
-          {/* Quick Gas & Efficiency Telemetry */}
-          <div className="grid grid-cols-2 gap-2 text-[10px]">
-            <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-              <span className="text-slate-400">{isZh ? '特氣流量' : 'Gas Flow'}:</span>
-              <span className="font-bold text-cyan-300 font-mono">{selectedSector.gasFlowSccm} sccm</span>
+          {/* Quick Gas & Efficiency Telemetry + Compact On-Site Actions */}
+          <div className="flex items-center justify-between gap-1.5 text-[10px]">
+            <div className="flex items-center space-x-1.5">
+              <span className="p-1 px-1.5 rounded-lg bg-slate-900 border border-slate-800 text-cyan-300 font-mono">
+                特氣: {selectedSector.gasFlowSccm}sccm
+              </span>
+              <span className="p-1 px-1.5 rounded-lg bg-slate-900 border border-slate-800 text-emerald-400 font-mono">
+                產速: {selectedSector.efficiency}%
+              </span>
             </div>
-            <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-              <span className="text-slate-400">{isZh ? '即時產速' : 'Speed'}:</span>
-              <span className="font-bold text-emerald-400 font-mono">產速 {selectedSector.efficiency}%</span>
-            </div>
+
+            {isSelectedBayOnSite && (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
+                  className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] cursor-pointer active:scale-95"
+                >
+                  ⚡ 接地棒
+                </button>
+                <button
+                  onClick={() => onHitEmo(selectedSectorId)}
+                  className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer active:scale-95"
+                >
+                  🛑 EMO
+                </button>
+              </div>
+            )}
           </div>
-
-          {/* On-Site Actions (if within 5.5m) */}
-          {isSelectedBayOnSite && (
-            <div className="flex items-center space-x-2 pt-1 border-t border-slate-800">
-              <button
-                onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
-                className="flex-1 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1 cursor-pointer active:scale-95"
-              >
-                <span>⚡ 接地放電棒</span>
-              </button>
-              <button
-                onClick={() => onHitEmo(selectedSectorId)}
-                className="flex-1 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center space-x-1 cursor-pointer active:scale-95"
-              >
-                <span>🛑 EMO 緊急停機</span>
-              </button>
-            </div>
-          )}
-
-          {/* Bottom Collapse Button */}
-          <button
-            onClick={() => setIsMobileTuningOpen(false)}
-            className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center space-x-1 cursor-pointer transition-colors active:scale-95"
-          >
-            <ChevronDown className="w-4 h-4" />
-            <span>{isZh ? '▾ 收攏盤，回到 3D 全景巡廠' : '▾ Collapse Drawer'}</span>
-          </button>
         </div>
       )}
     </div>
