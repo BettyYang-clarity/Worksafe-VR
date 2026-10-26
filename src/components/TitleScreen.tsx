@@ -11,6 +11,8 @@ import {
   MessageSquare,
   Linkedin,
   Info,
+  Monitor,
+  Smartphone,
 } from 'lucide-react';
 import { UserCareerRecord, GameDifficulty } from '../types/game';
 import { Language, TRANSLATIONS } from '../i18n/translations';
@@ -243,16 +245,29 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         </div>
 
-        {/* Mobile Experience Tips Pill */}
-        <div className="mb-4 max-w-md p-2.5 rounded-xl border border-cyan-500/40 bg-slate-900/80 text-[11px] text-slate-300 space-y-1">
-          <div className="flex items-center space-x-1.5 text-cyan-300 font-bold">
-            <Volume2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span>{isZh ? '手機遊玩建議：開啟聲音 & 直式遊玩' : 'Mobile Tips: Sound & Portrait'}</span>
+        {/* Device & Audio Best Experience Tip Card */}
+        <div className="mb-4 max-w-md p-2.5 sm:p-3 rounded-xl border border-cyan-500/40 bg-slate-900/85 backdrop-blur-md shadow-lg shadow-cyan-950/30 text-slate-300 space-y-1.5">
+          <div className="flex items-center space-x-1.5 text-cyan-300 font-bold text-xs">
+            <Monitor className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span>{isZh ? '最佳體驗建議：電腦遊玩 & 開啟音效' : 'Best Experience: PC/Mac & Audio On'}</span>
           </div>
-          <div className="text-[10.5px] text-slate-300 leading-snug">
-            {isZh
-              ? '💡 建議直式遊玩；iPhone 請確認左側靜音開關已切至響鈴模式，即可聽見完整無塵室音效與警報！'
-              : '💡 Play in portrait; iPhone users please turn off silent mode to enjoy audio!'}
+          <div className="text-[11px] text-slate-300 leading-snug font-sans space-y-1">
+            <div className="flex items-start gap-1.5">
+              <span className="text-cyan-400 font-bold shrink-0">🖥️</span>
+              <span>
+                {isZh
+                  ? '推薦使用電腦瀏覽器並開啟聲音，享受最開闊的 3D 無塵室視野與警報音效！'
+                  : 'Play on desktop with sound on for the most expansive 3D cleanroom view and audio!'}
+              </span>
+            </div>
+            <div className="flex items-start gap-1.5 text-slate-400 text-[10.5px]">
+              <span className="text-emerald-400 font-bold shrink-0">📱</span>
+              <span>
+                {isZh
+                  ? '手機亦全面支援（建議直式遊玩；iPhone 請確認切換至響鈴模式）。'
+                  : 'Mobile is fully supported (portrait mode recommended; unmute switch on iPhone).'}
+              </span>
+            </div>
           </div>
         </div>
 

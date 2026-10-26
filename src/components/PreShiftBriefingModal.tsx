@@ -10,6 +10,7 @@ import {
   Sparkles,
   Volume2,
   Smartphone,
+  Monitor,
 } from 'lucide-react';
 import { GameDifficulty } from '../types/game';
 import { Language } from '../i18n/translations';
@@ -191,27 +192,27 @@ export const PreShiftBriefingModal: React.FC<PreShiftBriefingModalProps> = ({
             </span>
           </div>
 
-          {/* Mobile Experience Tips: Audio & Portrait Orientation (Item 1) */}
+          {/* Experience Tips: Desktop Best / Audio / Mobile Friendly */}
           <div className="p-3 rounded-xl border border-cyan-500/50 bg-gradient-to-r from-cyan-950/70 via-slate-900/90 to-blue-950/70 text-xs text-slate-200 space-y-1.5 shadow-md">
             <div className="flex items-center space-x-2 text-cyan-300 font-bold text-xs">
-              <Volume2 className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>{isZh ? '📱 手機最佳遊玩體驗指引' : '📱 Mobile Best Experience Guide'}</span>
+              <Monitor className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>{isZh ? '💡 最佳遊玩體驗指引' : '💡 Best Experience Guide'}</span>
             </div>
-            <div className="space-y-1 text-[11px] text-slate-300 font-sans leading-relaxed">
+            <div className="space-y-1.5 text-[11px] text-slate-300 font-sans leading-relaxed">
               <div className="flex items-start gap-1.5">
-                <span className="text-cyan-400 font-bold shrink-0">🔊</span>
+                <span className="text-cyan-400 font-bold shrink-0">🖥️</span>
                 <span>
                   {isZh
-                    ? '建議開啟音效以獲得身歷其境的無塵室警報與環境音（iPhone 玩家請確認機身左側「實體靜音開關」已切至響鈴模式、未處於橘色靜音檔）。'
-                    : 'Turn on sound for immersive cleanroom audio & sirens (iPhone users: please switch off the physical mute switch to enable web audio).'}
+                    ? '推薦使用電腦瀏覽器並開啟音效，享受最開闊的 3D 無塵室視野、鍵盤走動與真實警報！'
+                    : 'Recommended on PC/Mac with sound on for expansive 3D view, keyboard walking & immersive sirens!'}
                 </span>
               </div>
-              <div className="flex items-start gap-1.5">
-                <span className="text-cyan-400 font-bold shrink-0">📱</span>
+              <div className="flex items-start gap-1.5 text-slate-300">
+                <span className="text-emerald-400 font-bold shrink-0">📱</span>
                 <span>
                   {isZh
-                    ? '推薦使用直式（Portrait）單手遊玩，視野與下方操作抽屜已全面專屬最佳化，操作最順手流暢。'
-                    : 'Portrait orientation is recommended for optimal mobile one-handed controls and clear field-of-view.'}
+                    ? '手機亦全面支援（建議直式遊玩；iPhone 請確認左側靜音開關已切至響鈴模式）。'
+                    : 'Mobile is fully supported (portrait mode recommended; unmute switch on iPhone).'}
                 </span>
               </div>
             </div>
