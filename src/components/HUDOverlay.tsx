@@ -86,6 +86,7 @@ interface HUDOverlayProps {
   onTogglePPE: (key: keyof EquippedPPE) => void;
   lotMission: WaferLotMission | null;
   difficultyMode?: GameDifficulty;
+  isTutorialActive?: boolean;
 }
 
 const PPE_META: Record<
@@ -151,6 +152,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   onTogglePPE,
   lotMission,
   difficultyMode = 'ASSISTED',
+  isTutorialActive = false,
 }) => {
   const t = TRANSLATIONS[language];
   const isZh = language === 'zh-TW';
@@ -671,7 +673,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     </span>
                   </div>
 
-                  {difficultyMode === 'ASSISTED' && activePreAlarm.howToPreventZh && (
+                  {(difficultyMode === 'ASSISTED' || isTutorialActive) && activePreAlarm.howToPreventZh && (
                     <div className="p-2 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-xs flex items-center space-x-2">
                       <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
                       <div className="text-[11px] leading-tight">
@@ -695,7 +697,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                             <span className="text-[10px] font-mono text-slate-400">
                               {isZh ? `方案 ${idx + 1}` : `Option ${idx + 1}`}
                             </span>
-                            {difficultyMode === 'ASSISTED' && (
+                            {(difficultyMode === 'ASSISTED' || isTutorialActive) && (
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
                                   opt.outcomeType === 'SOLVE'

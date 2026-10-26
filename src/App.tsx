@@ -1435,7 +1435,7 @@ export default function App() {
       difficulty: GameDifficulty = 'ASSISTED'
     ) => {
       setDifficultyMode(difficulty);
-      setTutorialStep(difficulty === 'ASSISTED' ? 1 : null);
+      setTutorialStep(1);
       setTutorialStep3Resolved(false);
       const duration = mode === 'HAZARD_DRILL' ? 240 : mode === 'CERTIFICATION_EXAM' ? 360 : 360;
       setShiftMode(mode);
@@ -2084,6 +2084,7 @@ export default function App() {
           onTogglePPE={handleTogglePPE}
           lotMission={lotMission}
           difficultyMode={difficultyMode}
+          isTutorialActive={tutorialStep !== null}
         />
         </>
       )}
