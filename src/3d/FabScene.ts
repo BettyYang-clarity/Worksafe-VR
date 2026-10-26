@@ -195,7 +195,8 @@ export class FabScene {
     this.particleEffects = new ParticleEffectsManager(this.scene);
 
     const aspect = this.container.clientWidth / this.container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 150);
+    const initialFov = aspect < 1.0 ? 82 : 65;
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 150);
     this.camera.position.set(0, 1.7, 3.5);
     this.targetCameraPos.set(0, 1.7, 3.5);
     this.vrPlayerPos.set(0, 1.7, 3.5);
@@ -1718,7 +1719,9 @@ export class FabScene {
     if (!this.container || this.isDestroyed) return;
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
-    this.camera.aspect = w / h;
+    const aspect = w / h;
+    this.camera.aspect = aspect;
+    this.camera.fov = aspect < 1.0 ? 82 : 65;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
   };

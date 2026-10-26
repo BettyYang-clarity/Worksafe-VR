@@ -13,14 +13,17 @@ import {
   Footprints,
   HelpCircle,
   Layers,
+  Menu,
   MessageSquare,
   Pause,
   ShieldAlert,
   ShieldCheck,
+  Sliders,
   Sparkles,
   Volume2,
   VolumeX,
   Wrench,
+  X,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -159,6 +162,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   const [isDockCollapsed, setIsDockCollapsed] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileTuningOpen, setIsMobileTuningOpen] = useState(false);
 
   // Auto-collapse bottom dock on short screens (mobile landscape <= 540px) during incidents
   // On desktop / laptop (where window.innerHeight >= 700px), this NEVER triggers so PC layout is 100% untouched.
@@ -265,7 +270,166 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 1. TOP STATUS, PIPELINE & CAMERA SWITCHER BAR         */}
       {/* ==================================================== */}
       <div className="w-full pointer-events-auto space-y-1.5">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/70 shadow-xl text-xs font-mono">
+        {/* Mobile Compact Top Bar (Single-row, ~34px, block md:hidden) */}
+        <div className="flex md:hidden items-center justify-between px-2.5 py-1 rounded-xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-lg text-xs font-mono">
+          {/* Left: Mini Player & Yield */}
+          <div className="flex items-center space-x-1.5 min-w-0">
+            <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-cyan-950/90 border border-cyan-500/50 text-[10px] text-cyan-300 font-bold shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="truncate max-w-[75px]">{playerName || 'Alex'}</span>
+            </div>
+            <div className="flex items-center space-x-1 text-[10px] font-bold shrink-0">
+              <span className="text-cyan-400">
+                {isZh ? '良率' : 'Yld'}:{' '}
+                <strong
+                  className={
+                    overallYieldPct >= 90
+                      ? 'text-emerald-400'
+                      : overallYieldPct >= 75
+                      ? 'text-amber-400'
+                      : 'text-rose-400'
+                  }
+                >
+                  {overallYieldPct.toFixed(0)}%
+                </strong>
+              </span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-300">
+                {isZh ? '良品' : 'G'}: <strong className="text-white">{totalWafersProduced}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Timer, EHS, Menu Button */}
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-white tabular-nums">
+              {formatTime(shiftTimeRemainingSec)}
+            </div>
+            <div className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]">
+              <span className="text-slate-400 font-bold">{isZh ? '安' : 'E'}:</span>
+              <span
+                className={`font-bold ${
+                  safetyScore >= 85
+                    ? 'text-emerald-400'
+                    : safetyScore >= 60
+                    ? 'text-amber-400'
+                    : 'text-rose-400'
+                }`}
+              >
+                {safetyScore}%
+              </span>
+            </div>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 hover:text-white cursor-pointer active:scale-95"
+              title="Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Dropdown Menu Drawer */}
+        {isMobileMenuOpen && (
+          <div className="block md:hidden p-2.5 rounded-xl bg-slate-950/98 backdrop-blur-xl border border-cyan-500/50 shadow-2xl space-y-2 animate-fade-in text-xs font-mono">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <span className="text-cyan-400 font-bold text-[11px] flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5" /> {isZh ? '快速控制面板' : 'Control Panel'}
+              </span>
+              <span className="text-amber-300 text-[10px] font-bold">
+                💎 ${fabValueSavedMillionsUSD.toFixed(1)}M
+              </span>
+            </div>
+
+            {/* Camera Switcher */}
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-[10px]">{isZh ? '視角模式:' : 'Camera:'}</span>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => {
+                    onChangeCameraView('VR_FIRST_PERSON');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`px-2 py-1 rounded text-[10px] font-bold flex items-center space-x-1 cursor-pointer ${
+                    cameraView === 'VR_FIRST_PERSON'
+                      ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
+                      : 'bg-slate-900 text-slate-400'
+                  }`}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>{isZh ? '1 人稱' : '1 Walk'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onChangeCameraView('SUPERVISOR_ISOMETRIC');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`px-2 py-1 rounded text-[10px] font-bold flex items-center space-x-1 cursor-pointer ${
+                    cameraView === 'SUPERVISOR_ISOMETRIC'
+                      ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
+                      : 'bg-slate-900 text-slate-400'
+                  }`}
+                >
+                  <Layers className="w-3 h-3" />
+                  <span>{isZh ? '2 俯視' : '2 Fab'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onChangeCameraView('INSPECTION');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`px-2 py-1 rounded text-[10px] font-bold flex items-center space-x-1 cursor-pointer ${
+                    cameraView === 'INSPECTION'
+                      ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
+                      : 'bg-slate-900 text-slate-400'
+                  }`}
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>{isZh ? '3 特寫' : '3 Inspect'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Utility Buttons */}
+            <div className="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  onOpenInstructions();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="py-1 rounded bg-slate-900 border border-slate-700 text-cyan-300 text-[10px] font-bold flex items-center justify-center space-x-1 cursor-pointer"
+              >
+                <HelpCircle className="w-3 h-3" />
+                <span>{isZh ? '手冊' : 'Guide'}</span>
+              </button>
+              <button
+                onClick={() => {
+                  onOpenFeedback();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="py-1 rounded bg-slate-900 border border-slate-700 text-amber-300 text-[10px] font-bold flex items-center justify-center space-x-1 cursor-pointer"
+              >
+                <MessageSquare className="w-3 h-3" />
+                <span>{isZh ? '問卷' : 'Survey'}</span>
+              </button>
+              <button
+                onClick={onToggleLanguage}
+                className="py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-bold flex items-center justify-center cursor-pointer"
+              >
+                {isZh ? 'EN' : '繁中'}
+              </button>
+              <button
+                onClick={onToggleMute}
+                className="py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-bold flex items-center justify-center space-x-1 cursor-pointer"
+              >
+                {isMuted ? <VolumeX className="w-3 h-3 text-rose-400" /> : <Volume2 className="w-3 h-3 text-cyan-400" />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop Top Status, Pipeline & Switcher Bar (Hidden on mobile) */}
+        <div className="hidden md:flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/70 shadow-xl text-xs font-mono">
           {/* Left Cluster: Engineer Badge, Yield, Good/Scrap, Value Saved & 5-Bay CMOS Pipeline */}
           <div className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto min-w-0">
             <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/50 text-[11px] text-cyan-300 font-bold shrink-0">
@@ -480,7 +644,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
         {/* 2. ALWAYS-ON LIVE ENGINEER CO-PILOT BANNER           */}
         {/* ==================================================== */}
         {!activeHazard && !activePreAlarm && (
-          <div className="mx-auto max-w-4xl w-full px-3.5 py-2 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-lg flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="hidden md:flex mx-auto max-w-4xl w-full px-3.5 py-2 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-lg flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center space-x-2.5 min-w-0">
               <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-mono font-bold text-[10px] shrink-0 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3" />
@@ -1096,7 +1260,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* ==================================================== */}
       {/* 6. BOTTOM ENGINEER CONSOLE (Sliders + On-Site Rack)  */}
       {/* ==================================================== */}
-      <div className="pointer-events-auto mx-auto w-full max-w-5xl font-mono mt-auto flex flex-col gap-1 z-20">
+      <div className="hidden md:flex pointer-events-auto mx-auto w-full max-w-5xl font-mono mt-auto flex-col gap-1 z-20">
         {/* Collapse / Expand Handle + PPE Quick-Toggle Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 rounded-t-xl bg-slate-950/95 border border-b-0 border-slate-700/80 text-[11px]">
           {/* PPE Quick-Bar with Mandatory Highlight */}
@@ -1529,6 +1693,137 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* ==================================================== */}
+      {/* 6B. MOBILE ULTRA-COMPACT CONSOLE (< md)              */}
+      {/* ==================================================== */}
+      <div className="block md:hidden pointer-events-auto mx-auto w-full font-mono mt-auto z-20 px-1 pb-1">
+        {/* Toggleable Micro Recipe Slider Card (Min Footprint ~70px) */}
+        {isMobileTuningOpen && (
+          <div className="mb-1 p-2 rounded-xl bg-slate-950/95 border border-cyan-500/50 backdrop-blur-md shadow-2xl space-y-1.5 animate-fade-in text-xs">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-cyan-300 font-bold flex items-center gap-1">
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>{selectedSector.nameZh.substring(0, 8)} RF 射頻功率</span>
+              </span>
+              <span
+                className={`font-bold tabular-nums ${
+                  selectedSector.rfPowerWatts >= 2000 ? 'text-rose-400 animate-pulse' : 'text-amber-400'
+                }`}
+              >
+                {selectedSector.rfPowerWatts} W
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="500"
+              max="2500"
+              step="50"
+              value={selectedSector.rfPowerWatts}
+              onChange={(e) =>
+                onTuneSectorParams?.(selectedSectorId, {
+                  rfPowerWatts: Number(e.target.value),
+                })
+              }
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+            />
+
+            <div className="flex items-center justify-between text-[9px] text-slate-400">
+              <span>{isZh ? '安全: 800~1750W' : 'Safe: 800~1750W'}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 800 })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] cursor-pointer"
+                >
+                  800W
+                </button>
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1200 })}
+                  className="px-1.5 py-0.5 rounded bg-cyan-900/70 border border-cyan-500/60 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
+                >
+                  1200W (佳)
+                </button>
+                <button
+                  onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1600 })}
+                  className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] cursor-pointer"
+                >
+                  1600W
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Slim Action Dock Bar (~34px) */}
+        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded-xl bg-slate-950/95 border border-slate-700/80 backdrop-blur-md shadow-xl text-xs">
+          {/* Current Bay & Distance */}
+          <div className="flex items-center space-x-1.5 min-w-0">
+            <span className="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/50 text-cyan-200 text-[10px] font-bold shrink-0">
+              {selectedSector.code.split('/')[0].replace('BAY-', 'B')} {isZh ? selectedSector.nameZh.substring(5, 7) : ''}
+            </span>
+
+            {isSelectedBayOnSite ? (
+              <span className="text-[10px] text-emerald-400 font-bold shrink-0">
+                📍 {isZh ? '現場' : 'Here'}
+              </span>
+            ) : (
+              <button
+                onClick={() => onWalkToSector(selectedSectorId)}
+                className="px-1.5 py-0.5 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold shrink-0 flex items-center gap-0.5 cursor-pointer shadow-sm active:scale-95"
+              >
+                <Footprints className="w-2.5 h-2.5" />
+                <span>{isZh ? `走往 ${selectedBayDist.toFixed(0)}m` : `Walk ${selectedBayDist.toFixed(0)}m`}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Crisis PPE Pill if required and missing */}
+          {requiredPpeCode && !isRequiredPpeEquipped && requiredPpeInfo && (
+            <button
+              onClick={() => onTogglePPE(requiredPpeInfo.key)}
+              className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold animate-pulse shrink-0 flex items-center gap-1 shadow-md cursor-pointer"
+            >
+              <span>{requiredPpeInfo.icon}</span>
+              <span>戴上 {isZh ? requiredPpeInfo.nameZh.substring(0, 4) : requiredPpeCode}!</span>
+            </button>
+          )}
+
+          {/* Right Controls: On-Site actions (Ground / EMO) + Slider Drawer Toggle */}
+          <div className="flex items-center space-x-1 shrink-0 ml-auto">
+            {isSelectedBayOnSite && (
+              <>
+                <button
+                  onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
+                  className="px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold shrink-0 cursor-pointer active:scale-95"
+                  title="Grounding Stick"
+                >
+                  ⚡接地
+                </button>
+                <button
+                  onClick={() => onHitEmo(selectedSectorId)}
+                  className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shrink-0 cursor-pointer active:scale-95"
+                  title="EMO"
+                >
+                  🛑EMO
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={() => setIsMobileTuningOpen(!isMobileTuningOpen)}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95 ${
+                isMobileTuningOpen
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700'
+              }`}
+            >
+              <Sliders className="w-3 h-3" />
+              <span>{isMobileTuningOpen ? (isZh ? '收起' : 'Close') : (isZh ? '🎛️ 調桿' : 'Sliders')}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -47,8 +47,8 @@ export const InteractiveTutorialOverlay: React.FC<InteractiveTutorialOverlayProp
   const isZh = language === 'zh-TW';
 
   return (
-    <div className="fixed inset-x-0 top-14 z-30 pointer-events-none flex justify-center px-3 animate-fade-in font-sans">
-      <div className="w-full max-w-2xl pointer-events-auto rounded-2xl border-2 border-emerald-400 bg-slate-950/95 shadow-2xl shadow-emerald-950/60 p-4 md:p-5 backdrop-blur-md space-y-3">
+    <div className="fixed inset-x-0 top-12 md:top-14 z-30 pointer-events-none flex justify-center px-2 sm:px-3 animate-fade-in font-sans">
+      <div className="w-full max-w-2xl pointer-events-auto rounded-2xl border-2 border-emerald-400 bg-slate-950/95 shadow-2xl shadow-emerald-950/60 p-3.5 sm:p-4 md:p-5 backdrop-blur-md space-y-3 max-h-[70vh] overflow-y-auto">
         {/* Header Bar: Badge, Title, Skip */}
         <div className="flex items-center justify-between border-b border-emerald-500/30 pb-2.5">
           <div className="flex items-center space-x-2.5">

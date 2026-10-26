@@ -1,20 +1,38 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { SectorId } from '../types/game';
+import { Footprints } from 'lucide-react';
 
 interface VirtualJoystickProps {
   onMove: (vector: { x: number; y: number }) => void;
   onEnd: () => void;
+  onWalkToSector?: (sectorId: SectorId) => void;
+  currentSectorId?: SectorId;
 }
 
-export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({ onMove, onEnd }) => {
+const BAYS: { id: SectorId; code: string; label: string }[] = [
+  { id: 'PHOTOLITHOGRAPHY', code: '101', label: '微影' },
+  { id: 'ETCH_CVD', code: '102', label: '蝕刻' },
+  { id: 'CMP_WET_BENCH', code: '103', label: '化研' },
+  { id: 'DIFFUSION_FURNACE', code: '104', label: '擴散' },
+  { id: 'ION_IMPLANTATION', code: '105', label: '離子' },
+];
+
+export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
+  onMove,
+  onEnd,
+  onWalkToSector,
+  currentSectorId,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [knobPos, setKnobPos] = useState({ x: 0, y: 0 });
   const [isActive, setIsActive] = useState(false);
   const touchIdRef = useRef<number | null>(null);
 
-  const RADIUS = 40; // Max displacement radius in px
+  const RADIUS = 42; // Max displacement radius in px
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent<HTMLDivElement>) => {
+      e.stopPropagation();
       if (touchIdRef.current !== null) return;
       const touch = e.changedTouches[0];
       touchIdRef.current = touch.identifier;
@@ -37,7 +55,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({ onMove, onEnd 
       setKnobPos({ x: kx, y: ky });
       onMove({
         x: kx / RADIUS,
-        y: -(ky / RADIUS), // Positive Y is forward
+        y: -(ky / RADIUS), // Positive Y is forward in 3D
       });
     },
     [onMove]
@@ -49,6 +67,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({ onMove, onEnd 
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.identifier === touchIdRef.current) {
+          e.preventDefault();
           const rect = containerRef.current?.getBoundingClientRect();
           if (!rect) return;
           const centerX = rect.left + rect.width / 2;
@@ -104,30 +123,54 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({ onMove, onEnd 
 
   return (
     <div
-      ref={containerRef}
-      onTouchStart={handleTouchStart}
-      className={`fixed bottom-28 left-5 z-25 pointer-events-auto block lg:hidden select-none transition-opacity duration-200 ${
-        isActive ? 'opacity-90' : 'opacity-60 hover:opacity-85'
-      }`}
+      className="fixed bottom-14 left-3 z-[60] pointer-events-auto block lg:hidden select-none"
       style={{ touchAction: 'none' }}
     >
-      {/* Outer Boundary Ring */}
-      <div className="relative w-24 h-24 rounded-full bg-slate-950/70 border-2 border-emerald-500/50 backdrop-blur-md shadow-xl flex items-center justify-center">
-        {/* Subtle Crosshairs */}
-        <div className="absolute w-full h-[1px] bg-emerald-500/20 pointer-events-none" />
-        <div className="absolute h-full w-[1px] bg-emerald-500/20 pointer-events-none" />
+      {/* Quick Bay Hop Bar right above joystick */}
+      {onWalkToSector && (
+        <div className="flex items-center gap-1 mb-2 bg-slate-950/90 border border-slate-700/80 rounded-full px-2 py-1 shadow-2xl backdrop-blur-md">
+          <Footprints className="w-3 h-3 text-cyan-400 shrink-0" />
+          <span className="text-[9px] font-mono font-bold text-slate-400 shrink-0">走往:</span>
+          {BAYS.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => onWalkToSector(b.id)}
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all ${
+                currentSectorId === b.id
+                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/50'
+                  : 'bg-slate-800 text-slate-300 hover:text-white'
+              }`}
+            >
+              {b.code}
+            </button>
+          ))}
+        </div>
+      )}
 
-        {/* Center Knob */}
+      {/* Virtual Joystick Disc */}
+      <div
+        ref={containerRef}
+        onTouchStart={handleTouchStart}
+        className={`relative w-22 h-22 rounded-full bg-slate-950/80 border-2 border-emerald-400/60 backdrop-blur-lg shadow-2xl flex items-center justify-center transition-transform active:scale-95 ${
+          isActive ? 'ring-2 ring-emerald-400/80 border-emerald-300' : ''
+        }`}
+      >
+        {/* Direction Indicator Crosshairs */}
+        <div className="absolute w-full h-[1px] bg-emerald-400/25 pointer-events-none" />
+        <div className="absolute h-full w-[1px] bg-emerald-400/25 pointer-events-none" />
+
+        {/* Center Thumb Knob */}
         <div
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 border border-emerald-200/80 shadow-lg shadow-emerald-500/50 flex items-center justify-center pointer-events-none transition-transform"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 border border-emerald-200/90 shadow-lg shadow-emerald-500/60 flex items-center justify-center pointer-events-none"
           style={{
             transform: `translate(${knobPos.x}px, ${knobPos.y}px)`,
+            transition: isActive ? 'none' : 'transform 0.15s ease-out',
           }}
         >
-          <div className="w-2.5 h-2.5 rounded-full bg-white/80" />
+          <div className="w-3 h-3 rounded-full bg-white/90" />
         </div>
       </div>
-      <div className="text-[9px] font-mono text-center text-emerald-400/80 mt-1 pointer-events-none font-bold">
+      <div className="text-[9px] font-mono text-center text-emerald-400/90 mt-1 pointer-events-none font-bold drop-shadow">
         🕹️ 走動搖桿
       </div>
     </div>

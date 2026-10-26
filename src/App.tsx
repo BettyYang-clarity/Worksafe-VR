@@ -2034,6 +2034,8 @@ export default function App() {
           <VirtualJoystick
             onMove={(vector) => sceneInstanceRef.current?.setVirtualJoystick(vector)}
             onEnd={() => sceneInstanceRef.current?.setVirtualJoystick({ x: 0, y: 0 })}
+            onWalkToSector={handleWalkToSector}
+            currentSectorId={selectedSectorId}
           />
           {tutorialStep !== null && (
             <InteractiveTutorialOverlay
