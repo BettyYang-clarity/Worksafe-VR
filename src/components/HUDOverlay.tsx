@@ -1056,18 +1056,13 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
-                  {isZh ? '6秒後自動消失' : 'Auto-closes in 6s'}
-                </span>
-                <button
-                  onClick={onDismissFeedback}
-                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
-                  title={isZh ? '立即關閉' : 'Dismiss'}
-                >
-                  ✕
-                </button>
-              </div>
+              <button
+                onClick={onDismissFeedback}
+                className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
+                title={isZh ? '立即關閉' : 'Dismiss'}
+              >
+                ✕
+              </button>
             </div>
             <p className="leading-relaxed text-slate-100">
               {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
