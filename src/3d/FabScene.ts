@@ -144,6 +144,14 @@ export class FabScene {
   private activeHazardSector: SectorId | null = null;
   private activeHazardTypeId: string | null = null;
   private isHazardActive: boolean = false;
+  private language: 'zh-TW' | 'en' = 'zh-TW';
+
+  public setLanguage(lang: 'zh-TW' | 'en') {
+    this.language = lang;
+    if (this.sectorStatesSnapshot) {
+      this.updateSectorStatus(this.sectorStatesSnapshot);
+    }
+  }
 
   constructor(options: FabSceneOptions) {
     this.container = options.container;
@@ -1159,7 +1167,10 @@ export class FabScene {
       canvas.height = 224;
       const ctx = canvas.getContext('2d')!;
 
-      this.renderBillboardCanvas(ctx, bay.code, `${bay.nameZh} · ${bay.name}`, 'OPTIMAL', 'RF 1200W | NORMAL');
+      const isZh = this.language === 'zh-TW';
+      const displayName = isZh ? `${bay.code} · ${bay.nameZh}` : `${bay.code} · ${bay.name}`;
+      const sub = isZh ? 'RF 1200W | 運轉正常' : 'RF 1200W | NORMAL';
+      this.renderBillboardCanvas(ctx, bay.code, displayName, 'OPTIMAL', sub);
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.minFilter = THREE.LinearFilter;
@@ -1198,17 +1209,22 @@ export class FabScene {
   ) {
     ctx.clearRect(0, 0, 576, 224);
 
+    const isZh = this.language === 'zh-TW';
     let statusColor = '#06b6d4';
     let statusBg = 'rgba(6, 182, 212, 0.25)';
-    let statusText = 'NORMAL 運轉中';
+    let statusText = isZh ? 'NORMAL 運轉中' : 'NORMAL OPERATING';
     if (status === 'PRE_ALARM' || status === 'WARNING') {
       statusColor = '#f59e0b';
       statusBg = 'rgba(245, 158, 11, 0.42)';
-      statusText = status === 'PRE_ALARM' ? 'PRE-ALARM 預警' : 'CAUTION 警戒';
+      statusText = status === 'PRE_ALARM'
+        ? (isZh ? 'PRE-ALARM 預警' : 'PRE-ALARM ALERT')
+        : (isZh ? 'CAUTION 警戒' : 'CAUTION WARNING');
     } else if (status === 'CRITICAL' || status === 'SHUTDOWN') {
       statusColor = '#ef4444';
       statusBg = 'rgba(239, 68, 68, 0.45)';
-      statusText = status === 'SHUTDOWN' ? 'HALTED 停機' : 'CRISIS 事故處置';
+      statusText = status === 'SHUTDOWN'
+        ? (isZh ? 'HALTED 停機' : 'HALTED SHUTDOWN')
+        : (isZh ? 'CRISIS 事故處置' : 'CRISIS ACTIVE');
     }
 
     ctx.fillStyle = 'rgba(10, 15, 29, 0.92)';
@@ -1259,14 +1275,32 @@ export class FabScene {
 
   public updateSectorStatus(sectors: Record<SectorId, SectorState>) {
     this.sectorStatesSnapshot = sectors;
+    const isZh = this.language === 'zh-TW';
+
+    const shortNamesEn: Record<SectorId, string> = {
+      PHOTOLITHOGRAPHY: 'DUV SCANNER',
+      ETCH_CVD: 'PLASMA ETCH / CVD',
+      CMP_WET_BENCH: 'CMP & WET BENCH',
+      DIFFUSION_FURNACE: 'DIFFUSION FURNACE',
+      ION_IMPLANTATION: 'ION IMPLANTER (200kV)',
+    };
+
     Object.values(sectors).forEach((sec) => {
       const b = this.bayBillboards.get(sec.id);
       if (!b) return;
 
-      const shortName = sec.nameZh.split('(')[0].replace(/第[1-5]區 · /, '').trim();
+      const shortName = isZh
+        ? sec.nameZh.split('(')[0].replace(/第[1-5]區 · /, '').trim()
+        : shortNamesEn[sec.id] || sec.name.split('(')[0].trim();
+
       const sub = sec.preAlarm
-        ? `⚠️ 預警倒數 ${sec.preAlarm.timeRemainingSec}s · 請前往機台維護`
-        : `RF: ${sec.rfPowerWatts}W | 廢氣: ${Math.round(sec.scrubberLoadPct)}% | 效率: ${Math.round(sec.efficiency)}%`;
+        ? isZh
+          ? `⚠️ 預警倒數 ${sec.preAlarm.timeRemainingSec}s · 請前往機台維護`
+          : `⚠️ Pre-Alarm ${sec.preAlarm.timeRemainingSec}s · Walk to Bay`
+        : isZh
+        ? `RF: ${sec.rfPowerWatts}W | 廢氣: ${Math.round(sec.scrubberLoadPct)}% | 效率: ${Math.round(sec.efficiency)}%`
+        : `RF: ${sec.rfPowerWatts}W | Scrubber: ${Math.round(sec.scrubberLoadPct)}% | Eff: ${Math.round(sec.efficiency)}%`;
+
       const bayCode = sec.code.split('/')[0].trim();
       const displayName = `${bayCode} · ${shortName}`;
       this.renderBillboardCanvas(b.ctx, bayCode, displayName, sec.status, sub);

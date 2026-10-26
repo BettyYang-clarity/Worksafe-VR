@@ -88,7 +88,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <button
             onClick={onToggleLanguage}
             className="px-3 py-1.5 rounded-lg hud-border text-xs font-mono text-amber-300 hover:text-white hover:border-amber-400/50 transition-colors flex items-center space-x-1.5 cursor-pointer"
-            title="Toggle Language / 切換繁體中文與英文"
+            title={isZh ? '切換繁體中文與英文' : 'Toggle Language'}
           >
             <Globe className="w-3.5 h-3.5 text-amber-400" />
             <span className="font-bold">{isZh ? 'EN' : '繁體中文'}</span>
@@ -107,7 +107,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <button
             onClick={onOpenManagerAudit}
             className="px-3 py-1.5 rounded-lg hud-border text-xs font-mono text-purple-300 hover:text-white transition-colors flex items-center space-x-1.5 cursor-pointer"
-            title="Achievements & Play Records / 查看成就紀錄與歷史戰績"
+            title={isZh ? '查看成就紀錄與歷史戰績' : 'Achievements & Play Records'}
           >
             <Award className="w-3.5 h-3.5 text-purple-400" />
             <span className="hidden sm:inline">{isZh ? '成就紀錄' : 'Achievements'}</span>
@@ -117,7 +117,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <button
             onClick={onOpenFeedback}
             className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors cursor-pointer shadow-sm shadow-amber-500/10"
-            title="Open Feedback Form / 填寫意見回饋"
+            title={isZh ? '填寫意見回饋' : 'Open Feedback Form'}
           >
             <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
             <span>{isZh ? '問卷回饋' : 'Feedback'}</span>
@@ -307,7 +307,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <button
             onClick={onOpenManagerAudit}
             className="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-purple-400 text-slate-300 hover:text-white font-medium text-xs flex items-center space-x-1.5 transition-all cursor-pointer hover:bg-purple-950/20"
-            title="Achievements & Play Records / 查看成就紀錄與這幾次遊玩的成績"
+            title={isZh ? '查看成就紀錄與這幾次遊玩的成績' : 'Achievements & Play Records'}
           >
             <Award className="w-4 h-4 text-purple-400" />
             <span>{isZh ? '成就與戰績紀錄' : 'Achievements & History'}</span>

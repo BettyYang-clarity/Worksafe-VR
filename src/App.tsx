@@ -207,6 +207,7 @@ export default function App() {
 
   // Sync sector names when language changes
   useEffect(() => {
+    sceneInstanceRef.current?.setLanguage(language);
     setSectors((prev) => {
       const updated = { ...prev };
       (Object.keys(updated) as SectorId[]).forEach((sId) => {
@@ -375,6 +376,7 @@ export default function App() {
     });
 
     sceneInstanceRef.current = scene;
+    scene.setLanguage(language);
 
     return () => {
       scene.destroy();
@@ -791,7 +793,10 @@ export default function App() {
         sceneInstanceRef.current?.updateSectorStatus(next);
         return next;
       });
-      addFloatingDelta('🔧 現場例行校準完成 (+1.5% 良率)', 'YIELD_UP');
+      addFloatingDelta(
+        isZh ? '🔧 現場例行校準完成 (+1.5% 良率)' : '🔧 Routine Calibration Done (+1.5% Yield)',
+        'YIELD_UP'
+      );
     },
     [
       activePreAlarm,
@@ -938,7 +943,10 @@ export default function App() {
           const savedM = hazardDef.ehsPillars.estimatedLossMillionsUSD;
           setFabValueSavedMillionsUSD((v) => Number((v + savedM).toFixed(1)));
           setLivesProtected((l) => l + 2);
-          addFloatingDelta(`🏆 危機解除！挽救 $${savedM.toFixed(1)}M`, 'YIELD_UP');
+          addFloatingDelta(
+            isZh ? `🏆 危機解除！挽救 $${savedM.toFixed(1)}M` : `🏆 Crisis Resolved! Saved $${savedM.toFixed(1)}M`,
+            'YIELD_UP'
+          );
 
           setChoiceOutcomes((prev) => [
             ...prev,
@@ -1452,7 +1460,11 @@ export default function App() {
     const progress = totalWafersProduced - lotMission.startWaferCount;
     if (progress >= lotMission.targetWaferCount) {
       soundManager.playSuccessChime();
-      addFloatingDelta(`📦 ${lotMission.lotCode} 完成！+$0.8M 產值`, 'YIELD_UP');
+      const isZh = language === 'zh-TW';
+      addFloatingDelta(
+        isZh ? `📦 ${lotMission.lotCode} 完成！+$0.8M 產值` : `📦 ${lotMission.lotCode} Completed! +$0.8M Value`,
+        'YIELD_UP'
+      );
       setFabValueSavedMillionsUSD((v) => Number((v + 0.8).toFixed(1)));
       const nextIdx = (lotMissionIndex + 1) % LOT_MISSION_TEMPLATES.length;
       const nextTpl = LOT_MISSION_TEMPLATES[nextIdx];

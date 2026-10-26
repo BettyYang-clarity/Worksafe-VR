@@ -202,13 +202,15 @@ export const ManagerAnalyticsModal: React.FC<ManagerAnalyticsModalProps> = ({
                                     : 'text-rose-400'
                                 }
                               >
-                                {shift.safetyScore}分
+                                {shift.safetyScore}{isZh ? '分' : ' pts'}
                               </strong>
                             </span>
                             <span>·</span>
                             <span>
                               {isZh ? '產出:' : 'Wafers:'}{' '}
-                              <strong className="text-cyan-300">{shift.wafersProduced}片</strong>
+                              <strong className="text-cyan-300">
+                                {shift.wafersProduced} {isZh ? '片' : 'pcs'}
+                              </strong>
                             </span>
                             <span>·</span>
                             <span>

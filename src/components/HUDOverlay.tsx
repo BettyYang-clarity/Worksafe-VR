@@ -1243,7 +1243,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                       />
                       <span>{bayCode}</span>
                       <span className="text-[10px] opacity-80 hidden sm:inline">
-                        {isZh ? s.nameZh.substring(5, 9) : s.name.split(' ')[0]}
+                        {isZh
+                          ? s.nameZh.substring(5, 9)
+                          : s.code.split('/')[1]?.trim() || s.name.split(' ')[0]}
                       </span>
                     </button>
                   );
