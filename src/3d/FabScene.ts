@@ -66,6 +66,7 @@ export class FabScene {
   private isSoftwareGl: boolean;
   private frameId: number = 0;
   private isDestroyed: boolean = false;
+  private resizeObserver: ResizeObserver | null = null;
 
   // Particle Effects
   private particleEffects: ParticleEffectsManager;
@@ -161,15 +162,20 @@ export class FabScene {
     this.onProximityUpdate = options.onProximityUpdate;
     this.clock = new THREE.Clock();
 
-    // 1. Detect software WebGL
+    // 1. Detect software WebGL safely without throwing on mobile
     this.isSoftwareGl = (() => {
-      const gl = document.createElement('canvas').getContext('webgl2');
-      if (!gl) return true;
-      const ext = gl.getExtension('WEBGL_debug_renderer_info');
-      const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
-      const gpu = String(gl.getParameter(param));
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
-      return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
+      try {
+        const testCanvas = document.createElement('canvas');
+        const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl');
+        if (!gl) return false;
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
+        const gpu = String(gl.getParameter(param) || '');
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
+        return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
+      } catch {
+        return false;
+      }
     })();
 
     // 2. Initialize Three.js Renderer
@@ -184,8 +190,28 @@ export class FabScene {
     this.renderer.setPixelRatio(this.isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = !this.isSoftwareGl;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+
+    const initialW = Math.max(1, this.container.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 360));
+    const initialH = Math.max(1, this.container.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 640));
+    this.renderer.setSize(initialW, initialH, false);
+
+    // Enforce full-coverage canvas styles to prevent mobile 0px collapse
+    this.renderer.domElement.style.width = '100%';
+    this.renderer.domElement.style.height = '100%';
+    this.renderer.domElement.style.display = 'block';
+    this.renderer.domElement.style.position = 'absolute';
+    this.renderer.domElement.style.inset = '0';
     this.container.appendChild(this.renderer.domElement);
+
+    // Handle mobile WebGL Context Loss / Restore (e.g. background tab switching)
+    this.renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('WorkSafe-VR: WebGL context lost (mobile VRAM reclaim). Waiting for restore...');
+    });
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      console.info('WorkSafe-VR: WebGL context restored. Re-rendering scene...');
+      this.handleResize();
+    });
 
     // 3. Cleanroom Atmosphere & Bright Environment
     this.scene = new THREE.Scene();
@@ -194,7 +220,7 @@ export class FabScene {
 
     this.particleEffects = new ParticleEffectsManager(this.scene);
 
-    const aspect = this.container.clientWidth / this.container.clientHeight;
+    const aspect = initialW / initialH;
     const initialFov = aspect < 1.0 ? 82 : 65;
     this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 0.1, 150);
     this.camera.position.set(0, 1.7, 3.5);
@@ -215,6 +241,15 @@ export class FabScene {
 
     // 5. Interaction & Loop
     this.bindEvents();
+
+    // ResizeObserver for zero-lag mobile viewport settling
+    if (typeof ResizeObserver !== 'undefined' && this.container) {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleResize();
+      });
+      this.resizeObserver.observe(this.container);
+    }
+
     this.startLoop();
   }
 
@@ -1715,15 +1750,17 @@ export class FabScene {
     }
   };
 
-  private handleResize = () => {
+  public handleResize = () => {
     if (!this.container || this.isDestroyed) return;
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
+    const w = Math.max(1, this.container.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 360));
+    const h = Math.max(1, this.container.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 640));
+    if (w <= 0 || h <= 0) return;
     const aspect = w / h;
+    if (!isFinite(aspect) || aspect <= 0) return;
     this.camera.aspect = aspect;
     this.camera.fov = aspect < 1.0 ? 82 : 65;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    this.renderer.setSize(w, h, false);
   };
 
   private updateMovement(dt: number, elapsed: number) {
@@ -2007,6 +2044,12 @@ export class FabScene {
       const dt = Math.min(rawDt, 0.05);
       const elapsed = this.clock.getElapsedTime();
 
+      // Guard against abnormal dt (e.g. background tab return or timing glitch)
+      if (!isFinite(dt) || dt <= 0) {
+        this.frameId = requestAnimationFrame(tick);
+        return;
+      }
+
       // 1. Process movement & auto-walk
       this.updateMovement(dt, elapsed);
 
@@ -2042,6 +2085,26 @@ export class FabScene {
         9.5,
         dt
       );
+
+      // Guard camera against NaN vectors to prevent black screen
+      if (
+        !isFinite(this.camera.position.x) ||
+        !isFinite(this.camera.position.y) ||
+        !isFinite(this.camera.position.z)
+      ) {
+        this.camera.position.set(0, 1.7, 3.5);
+        this.targetCameraPos.set(0, 1.7, 3.5);
+        this.updateVrLookAt();
+      }
+      if (
+        !isFinite(this.currentCameraLookAt.x) ||
+        !isFinite(this.currentCameraLookAt.y) ||
+        !isFinite(this.currentCameraLookAt.z)
+      ) {
+        this.currentCameraLookAt.set(0, 1.6, -8);
+        this.targetCameraLookAt.set(0, 1.6, -8);
+      }
+
       this.camera.lookAt(this.currentCameraLookAt);
 
       // 4. Update active particles & crisis dioramas
@@ -2118,41 +2181,22 @@ export class FabScene {
       // 10. Render frame
       this.renderer.render(this.scene, this.camera);
 
-      if (this.isSoftwareGl) {
-        this.afterDraw(tick);
-      } else {
-        this.frameId = requestAnimationFrame(tick);
-      }
-    };
-
-    if (this.isSoftwareGl) {
-      this.afterDraw(tick);
-    } else {
+      // Always use browser standard requestAnimationFrame for 60fps mobile loop
       this.frameId = requestAnimationFrame(tick);
-    }
-  }
-
-  private afterDraw(cb: () => void) {
-    const gl = this.renderer.getContext() as WebGL2RenderingContext;
-    const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-    gl.flush();
-    const poll = () => {
-      if (this.isDestroyed) return;
-      const state = sync && gl.getSyncParameter(sync, gl.SYNC_STATUS);
-      if (state === gl.UNSIGNALED) {
-        this.frameId = window.setTimeout(poll, 5);
-      } else {
-        if (sync) gl.deleteSync(sync);
-        this.frameId = window.setTimeout(cb, 60);
-      }
     };
-    this.frameId = window.setTimeout(poll, 5);
+
+    this.frameId = requestAnimationFrame(tick);
   }
 
   public destroy() {
     this.isDestroyed = true;
     cancelAnimationFrame(this.frameId);
     clearTimeout(this.frameId);
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
 
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);

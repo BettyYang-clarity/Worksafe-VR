@@ -315,22 +315,22 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
           {/* Right: Money Saved, Timer, EHS Safety, Menu Toggle */}
           <div className="flex items-center space-x-1 shrink-0">
             <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-emerald-400 tabular-nums">
-              💰${fabValueSavedMillionsUSD.toFixed(1)}M
+              💰${(fabValueSavedMillionsUSD ?? 1.2).toFixed(1)}M
             </div>
             <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-amber-300 tabular-nums">
-              ⏳ {formatTime(shiftTimeRemainingSec)}
+              ⏳ {formatTime(shiftTimeRemainingSec ?? 0)}
             </div>
             <div className="flex items-center space-x-0.5 px-1 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]">
               <span
                 className={`font-bold ${
-                  safetyScore >= 85
+                  (safetyScore ?? 100) >= 85
                     ? 'text-emerald-400'
-                    : safetyScore >= 60
+                    : (safetyScore ?? 100) >= 60
                     ? 'text-amber-400'
                     : 'text-rose-400'
                 }`}
               >
-                🛡️ {safetyScore}%
+                🛡️ {safetyScore ?? 100}%
               </span>
             </div>
             <button

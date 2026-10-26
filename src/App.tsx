@@ -3,6 +3,7 @@ import { ActionEffectType } from './3d/ParticleEffects';
 import { FabScene, OffscreenIndicator, ON_SITE_DISTANCE_THRESHOLD_M } from './3d/FabScene';
 import { soundManager } from './audio/soundManager';
 import { DebriefModal } from './components/DebriefModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { GoogleFormModal } from './components/GoogleFormModal';
 import { HUDOverlay } from './components/HUDOverlay';
 import { InstructionsModal } from './components/InstructionsModal';
@@ -1543,6 +1544,7 @@ export default function App() {
 
       sceneInstanceRef.current?.setHazardActive(null, false);
       sceneInstanceRef.current?.setCameraView('VR_FIRST_PERSON');
+      sceneInstanceRef.current?.handleResize();
       setCameraView('VR_FIRST_PERSON');
 
       sendTelemetryPing({
@@ -2029,12 +2031,13 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
-      {/* Three.js 3D Cleanroom Canvas */}
-      <div
-        ref={canvasMountRef}
-        className="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"
-      />
+    <ErrorBoundary>
+      <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans select-none">
+        {/* Three.js 3D Cleanroom Canvas */}
+        <div
+          ref={canvasMountRef}
+          className="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"
+        />
 
       {/* Title Screen */}
       {gameState === 'TITLE' && (
@@ -2224,5 +2227,6 @@ export default function App() {
         />
       )}
     </div>
+    </ErrorBoundary>
   );
 }

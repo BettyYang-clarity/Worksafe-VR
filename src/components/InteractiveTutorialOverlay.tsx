@@ -158,7 +158,7 @@ export const InteractiveTutorialOverlay: React.FC<InteractiveTutorialOverlayProp
                     </span>
                   ) : (
                     <span className="text-amber-300">
-                      📍 {isZh ? `距離: ${distanceToBay101.toFixed(1)}m` : `Dist: ${distanceToBay101.toFixed(1)}m`}
+                      📍 {isZh ? `距離: ${(distanceToBay101 ?? 14.5).toFixed(1)}m` : `Dist: ${(distanceToBay101 ?? 14.5).toFixed(1)}m`}
                     </span>
                   )}
                 </div>
