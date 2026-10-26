@@ -1795,6 +1795,9 @@ export class FabScene {
         }
         this.autoWalkTargetPos = null;
         this.autoWalkSector = null;
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(15);
+        }
         if (this.viewMode === 'VR_FIRST_PERSON') {
           this.updateVrLookAt();
         }

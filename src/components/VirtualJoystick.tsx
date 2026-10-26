@@ -37,6 +37,9 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
       const touch = e.changedTouches[0];
       touchIdRef.current = touch.identifier;
       setIsActive(true);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10);
+      }
 
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -123,35 +126,14 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
 
   return (
     <div
-      className="fixed bottom-14 left-3 z-[60] pointer-events-auto block lg:hidden select-none"
+      className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-[60] pointer-events-auto block lg:hidden select-none"
       style={{ touchAction: 'none' }}
     >
-      {/* Quick Bay Hop Bar right above joystick */}
-      {onWalkToSector && (
-        <div className="flex items-center gap-1 mb-2 bg-slate-950/90 border border-slate-700/80 rounded-full px-2 py-1 shadow-2xl backdrop-blur-md">
-          <Footprints className="w-3 h-3 text-cyan-400 shrink-0" />
-          <span className="text-[9px] font-mono font-bold text-slate-400 shrink-0">走往:</span>
-          {BAYS.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => onWalkToSector(b.id)}
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all ${
-                currentSectorId === b.id
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/50'
-                  : 'bg-slate-800 text-slate-300 hover:text-white'
-              }`}
-            >
-              {b.code}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Virtual Joystick Disc */}
+      {/* Virtual Joystick Disc (Lowered to bottom edge for thumb ergonomics) */}
       <div
         ref={containerRef}
         onTouchStart={handleTouchStart}
-        className={`relative w-22 h-22 rounded-full bg-slate-950/80 border-2 border-emerald-400/60 backdrop-blur-lg shadow-2xl flex items-center justify-center transition-transform active:scale-95 ${
+        className={`relative w-20 h-20 rounded-full bg-slate-950/85 border-2 border-emerald-400/60 backdrop-blur-lg shadow-2xl flex items-center justify-center transition-transform active:scale-95 ${
           isActive ? 'ring-2 ring-emerald-400/80 border-emerald-300' : ''
         }`}
       >
@@ -161,17 +143,14 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
 
         {/* Center Thumb Knob */}
         <div
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 border border-emerald-200/90 shadow-lg shadow-emerald-500/60 flex items-center justify-center pointer-events-none"
+          className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 border border-emerald-200/90 shadow-lg shadow-emerald-500/60 flex items-center justify-center pointer-events-none"
           style={{
             transform: `translate(${knobPos.x}px, ${knobPos.y}px)`,
             transition: isActive ? 'none' : 'transform 0.15s ease-out',
           }}
         >
-          <div className="w-3 h-3 rounded-full bg-white/90" />
+          <div className="w-2.5 h-2.5 rounded-full bg-white/90" />
         </div>
-      </div>
-      <div className="text-[9px] font-mono text-center text-emerald-400/90 mt-1 pointer-events-none font-bold drop-shadow">
-        🕹️ 走動搖桿
       </div>
     </div>
   );

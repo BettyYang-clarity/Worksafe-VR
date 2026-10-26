@@ -247,8 +247,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               onWalkToSector(ind.sectorId);
             }}
             style={{
-              left: `${ind.xPct}%`,
-              top: `${ind.yPct}%`,
+              left: `${Math.max(16, Math.min(84, ind.xPct))}%`,
+              top: `${Math.max(12, Math.min(80, ind.yPct))}%`,
               transform: 'translate(-50%, -50%)',
             }}
             className={`pointer-events-auto fixed z-30 px-2.5 py-1.5 rounded-full border-2 font-mono text-[11px] font-bold flex items-center space-x-1.5 shadow-2xl transition-transform hover:scale-110 cursor-pointer ${
@@ -327,6 +327,118 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               {isMobileMenuOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
             </button>
           </div>
+        </div>
+
+        {/* Mobile Live Guidance Strip (< md) - Restores "提示去哪個機台" */}
+        <div className="block md:hidden w-full font-mono text-xs">
+          {activeHazard ? (
+            <div className="flex items-center justify-between px-2.5 py-1 rounded-xl bg-rose-950/95 border border-rose-500/80 shadow-lg text-[11px] animate-pulse">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <Flame className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="font-bold text-rose-200 truncate">
+                  {isZh
+                    ? `🚨 突發危機！前往 ${INITIAL_SECTORS[activeHazard.sectorId].code.split('/')[0]} 排障 (${hazardBayDist.toFixed(1)}m)`
+                    : `🚨 Crisis: Bay ${activeHazard.sectorId}!`}
+                </span>
+              </div>
+              {!isHazardBayOnSite && (
+                <button
+                  onClick={() => {
+                    onSelectSector(activeHazard.sectorId);
+                    onWalkToSector(activeHazard.sectorId);
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-slate-950 text-[10px] font-bold shrink-0 ml-1.5 flex items-center gap-0.5 cursor-pointer shadow active:scale-95"
+                >
+                  <Footprints className="w-2.5 h-2.5" />
+                  <span>{isZh ? '飛奔前往' : 'Walk'}</span>
+                </button>
+              )}
+            </div>
+          ) : activePreAlarm ? (
+            <div className="flex items-center justify-between px-2.5 py-1 rounded-xl bg-amber-950/95 border border-amber-400/80 shadow-lg text-[11px] animate-pulse">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="font-bold text-amber-200 truncate">
+                  {isZh
+                    ? `⚠️ ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} 設備警報 (${preAlarmBayDist.toFixed(1)}m)`
+                    : `⚠️ Alarm at Bay (${preAlarmBayDist.toFixed(1)}m)`}
+                </span>
+              </div>
+              {!isPreAlarmBayOnSite && (
+                <button
+                  onClick={() => {
+                    onSelectSector(activePreAlarm.sectorId);
+                    onWalkToSector(activePreAlarm.sectorId);
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold shrink-0 ml-1.5 flex items-center gap-0.5 cursor-pointer shadow active:scale-95"
+                >
+                  <Footprints className="w-2.5 h-2.5" />
+                  <span>{isZh ? '走往機台' : 'Walk'}</span>
+                </button>
+              )}
+            </div>
+          ) : lotMission ? (
+            <div className="flex items-center justify-between px-2.5 py-1 rounded-xl bg-cyan-950/90 border border-cyan-500/60 shadow-lg text-[11px]">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="font-bold text-cyan-200 truncate">
+                  {isZh
+                    ? `🎯 巡廠目標：${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]} (${(bayDistances[lotMission.targetSectorId] ?? 10).toFixed(0)}m)`
+                    : `Goal: ${lotMission.targetSectorId}`}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1 shrink-0 ml-1.5">
+                {(bayDistances[lotMission.targetSectorId] ?? 10) <= ON_SITE_DISTANCE_THRESHOLD_M ? (
+                  <button
+                    onClick={() => setIsMobileTuningOpen(true)}
+                    className="px-2 py-0.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-bold flex items-center gap-1 cursor-pointer active:scale-95 shadow"
+                  >
+                    <Sliders className="w-2.5 h-2.5" />
+                    <span>{isZh ? '現場調配方' : 'Tune'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onSelectSector(lotMission.targetSectorId);
+                      onWalkToSector(lotMission.targetSectorId);
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold flex items-center gap-0.5 cursor-pointer active:scale-95 shadow"
+                  >
+                    <Footprints className="w-2.5 h-2.5" />
+                    <span>{isZh ? '前往機台' : 'Walk'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Normal patrol */
+            <div className="flex items-center justify-between px-2.5 py-1 rounded-xl bg-slate-950/90 border border-slate-700/70 shadow-lg text-[11px]">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <span className="text-slate-300 font-bold">
+                  {isSelectedBayOnSite
+                    ? isZh ? `📍 站在 ${selectedSector.nameZh.substring(5, 7)} 機台現場` : `📍 At ${selectedSector.id}`
+                    : isZh ? `📡 遠端監控：${selectedSector.nameZh.substring(5, 7)}` : `📡 Remote ${selectedSector.id}`}
+                </span>
+              </div>
+              {isSelectedBayOnSite ? (
+                <button
+                  onClick={() => setIsMobileTuningOpen(true)}
+                  className="px-2 py-0.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer active:scale-95 shadow"
+                >
+                  <Sliders className="w-2.5 h-2.5" />
+                  <span>{isZh ? '調校機台' : 'Tune'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onWalkToSector(selectedSectorId)}
+                  className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-[10px] font-bold shrink-0 flex items-center gap-0.5 cursor-pointer active:scale-95"
+                >
+                  <Footprints className="w-2.5 h-2.5" />
+                  <span>{isZh ? `走往 (${selectedBayDist.toFixed(0)}m)` : 'Walk'}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Mobile Dropdown Menu Drawer */}
@@ -423,6 +535,23 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 className="py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-bold flex items-center justify-center space-x-1 cursor-pointer"
               >
                 {isMuted ? <VolumeX className="w-3 h-3 text-rose-400" /> : <Volume2 className="w-3 h-3 text-cyan-400" />}
+              </button>
+            </div>
+
+            {/* Fullscreen Mode Toggle Button */}
+            <div className="pt-1 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen?.().catch(() => {});
+                  } else {
+                    document.exitFullscreen?.().catch(() => {});
+                  }
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300 text-[10px] font-bold flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
+              >
+                <span>⛶ {isZh ? '切換全螢幕沉浸模式' : 'Toggle Fullscreen Mode'}</span>
               </button>
             </div>
           </div>
@@ -729,7 +858,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 3. AMBER EQUIPMENT DIAGNOSTIC & TROUBLESHOOTING CARD */}
       {/* ==================================================== */}
       {activePreAlarm && !activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[58vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto overscroll-contain pr-1">
+        <>
+        <div className="hidden md:block mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in md:max-h-[calc(100dvh-70px)] overflow-y-auto overscroll-contain pr-1">
           <div className="rounded-2xl border-2 border-amber-400/90 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 pb-2">
               <div className="flex items-center space-x-2">
@@ -903,13 +1033,123 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
           </div>
         </div>
-      )}
 
-      {/* ==================================================== */}
-      {/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
+          {/* Mobile Bottom Sheet Drawer (block md:hidden) - Zero Occlusion for Cleanroom 3D View */}
+          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 max-h-[42vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+            <div className="w-10 h-1 bg-amber-400/50 rounded-full mx-auto mb-1.5 shrink-0" />
+            <div className="flex items-center justify-between gap-1.5 border-b border-amber-500/30 pb-1.5 shrink-0">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <Cpu className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
+                <span className="font-bold text-white text-[12px] truncate">
+                  {isZh ? activePreAlarm.titleZh : activePreAlarm.title}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1.5 shrink-0 font-mono">
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                    isPreAlarmBayOnSite
+                      ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                      : 'bg-slate-900 border-amber-400/60 text-amber-200'
+                  }`}
+                >
+                  {isPreAlarmBayOnSite ? (isZh ? '現場' : 'On-Site') : `${preAlarmBayDist.toFixed(1)}m`}
+                </span>
+                <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400 text-amber-200 text-[11px] font-bold tabular-nums">
+                  ⏳ {activePreAlarm.timeRemainingSec}s
+                </span>
+              </div>
+            </div>
+
+            {!isPreAlarmBayOnSite ? (
+              <div className="py-2 space-y-2 shrink-0">
+                <div className="text-[11px] text-slate-300 leading-snug">
+                  <span className="text-amber-400 font-bold">📊 異常線索：</span>
+                  <span>{(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms)[0]}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectSector(activePreAlarm.sectorId);
+                    onWalkToSector(activePreAlarm.sectorId);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-amber-500/25 active:scale-95 cursor-pointer"
+                >
+                  <Footprints className="w-4 h-4" />
+                  <span>
+                    {isAutoWalking && walkingTargetSector === activePreAlarm.sectorId
+                      ? isZh
+                        ? `🏃 走往 ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} 中 (${preAlarmBayDist.toFixed(1)}m)...`
+                        : `🏃 Walking to Bay (${preAlarmBayDist.toFixed(1)}m)...`
+                      : isZh
+                      ? `🏃 走往 ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} (<5.5m) 解鎖排障選項`
+                      : `🏃 Walk to ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} (<5.5m)`}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0 flex flex-col pt-1.5">
+                {(difficultyMode === 'ASSISTED' || isTutorialActive) && activePreAlarm.howToPreventZh ? (
+                  <div className="mb-1.5 p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-[11px] flex items-center space-x-1.5 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">
+                      {isZh ? `💡 ${activePreAlarm.howToPreventZh}` : `💡 ${activePreAlarm.howToPrevent}`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mb-1 text-[10px] text-amber-300/90 truncate shrink-0">
+                    📊 線索：{(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).join(' | ')}
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 overscroll-contain">
+                  {activePreAlarm.troubleshootingOptions.map((opt, idx) => (
+                    <button
+                      key={opt.id || idx}
+                      onClick={() => onPreventPreAlarm(activePreAlarm.sectorId, opt)}
+                      className="w-full p-2 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-1.5 mb-0.5">
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {isZh ? `方案 ${idx + 1}` : `Opt ${idx + 1}`}
+                          </span>
+                          {(difficultyMode === 'ASSISTED' || isTutorialActive) && (
+                            <span
+                              className={`px-1 py-0.2 rounded text-[9px] font-bold border ${
+                                opt.outcomeType === 'SOLVE'
+                                  ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                                  : opt.outcomeType === 'PARTIAL'
+                                  ? 'bg-amber-950/80 border-amber-400 text-amber-300'
+                                  : 'bg-rose-950/80 border-rose-400 text-rose-300'
+                              }`}
+                            >
+                              {opt.outcomeType === 'SOLVE'
+                                ? (isZh ? '推薦' : 'Best')
+                                : opt.outcomeType === 'PARTIAL'
+                                ? (isZh ? '治標' : 'Partial')
+                                : (isZh ? '誤判' : 'Risk')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-bold text-white line-clamp-2 leading-snug">
+                          🔧 {isZh ? opt.labelZh : opt.label}
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-amber-400 shrink-0 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-400/30">
+                        {isZh ? '選擇' : 'Pick'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+        </>
+      )}{/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
       {/* ==================================================== */}
       {activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[58vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto overscroll-contain pr-1">
+        <>
+        <div className="hidden md:block mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in md:max-h-[calc(100dvh-70px)] overflow-y-auto overscroll-contain pr-1">
           <div className="rounded-2xl border-2 border-rose-500/95 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             {/* Header with Level Tier, Mute Siren & Comfortable 60s Timer */}
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1193,10 +1433,166 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             )}
           </div>
         </div>
-      )}
 
-      {/* ==================================================== */}
-      {/* 5. 4-PILLAR CONSEQUENCE & LEARNING FEEDBACK TOAST    */}
+          {/* Mobile Bottom Sheet Drawer (block md:hidden) - Unobstructed Cleanroom 3D View */}
+          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 max-h-[44vh] flex flex-col rounded-2xl border-2 border-rose-500 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+            <div className="w-10 h-1 bg-rose-500/50 rounded-full mx-auto mb-1.5 shrink-0" />
+            <div className="flex items-center justify-between gap-1.5 pb-1 shrink-0">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <Flame className="w-4 h-4 text-rose-500 animate-bounce shrink-0" />
+                <span className="font-bold text-rose-300 text-[12px] truncate">
+                  {isZh ? activeHazard.titleZh : activeHazard.title}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1.5 shrink-0 font-mono">
+                {!activeHazard.isSilenced && (
+                  <button
+                    onClick={onSilenceAlarm}
+                    className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/60 text-[10px] text-amber-300 cursor-pointer"
+                  >
+                    🔕
+                  </button>
+                )}
+                <span className="text-[11px] font-bold text-rose-200 bg-rose-950/80 border border-rose-500/50 px-2 py-0.5 rounded-lg tabular-nums">
+                  ⏳ {activeHazard.timeRemainingSec.toFixed(0)}s
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden shrink-0 mb-1.5">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  activeHazard.timeRemainingSec > 20
+                    ? 'bg-emerald-500'
+                    : activeHazard.timeRemainingSec > 10
+                    ? 'bg-amber-500'
+                    : 'bg-rose-500'
+                }`}
+                style={{
+                  width: `${Math.min(
+                    100,
+                    (activeHazard.timeRemainingSec / activeHazard.timeLimitSec) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+
+            {requiredPpeInfo && (
+              <div
+                className={`p-1.5 rounded-lg border flex items-center justify-between gap-1.5 text-[11px] shrink-0 mb-1.5 ${
+                  isRequiredPpeEquipped
+                    ? 'bg-emerald-950/60 border-emerald-400/80 text-emerald-100'
+                    : 'bg-amber-950/80 border-amber-400 text-amber-100 animate-pulse'
+                }`}
+              >
+                <div className="flex items-center space-x-1.5 min-w-0">
+                  {isRequiredPpeEquipped ? (
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  ) : (
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  )}
+                  <span className="font-bold truncate">
+                    {isRequiredPpeEquipped
+                      ? isZh
+                        ? `✅ 已穿戴【${requiredPpeInfo.icon} ${requiredPpeInfo.nameZh.split(' ')[0]}】`
+                        : `✅ [${requiredPpeInfo.icon} ${requiredPpeInfo.nameEn.split(' ')[0]}] Ready`
+                      : isZh
+                      ? `🚨 必備PPE：【${requiredPpeInfo.icon} ${requiredPpeInfo.nameZh.split(' ')[0]}】`
+                      : `🚨 Equip [${requiredPpeInfo.icon} ${requiredPpeInfo.nameEn.split(' ')[0]}]`}
+                  </span>
+                </div>
+                {!isRequiredPpeEquipped && (
+                  <button
+                    onClick={() => onTogglePPE(requiredPpeInfo.key)}
+                    className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-bold text-[10px] shrink-0 cursor-pointer active:scale-95"
+                  >
+                    {isZh ? '立即穿戴' : 'Equip'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!isHazardBayOnSite ? (
+              <div className="py-1 shrink-0">
+                <button
+                  onClick={() => {
+                    onSelectSector(activeHazard.sectorId);
+                    onWalkToSector(activeHazard.sectorId);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-amber-500/30 cursor-pointer active:scale-95"
+                >
+                  <Footprints className="w-4 h-4" />
+                  <span>
+                    {isAutoWalking && walkingTargetSector === activeHazard.sectorId
+                      ? isZh
+                        ? `🏃 正在趕往現場 (${hazardBayDist.toFixed(1)}m)...`
+                        : `🏃 Walking (${hazardBayDist.toFixed(1)}m)...`
+                      : isZh
+                      ? `🏃 趕往現場 ${INITIAL_SECTORS[activeHazard.sectorId].code.split('/')[0]} (${hazardBayDist.toFixed(1)}m)`
+                      : `🏃 Walk to ${INITIAL_SECTORS[activeHazard.sectorId].code.split('/')[0]} (${hazardBayDist.toFixed(1)}m)`}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0 flex flex-col pt-1">
+                <div className="flex items-center justify-between text-[11px] mb-1 shrink-0">
+                  <span className="font-bold text-cyan-300 truncate">
+                    🧠 {isZh ? activeHazard.currentPromptZh : activeHazard.currentPrompt}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-1">
+                    ({activeHazard.currentStageIndex + 1}/{activeHazard.totalStages})
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 overscroll-contain">
+                  {activeHazard.protocolSteps.map((step, idx) => (
+                    <button
+                      key={step.id || idx}
+                      onClick={() => onSelectProtocolStep(step)}
+                      className="w-full p-2 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-cyan-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-1.5 mb-0.5">
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {isZh ? `選項 ${idx + 1}` : `Opt ${idx + 1}`}
+                          </span>
+                          {difficultyMode === 'ASSISTED' && (
+                            <span
+                              className={`px-1 py-0.2 rounded text-[9px] font-bold border ${
+                                step.isCorrect
+                                  ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                                  : step.isFatalError
+                                  ? 'bg-rose-950/80 border-rose-400 text-rose-300'
+                                  : 'bg-amber-950/80 border-amber-400 text-amber-300'
+                              }`}
+                            >
+                              {step.isCorrect
+                                ? (isZh ? 'SOP' : 'SOP')
+                                : step.isFatalError
+                                ? (isZh ? '危險' : 'Danger')
+                                : (isZh ? '非標' : 'Sub')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] font-bold text-white line-clamp-1 leading-snug">
+                          {isZh ? step.labelZh : step.label}
+                        </div>
+                        <div className="text-[10px] text-slate-400 line-clamp-1">
+                          {isZh ? step.descZh : step.description}
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-cyan-400 shrink-0 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-400/30">
+                        {isZh ? '執行' : 'Exec'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+        </>
+      )}{/* 5. 4-PILLAR CONSEQUENCE & LEARNING FEEDBACK TOAST    */}
       {/* ==================================================== */}
       {ehsDecisionFeedback && (
         <>
@@ -1780,21 +2176,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* ==================================================== */}
       {/* 6B. MOBILE COLLAPSIBLE RECIPE DRAWER (配方良率收攏盤) */}
       {/* ==================================================== */}
-      {/* 1. Collapsed Pill (Always Visible at Bottom-Right, Zero Occlusion) */}
-      {!isMobileTuningOpen && (
-        <button
-          onClick={() => setIsMobileTuningOpen(true)}
-          className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-2 sm:right-3 z-40 block md:hidden flex items-center space-x-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-bold text-xs shadow-2xl shadow-amber-500/50 border-2 border-amber-300 hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto"
-        >
-          <Sliders className="w-3.5 h-3.5 text-slate-950" />
-          <span className="font-extrabold">{isZh ? '配方良率調盤' : 'Recipe Tuning'}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-950/20 font-mono font-bold">
-            {selectedSector.rfPowerWatts}W
-          </span>
-          <ChevronUp className="w-3.5 h-3.5 text-slate-950" />
-        </button>
-      )}
-
+      {/* (Persistent collapsed pill removed per mobile UX: triggered via live prompt when on-site) */}
       {/* 2. Expanded Bottom Sheet Drawer (Full Thumb Controls) */}
       {isMobileTuningOpen && (
         <div className="fixed inset-x-2 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 block md:hidden max-w-lg mx-auto rounded-3xl bg-slate-950/98 border-2 border-amber-400 shadow-2xl backdrop-blur-2xl p-3.5 space-y-2.5 animate-fade-in font-mono text-xs pointer-events-auto max-h-[70vh] overflow-y-auto">

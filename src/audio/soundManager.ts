@@ -256,6 +256,9 @@ class SoundManager {
    * Sound effect: Success chime for correct protocol step
    */
   public playSuccessChime() {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([30, 40, 30]);
+    }
     if (this.isMuted) return;
     try {
       this.initContext();
@@ -283,6 +286,9 @@ class SoundManager {
    * Sound effect: Error buzzer for wrong protocol selection
    */
   public playErrorBuzzer() {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([60, 40, 60]);
+    }
     if (this.isMuted) return;
     try {
       this.initContext();
