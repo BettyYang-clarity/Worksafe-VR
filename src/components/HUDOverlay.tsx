@@ -171,12 +171,12 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   const isMobileTuningOpen = externalIsMobileTuningOpen ?? internalIsMobileTuningOpen;
   const setIsMobileTuningOpen = onToggleMobileTuning ?? setInternalIsMobileTuningOpen;
 
-  // Auto-dismiss feedback toast after 1.8s per user feedback
+  // Auto-dismiss feedback toast after 2.0s per user feedback (both mobile & desktop)
   useEffect(() => {
     if (ehsDecisionFeedback) {
       const timer = setTimeout(() => {
         onDismissFeedback();
-      }, 1800);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [ehsDecisionFeedback, onDismissFeedback]);
@@ -287,13 +287,13 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* ==================================================== */}
       <div className="w-full pointer-events-auto space-y-1.5">
         {/* Mobile Compact Top Bar (Single-row, ~34px, block md:hidden) */}
-        {/* Mobile Top Status Bar (< md) - Clean, Proportional, Zero-Overlap */}
+        {/* Mobile Top Status Bar (< md) - Space-Optimized with Name, Yield, Money & Time */}
         <div className="flex md:hidden items-center justify-between px-2 py-1 rounded-xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-lg text-xs font-mono">
-          {/* Left: Player + Yield & Wafers */}
+          {/* Left: Player Name (More space) + Yield & Wafers */}
           <div className="flex items-center space-x-1 min-w-0">
             <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-cyan-950/90 border border-cyan-500/50 text-[10px] text-cyan-300 font-bold shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="truncate max-w-[65px]">{playerName?.split(' ')[0] || 'Alex'}</span>
+              <span className="truncate max-w-[90px] sm:max-w-[120px]">{playerName || 'Alex Chen'}</span>
             </div>
             <div className="flex items-center space-x-0.5 text-[10px] font-bold shrink-0">
               <span
@@ -312,8 +312,11 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             </div>
           </div>
 
-          {/* Right: Timer, EHS Safety, Menu Toggle */}
+          {/* Right: Money Saved, Timer, EHS Safety, Menu Toggle */}
           <div className="flex items-center space-x-1 shrink-0">
+            <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-emerald-400 tabular-nums">
+              💰${fabValueSavedMillionsUSD.toFixed(1)}M
+            </div>
             <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-amber-300 tabular-nums">
               ⏳ {formatTime(shiftTimeRemainingSec)}
             </div>
@@ -330,18 +333,6 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 🛡️ {safetyScore}%
               </span>
             </div>
-            <button
-              onClick={() => setIsMobileTuningOpen(!isMobileTuningOpen)}
-              className={`p-1 px-1.5 rounded-lg border text-[10px] font-bold flex items-center gap-0.5 cursor-pointer active:scale-95 ${
-                isMobileTuningOpen
-                  ? 'bg-amber-500/30 border-amber-400 text-amber-200'
-                  : 'bg-slate-800 border-slate-700 text-amber-300 hover:text-white'
-              }`}
-              title="Recipe Tuning & Yield"
-            >
-              <Sliders className="w-3 h-3" />
-              <span>{isZh ? '配方' : 'Tune'}</span>
-            </button>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-1 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 hover:text-white cursor-pointer active:scale-95 ml-0.5"
@@ -1083,8 +1074,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
           </div>
         </div>
 
-          {/* Mobile Bottom Sheet Drawer (block md:hidden) - Visible whenever Pre-Alarm is active */}
-          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[80] max-h-[38vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+          {/* Mobile Bottom Sheet Drawer (block md:hidden) - ONLY show when on-site (<5.5m) to ensure zero overlap with joystick while walking (Item 2) */}
+          {isPreAlarmBayOnSite && (
+            <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[80] max-h-[38vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
             <div className="w-10 h-1 bg-amber-400/50 rounded-full mx-auto mb-1 shrink-0" />
             
             {/* Sticky Header: Title + Timer + Distance/On-Site Badge (~36px) */}
@@ -1212,6 +1204,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               )}
             </div>
           </div>
+          )}
         </>
       )}
 

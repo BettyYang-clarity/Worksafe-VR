@@ -243,6 +243,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         </div>
 
+        {/* Mobile Experience Tips Pill */}
+        <div className="mb-4 max-w-md p-2.5 rounded-xl border border-cyan-500/40 bg-slate-900/80 text-[11px] text-slate-300 space-y-1">
+          <div className="flex items-center space-x-1.5 text-cyan-300 font-bold">
+            <Volume2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span>{isZh ? '手機遊玩建議：開啟聲音 & 直式遊玩' : 'Mobile Tips: Sound & Portrait'}</span>
+          </div>
+          <div className="text-[10.5px] text-slate-300 leading-snug">
+            {isZh
+              ? '💡 建議直式遊玩；iPhone 請確認左側靜音開關已切至響鈴模式，即可聽見完整無塵室音效與警報！'
+              : '💡 Play in portrait; iPhone users please turn off silent mode to enjoy audio!'}
+          </div>
+        </div>
+
         {/* Mode Selection Cards */}
         <div className="space-y-2 mb-4 max-w-2xl">
           <div className="text-[11px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1.5">

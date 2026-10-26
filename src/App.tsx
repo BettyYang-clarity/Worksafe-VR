@@ -343,7 +343,7 @@ export default function App() {
     if (!ehsDecisionFeedback) return;
     const timer = setTimeout(() => {
       setEhsDecisionFeedback(null);
-    }, 1800);
+    }, 2000);
     return () => clearTimeout(timer);
   }, [ehsDecisionFeedback]);
 
@@ -518,6 +518,9 @@ export default function App() {
 
       setActivePreAlarm(null);
       setActiveHazard(newIncident);
+      // Auto-reset equipped PPE for new crisis so player must evaluate and select fresh PPE (Item 5)
+      setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
+      sceneInstanceRef.current?.setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
       setSelectedSectorId(sectorId);
       hazardStartTimeRef.current = Date.now();
       firstActionTimeRef.current = null;
@@ -1093,6 +1096,9 @@ export default function App() {
           setSafetyComplianceScore((prev) => Math.min(100, prev + resolveBonus));
           setActiveHazard(null);
           sceneInstanceRef.current?.setHazardActive(null, false);
+          // Auto-reset equipped PPE back to cleanroom baseline after crisis resolution (Item 5)
+          setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
+          sceneInstanceRef.current?.setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
 
           setSectors((prev) => {
             const next = {
@@ -1259,6 +1265,9 @@ export default function App() {
           setActiveHazard(null);
           soundManager.stopEmergencyAlarm();
           sceneInstanceRef.current?.setHazardActive(null, false);
+          // Auto-reset equipped PPE back to cleanroom baseline after crisis failure (Item 5)
+          setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
+          sceneInstanceRef.current?.setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
 
           setSectors((prev) => {
             const next = {
@@ -1717,6 +1726,9 @@ export default function App() {
           soundManager.playErrorBuzzer();
           soundManager.stopEmergencyAlarm();
           sceneInstanceRef.current?.setHazardActive(null, false);
+          // Auto-reset equipped PPE back to cleanroom baseline after crisis timeout (Item 5)
+          setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
+          sceneInstanceRef.current?.setEquippedPPE({ scba: false, acidSuit: false, hvGloves: false });
 
           const isZh = language === 'zh-TW';
           const record: IncidentRecord = {

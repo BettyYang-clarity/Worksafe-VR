@@ -8,6 +8,8 @@ import {
   ShieldCheck,
   Cpu,
   Sparkles,
+  Volume2,
+  Smartphone,
 } from 'lucide-react';
 import { GameDifficulty } from '../types/game';
 import { Language } from '../i18n/translations';
@@ -187,6 +189,32 @@ export const PreShiftBriefingModal: React.FC<PreShiftBriefingModalProps> = ({
                 ? 'Pro Mode uses pure SEMI S2/OSHA terms with strict timers. Rely on engineering knowledge.'
                 : 'AI Guided Mode offers plain-English terms and real-time hints. Beginners can follow prompts easily.'}
             </span>
+          </div>
+
+          {/* Mobile Experience Tips: Audio & Portrait Orientation (Item 1) */}
+          <div className="p-3 rounded-xl border border-cyan-500/50 bg-gradient-to-r from-cyan-950/70 via-slate-900/90 to-blue-950/70 text-xs text-slate-200 space-y-1.5 shadow-md">
+            <div className="flex items-center space-x-2 text-cyan-300 font-bold text-xs">
+              <Volume2 className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>{isZh ? '📱 手機最佳遊玩體驗指引' : '📱 Mobile Best Experience Guide'}</span>
+            </div>
+            <div className="space-y-1 text-[11px] text-slate-300 font-sans leading-relaxed">
+              <div className="flex items-start gap-1.5">
+                <span className="text-cyan-400 font-bold shrink-0">🔊</span>
+                <span>
+                  {isZh
+                    ? '建議開啟音效以獲得身歷其境的無塵室警報與環境音（iPhone 玩家請確認機身左側「實體靜音開關」已切至響鈴模式、未處於橘色靜音檔）。'
+                    : 'Turn on sound for immersive cleanroom audio & sirens (iPhone users: please switch off the physical mute switch to enable web audio).'}
+                </span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="text-cyan-400 font-bold shrink-0">📱</span>
+                <span>
+                  {isZh
+                    ? '推薦使用直式（Portrait）單手遊玩，視野與下方操作抽屜已全面專屬最佳化，操作最順手流暢。'
+                    : 'Portrait orientation is recommended for optimal mobile one-handed controls and clear field-of-view.'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
