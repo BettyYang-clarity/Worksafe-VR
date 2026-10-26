@@ -329,6 +329,15 @@ export default function App() {
     }, 2400);
   }, []);
 
+  // Auto-dismiss EHS Decision Feedback Toast after 6.5 seconds
+  useEffect(() => {
+    if (!ehsDecisionFeedback) return;
+    const timer = setTimeout(() => {
+      setEhsDecisionFeedback(null);
+    }, 6500);
+    return () => clearTimeout(timer);
+  }, [ehsDecisionFeedback]);
+
   // Decision Timeline Logging
   const addDecisionEvent = useCallback(
     (bayCode: string, description: string, isGoodDecision: boolean, violationStandard?: string) => {
@@ -436,6 +445,9 @@ export default function App() {
       containmentMode?: 'CONTROLLED' | 'MODERATE' | 'UNCONTROLLED'
     ) => {
       if (activeHazard) return;
+      if (!containmentMode) {
+        setEhsDecisionFeedback(null);
+      }
 
       let randDef = HAZARD_DEFINITIONS[0];
       if (specificTypeId) {
@@ -532,6 +544,7 @@ export default function App() {
   const spawnPreAlarm = useCallback(
     (specificTypeId?: string) => {
       if (activeHazard || activePreAlarm) return;
+      setEhsDecisionFeedback(null);
 
       if (hazardDeckRef.current.length === 0) {
         hazardDeckRef.current = shuffleChoices(HAZARD_DEFINITIONS.map((h) => h.typeId));

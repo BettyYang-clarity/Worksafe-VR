@@ -1056,12 +1056,18 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
                 </span>
               </div>
-              <button
-                onClick={onDismissFeedback}
-                className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
-              >
-                ✕
-              </button>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+                  {isZh ? '6秒後自動消失' : 'Auto-closes in 6s'}
+                </span>
+                <button
+                  onClick={onDismissFeedback}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
+                  title={isZh ? '立即關閉' : 'Dismiss'}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <p className="leading-relaxed text-slate-100">
               {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
@@ -1073,6 +1079,18 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <span className="px-1.5 py-0.5 rounded bg-black/30 text-cyan-300">
                 {ehsDecisionFeedback.standard}
               </span>
+            </div>
+            {/* Smooth auto-dismiss timer progress line */}
+            <div className="w-full h-0.5 bg-black/40 rounded-full overflow-hidden mt-1">
+              <div
+                className={`h-full animate-shrink-6s ${
+                  ehsDecisionFeedback.type === 'PREVENTED' ||
+                  ehsDecisionFeedback.type === 'CORRECT_STEP' ||
+                  ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
+                    ? 'bg-emerald-400'
+                    : 'bg-rose-400'
+                }`}
+              />
             </div>
           </div>
         </div>
