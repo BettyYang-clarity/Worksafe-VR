@@ -399,7 +399,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   <span className="font-bold text-cyan-200 truncate">
                     {isZh
                       ? `🎯 巡廠目標：${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]} (${(bayDistances[lotMission.targetSectorId] ?? 10).toFixed(0)}m)`
-                      : `Goal: ${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]}`}
+                      : `🎯 Shift Goal: ${INITIAL_SECTORS[lotMission.targetSectorId].code.split('/')[0]} (${(bayDistances[lotMission.targetSectorId] ?? 10).toFixed(0)}m)`}
                   </span>
                 </div>
                 <div className="flex items-center space-x-1 shrink-0 ml-1.5">
@@ -436,8 +436,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               <div className="flex items-center space-x-1.5 min-w-0">
                 <span className="text-slate-300 font-bold">
                   {isSelectedBayOnSite
-                    ? isZh ? `📍 站在 ${selectedSector.nameZh.substring(5, 7)} 機台現場` : `📍 At ${selectedSector.id}`
-                    : isZh ? `📡 遠端監控：${selectedSector.nameZh.substring(5, 7)}` : `📡 Remote ${selectedSector.id}`}
+                    ? isZh ? `📍 站在 ${selectedSector.nameZh.substring(5, 7)} 機台現場` : `📍 On-Site: ${selectedSector.code.split('/')[0]}`
+                    : isZh ? `📡 遠端監控：${selectedSector.nameZh.substring(5, 7)}` : `📡 Remote: ${selectedSector.code.split('/')[0]}`}
                 </span>
               </div>
               {isSelectedBayOnSite ? (
@@ -454,7 +454,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-[10px] font-bold shrink-0 flex items-center gap-0.5 cursor-pointer active:scale-95"
                 >
                   <Footprints className="w-2.5 h-2.5" />
-                  <span>{isZh ? `走往 (${selectedBayDist.toFixed(0)}m)` : 'Walk'}</span>
+                  <span>{isZh ? `走往 (${selectedBayDist.toFixed(0)}m)` : `Walk (${selectedBayDist.toFixed(0)}m)`}</span>
                 </button>
               )}
             </div>
@@ -1108,8 +1108,8 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               {/* Equipment Incident Cause & Sensor Symptoms */}
               <div className="p-2 rounded-xl bg-slate-900/95 border border-amber-500/40 text-[10.5px] space-y-1">
                 <div className="font-bold text-amber-300 flex items-center justify-between">
-                  <span>📊 異常原因與即時感測線索：</span>
-                  <span className="text-[9.5px] text-rose-300">⚠️ 誤判晶圓報廢</span>
+                  <span>{isZh ? '📊 異常原因與即時感測線索：' : '📊 Incident Cause & Live Symptoms:'}</span>
+                  <span className="text-[9.5px] text-rose-300">{isZh ? '⚠️ 誤判晶圓報廢' : '⚠️ Misdiagnosis Scraps Wafers'}</span>
                 </div>
                 <div className="space-y-0.5 text-slate-200 font-mono">
                   {(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).map((s, idx) => (
@@ -1120,7 +1120,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   ))}
                 </div>
                 <div className="pt-0.5 border-t border-slate-800 text-[10px] text-cyan-300 flex items-center justify-between">
-                  <span>🔬 晶圓缺陷圖譜：{isZh ? activePreAlarm.waferDefectPatternZh : activePreAlarm.waferDefectPattern}</span>
+                  <span>🔬 {isZh ? `晶圓缺陷圖譜：${activePreAlarm.waferDefectPatternZh}` : `Defect Pattern: ${activePreAlarm.waferDefectPattern}`}</span>
                 </div>
               </div>
 
@@ -1585,7 +1585,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 {/* Incident Description / Root Cause */}
                 <div className="p-2 rounded-xl bg-rose-950/40 border border-rose-500/50 text-[10.5px] space-y-0.5">
                   <div className="font-bold text-rose-300 flex items-center justify-between">
-                    <span>🚨 現場事故原因：</span>
+                    <span>{isZh ? '🚨 現場事故原因：' : '🚨 Incident Cause:'}</span>
                     <span className="text-[9.5px] text-amber-300">{activeHazard.regulatoryStandard}</span>
                   </div>
                   <p className="text-slate-200 leading-snug">
@@ -2323,7 +2323,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1200 })}
                     className="px-1.5 py-0.5 rounded bg-cyan-900/80 border border-cyan-400 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
                   >
-                    1200W (最佳)
+                    1200W {isZh ? '(最佳)' : '(Best)'}
                   </button>
                   <button
                     onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1600 })}
@@ -2376,7 +2376,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: 45 })}
                     className="px-1.5 py-0.5 rounded bg-cyan-900/80 border border-cyan-400 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
                   >
-                    45 (最佳)
+                    45 {isZh ? '(最佳)' : '(Best)'}
                   </button>
                   <button
                     onClick={() => onTuneSectorParams?.(selectedSectorId, { gasFlowSccm: 80 })}
@@ -2429,7 +2429,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     onClick={() => onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: 15 })}
                     className="px-1.5 py-0.5 rounded bg-cyan-900/80 border border-cyan-400 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
                   >
-                    15 (最佳)
+                    15 {isZh ? '(最佳)' : '(Best)'}
                   </button>
                   <button
                     onClick={() => onTuneSectorParams?.(selectedSectorId, { chamberVacuumTorr: 50 })}
@@ -2471,10 +2471,10 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
             <div className="flex items-center justify-between gap-1.5 text-[10px] pt-1 border-t border-slate-800">
               <div className="flex items-center space-x-1.5">
                 <span className="p-1 px-1.5 rounded-lg bg-slate-900 border border-slate-800 text-emerald-400 font-mono font-bold">
-                  產速: {selectedSector.efficiency}%
+                  {isZh ? '產速: ' : 'Speed: '}{selectedSector.efficiency}%
                 </span>
                 <span className="p-1 px-1.5 rounded-lg bg-slate-900 border border-slate-800 text-cyan-300 font-mono">
-                  溫控: {selectedSector.temperatureC.toFixed(0)}°C
+                  {isZh ? '溫控: ' : 'Temp: '}{selectedSector.temperatureC.toFixed(0)}°C
                 </span>
               </div>
 
@@ -2484,7 +2484,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
                     className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] cursor-pointer active:scale-95"
                   >
-                    ⚡ 接地棒
+                    {isZh ? '⚡ 接地棒' : '⚡ Ground Rod'}
                   </button>
                   <button
                     onClick={() => onHitEmo(selectedSectorId)}

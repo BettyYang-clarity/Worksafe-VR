@@ -1181,7 +1181,12 @@ export default function App() {
         setSafetyComplianceScore((prev) => Math.max(0, prev - (step.isFatalError ? 25 : 12)));
         setFabValueSavedMillionsUSD((v) => Math.max(0, Number((v - lossM * 0.4).toFixed(1))));
         addDecisionEvent(nominal.code, isZh ? (step.labelZh || step.label) : step.label, false, activeHazard.regulatoryStandard);
-        addFloatingDelta(`💥 處置失誤！-$${(fine / 1000).toFixed(0)}k Fine`, 'WAFER_SCRAP');
+        addFloatingDelta(
+          isZh
+            ? `💥 處置失誤！-$${(fine / 1000).toFixed(0)}k 罰鍰`
+            : `💥 Procedure Error! -$${(fine / 1000).toFixed(0)}k Fine`,
+          'WAFER_SCRAP'
+        );
 
         setChoiceOutcomes((prev) => [
           ...prev,
