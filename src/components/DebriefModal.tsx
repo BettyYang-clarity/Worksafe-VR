@@ -532,37 +532,37 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/90 backdrop-blur-md overflow-y-auto animate-fade-in font-sans pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
       <div className="rounded-2xl max-w-4xl w-full max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl border-2 border-cyan-500/40 bg-slate-950 my-auto">
-        {/* Compact Top Header */}
-        <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        {/* Compact Top Header (Responsive, Non-Deforming Survey Button) */}
+        <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/90 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1">
             <div
-              className={`p-2 rounded-xl border ${
+              className={`p-1.5 sm:p-2 rounded-xl border shrink-0 ${
                 isPro
                   ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
                   : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
               }`}
             >
-              <Award className="w-5 h-5" />
+              <Award className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base md:text-lg font-bold font-display text-white">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h2 className="text-sm sm:text-base font-bold font-display text-white leading-tight">
                   {isZh
                     ? isPro
-                      ? '半導體晶圓廠 · SEMI S2 專業工程師實戰認證書'
-                      : '半導體晶圓廠 · 無塵室工安科普體驗榮譽結業卡'
+                      ? '半導體晶圓廠 · SEMI S2 專業認證書'
+                      : '半導體晶圓廠 · 無塵室工安科普結業卡'
                     : isPro
-                    ? 'Semiconductor Fab · SEMI S2 Professional Qualification'
-                    : 'Semiconductor Fab · Cleanroom Safety Explorer Certificate'}
+                    ? 'Semiconductor Fab · SEMI S2 Cert'
+                    : 'Semiconductor Fab · Safety Cert'}
                 </h2>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border shrink-0 ${
                     isPro
                       ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
                       : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                   }`}
                 >
-                  {isPro ? 'PRO AUDIT CARD' : 'AI EXPLORER CARD'}
+                  {isPro ? 'PRO AUDIT' : 'AI EXPLORER'}
                 </span>
               </div>
             </div>
@@ -570,10 +570,10 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
 
           <button
             onClick={() => setIsFeedbackOpen(true)}
-            className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-amber-500/50 bg-amber-950/60 hover:bg-amber-900/70 text-amber-300 text-xs font-bold flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer active:scale-95 shadow"
           >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>{isZh ? '問卷回饋' : 'Feedback'}</span>
+            <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+            <span className="whitespace-nowrap font-bold">{isZh ? '問卷回饋 📝' : 'Feedback 📝'}</span>
           </button>
         </div>
 

@@ -171,6 +171,16 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   const isMobileTuningOpen = externalIsMobileTuningOpen ?? internalIsMobileTuningOpen;
   const setIsMobileTuningOpen = onToggleMobileTuning ?? setInternalIsMobileTuningOpen;
 
+  // Auto-dismiss feedback toast after 3.5s per user feedback
+  useEffect(() => {
+    if (ehsDecisionFeedback) {
+      const timer = setTimeout(() => {
+        onDismissFeedback();
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [ehsDecisionFeedback, onDismissFeedback]);
+
   // Auto-collapse bottom dock on short screens (mobile landscape <= 540px) during incidents
   // On desktop / laptop (where window.innerHeight >= 700px), this NEVER triggers so PC layout is 100% untouched.
   useEffect(() => {
@@ -277,42 +287,37 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* ==================================================== */}
       <div className="w-full pointer-events-auto space-y-1.5">
         {/* Mobile Compact Top Bar (Single-row, ~34px, block md:hidden) */}
-        <div className="flex md:hidden items-center justify-between px-2.5 py-1 rounded-xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-lg text-xs font-mono">
-          {/* Left: Mini Player & Yield */}
-          <div className="flex items-center space-x-1.5 min-w-0">
+        {/* Mobile Top Status Bar (< md) - Clean, Proportional, Zero-Overlap */}
+        <div className="flex md:hidden items-center justify-between px-2 py-1 rounded-xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-lg text-xs font-mono">
+          {/* Left: Player + Yield & Wafers */}
+          <div className="flex items-center space-x-1 min-w-0">
             <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-cyan-950/90 border border-cyan-500/50 text-[10px] text-cyan-300 font-bold shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="truncate max-w-[75px]">{playerName || 'Alex'}</span>
+              <span className="truncate max-w-[65px]">{playerName?.split(' ')[0] || 'Alex'}</span>
             </div>
-            <div className="flex items-center space-x-1 text-[10px] font-bold shrink-0">
-              <span className="text-cyan-400">
-                {isZh ? '良率' : 'Yld'}:{' '}
-                <strong
-                  className={
-                    overallYieldPct >= 90
-                      ? 'text-emerald-400'
-                      : overallYieldPct >= 75
-                      ? 'text-amber-400'
-                      : 'text-rose-400'
-                  }
-                >
-                  {overallYieldPct.toFixed(0)}%
-                </strong>
+            <div className="flex items-center space-x-0.5 text-[10px] font-bold shrink-0">
+              <span
+                className={`px-1 py-0.5 rounded ${
+                  overallYieldPct >= 90
+                    ? 'text-emerald-400'
+                    : overallYieldPct >= 75
+                    ? 'text-amber-400'
+                    : 'text-rose-400'
+                }`}
+              >
+                {overallYieldPct.toFixed(0)}%{isZh ? '良' : 'Y'}
               </span>
-              <span className="text-slate-600">|</span>
-              <span className="text-slate-300">
-                {isZh ? '良品' : 'G'}: <strong className="text-white">{totalWafersProduced}</strong>
-              </span>
+              <span className="text-slate-600">·</span>
+              <span className="text-white px-0.5">{totalWafersProduced}{isZh ? '片' : 'w'}</span>
             </div>
           </div>
 
-          {/* Right: Timer, EHS, Menu Button */}
-          <div className="flex items-center space-x-1.5 shrink-0">
-            <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-white tabular-nums">
-              {formatTime(shiftTimeRemainingSec)}
+          {/* Right: Timer, EHS Safety, Menu Toggle */}
+          <div className="flex items-center space-x-1 shrink-0">
+            <div className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-amber-300 tabular-nums">
+              ⏳ {formatTime(shiftTimeRemainingSec)}
             </div>
-            <div className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]">
-              <span className="text-slate-400 font-bold">{isZh ? '安' : 'E'}:</span>
+            <div className="flex items-center space-x-0.5 px-1 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]">
               <span
                 className={`font-bold ${
                   safetyScore >= 85
@@ -322,12 +327,12 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                     : 'text-rose-400'
                 }`}
               >
-                {safetyScore}%
+                🛡️ {safetyScore}%
               </span>
             </div>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 hover:text-white cursor-pointer active:scale-95"
+              className="p-1 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 hover:text-white cursor-pointer active:scale-95 ml-0.5"
               title="Menu"
             >
               {isMobileMenuOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
@@ -1068,7 +1073,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
 
           {/* Mobile Bottom Sheet Drawer (block md:hidden) - Only show when on-site (<5.5m) to avoid joystick collision while walking */}
           {isPreAlarmBayOnSite && (
-            <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[80] max-h-[52vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+            <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[80] max-h-[38vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
               <div className="w-10 h-1 bg-amber-400/50 rounded-full mx-auto mb-1 shrink-0" />
               
               {/* Sticky Header: Title + Timer + On-Site Badge (~36px) */}
@@ -1462,7 +1467,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
 
           {/* Mobile Bottom Sheet Drawer (block md:hidden) - Only show when on-site (<5.5m) to avoid joystick collision while walking */}
           {isHazardBayOnSite && (
-            <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[90] max-h-[52vh] flex flex-col rounded-2xl border-2 border-rose-500 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+            <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[90] max-h-[38vh] flex flex-col rounded-2xl border-2 border-rose-500 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
               <div className="w-10 h-1 bg-rose-500/50 rounded-full mx-auto mb-1 shrink-0" />
               
               {/* Sticky Header: Title + Timer + Mute (~36px) */}
@@ -1618,84 +1623,50 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* ==================================================== */}
       {ehsDecisionFeedback && (
         <>
-          {/* Mobile Lightweight Toast during active incident (prevents screen overlap) */}
-          {activeHazard ? (
-            <div className="block md:hidden mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in">
-              <div
-                className={`px-3 py-1.5 rounded-xl border flex items-center justify-between text-xs backdrop-blur-md shadow-lg ${
-                  ehsDecisionFeedback.type === 'PREVENTED' ||
-                  ehsDecisionFeedback.type === 'CORRECT_STEP' ||
-                  ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
-                    ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
-                    : 'bg-rose-950/95 border-rose-500 text-rose-100'
-                }`}
-              >
-                <div className="flex items-center space-x-1.5 min-w-0 mr-2">
+          {/* Mobile Top Floating Success / Consequence Toast (Zero Occlusion from joystick, auto-dismiss in 3.5s) */}
+          <div className="block md:hidden fixed top-[86px] inset-x-2.5 z-[95] max-w-lg mx-auto pointer-events-auto animate-slide-down">
+            <div
+              className={`p-2.5 rounded-2xl border-2 shadow-2xl backdrop-blur-xl text-xs space-y-1 ${
+                ehsDecisionFeedback.type === 'PREVENTED' ||
+                ehsDecisionFeedback.type === 'CORRECT_STEP' ||
+                ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
+                  ? 'bg-emerald-950/98 border-emerald-400 text-emerald-100 shadow-emerald-500/30'
+                  : 'bg-rose-950/98 border-rose-500 text-rose-100 shadow-rose-500/30'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 font-bold text-xs min-w-0 mr-1.5">
                   {ehsDecisionFeedback.type === 'WRONG_STEP' ||
                   ehsDecisionFeedback.type === 'FATAL_ERROR' ||
                   ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
-                    <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
                   ) : (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   )}
-                  <span className="font-bold truncate text-[11px]">
+                  <span className="truncate">
                     {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
                   </span>
                 </div>
                 <button
                   onClick={onDismissFeedback}
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-slate-300 shrink-0"
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/40 hover:bg-black/60 text-slate-300 cursor-pointer shrink-0"
                 >
-                  ✕
+                  ✕ {isZh ? '關閉' : 'Close'}
                 </button>
               </div>
-            </div>
-          ) : (
-            /* Mobile Standard Toast when no active crisis */
-            <div className="block md:hidden mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in max-h-[35vh] overflow-y-auto pr-1">
-              <div
-                className={`p-3 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
-                  ehsDecisionFeedback.type === 'PREVENTED' ||
-                  ehsDecisionFeedback.type === 'CORRECT_STEP' ||
-                  ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
-                    ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
-                    : 'bg-rose-950/95 border-rose-500 text-rose-100'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 font-bold text-xs">
-                    {ehsDecisionFeedback.type === 'WRONG_STEP' ||
-                    ehsDecisionFeedback.type === 'FATAL_ERROR' ||
-                    ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
-                      <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    )}
-                    <span>
-                      {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
-                    </span>
-                  </div>
-                  <button
-                    onClick={onDismissFeedback}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <p className="leading-relaxed text-slate-100 text-[11px]">
-                  {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
-                </p>
-                <div className="pt-1 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-amber-200">
-                  <span>
-                    {isZh ? ehsDecisionFeedback.consequenceNoteZh : ehsDecisionFeedback.consequenceNote}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-black/30 text-cyan-300">
-                    {ehsDecisionFeedback.standard}
-                  </span>
-                </div>
+              <p className="leading-snug text-slate-200 text-[10.5px]">
+                {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
+              </p>
+              <div className="pt-0.5 border-t border-white/10 flex items-center justify-between gap-1 text-[9.5px] font-mono text-amber-200">
+                <span className="truncate">
+                  {isZh ? ehsDecisionFeedback.consequenceNoteZh : ehsDecisionFeedback.consequenceNote}
+                </span>
+                <span className="px-1.5 py-0.2 rounded bg-black/40 text-cyan-300 font-bold shrink-0">
+                  {ehsDecisionFeedback.standard}
+                </span>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Desktop Always-Detailed Card (>= md) */}
           <div className="hidden md:block mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in max-h-[calc(100dvh-75px)] overflow-y-auto pr-1">
@@ -2201,7 +2172,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* (Persistent collapsed pill removed per mobile UX: triggered via live prompt when on-site) */}
       {/* 2. Expanded Bottom Sheet Drawer (Crisis Priority: Hidden during active incident or pre-alarm) */}
       {!activeHazard && !activePreAlarm && isMobileTuningOpen && (
-        <div className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[70] block md:hidden max-w-lg mx-auto rounded-3xl bg-slate-950/98 border-2 border-amber-400 shadow-2xl backdrop-blur-2xl p-2.5 space-y-2 animate-fade-in font-mono text-xs pointer-events-auto max-h-[50vh] flex flex-col">
+        <div className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[70] block md:hidden max-w-lg mx-auto rounded-3xl bg-slate-950/98 border-2 border-amber-400 shadow-2xl backdrop-blur-2xl p-2.5 space-y-2 animate-fade-in font-mono text-xs pointer-events-auto max-h-[38vh] flex flex-col">
           {/* Header Row (Sticky) */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 shrink-0">
             <div className="flex items-center space-x-1.5 min-w-0">
