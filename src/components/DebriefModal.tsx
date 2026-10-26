@@ -979,7 +979,8 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
                             </div>
                             {ev.violationStandard && (
                               <div className="text-[11px] text-amber-400 mt-0.5">
-                                Standard: {ev.violationStandard}
+                                {isZh ? '適用規範：' : 'Standard: '}
+                                {ev.violationStandard}
                               </div>
                             )}
                           </div>
@@ -989,7 +990,13 @@ export const DebriefModal: React.FC<DebriefModalProps> = ({
                             ev.isGoodDecision ? 'text-emerald-400' : 'text-rose-400'
                           }`}
                         >
-                          {ev.isGoodDecision ? '✓ SAFE' : '✗ VIOLATION'}
+                          {ev.isGoodDecision
+                            ? isZh
+                              ? '✓ 安全合規'
+                              : '✓ SAFE'
+                            : isZh
+                            ? '✗ 違規處置'
+                            : '✗ VIOLATION'}
                         </span>
                       </div>
                     ))}

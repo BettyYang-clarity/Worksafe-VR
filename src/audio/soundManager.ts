@@ -14,18 +14,63 @@ class SoundManager {
   private alarmLfo: OscillatorNode | null = null;
   private alarmLfoGain: GainNode | null = null;
   private isAlarmPlaying: boolean = false;
+  private hasUnlocked: boolean = false;
 
   constructor() {
     // Lazy initialization on first user interaction
   }
 
-  private initContext() {
+  public initContext(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.ctx = new AudioCtx();
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
     }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    return this.ctx;
+  }
+
+  /**
+   * Unlock Web Audio API on first user interaction (Touch/Click)
+   * Essential for iOS Safari & Mobile WebViews (LINE/FB/Chrome)
+   */
+  public setupTouchUnlock() {
+    if (typeof window === 'undefined') return;
+    const unlock = () => {
+      this.unlockAudio();
+      ['touchstart', 'touchend', 'click', 'pointerdown'].forEach((evt) => {
+        window.removeEventListener(evt, unlock);
+      });
+    };
+    ['touchstart', 'touchend', 'click', 'pointerdown'].forEach((evt) => {
+      window.addEventListener(evt, unlock, { once: true, passive: true });
+    });
+  }
+
+  public unlockAudio() {
+    try {
+      const ctx = this.initContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      if (!this.hasUnlocked) {
+        this.hasUnlocked = true;
+        // Play 1-sample silent buffer to fully warm up audio hardware
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+      }
+    } catch {
+      // Ignore
     }
   }
 
@@ -104,6 +149,13 @@ class SoundManager {
    * High-priority TGMS cleanroom industrial emergency siren
    */
   public startEmergencyAlarm() {
+    // Haptic vibration for mobile devices (Android supported)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate([200, 100, 200, 100, 350]);
+      } catch {}
+    }
+
     if (this.isMuted) return;
     try {
       this.initContext();
@@ -117,21 +169,27 @@ class SoundManager {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
-      osc.type = 'triangle'; // Clean industrial acoustic tone
-      gain.gain.setValueAtTime(0.04, now);
+      // Sharp, cutting industrial tone audible on mobile speakers
+      osc.type = 'sawtooth';
+      gain.gain.setValueAtTime(0.20, now);
 
-      // Modulate frequency between 780Hz and 1040Hz smoothly
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, now);
+
+      // Modulate frequency between 780Hz and 1100Hz smoothly (2.2Hz industrial warble)
       const lfo = this.ctx.createOscillator();
       const lfoGain = this.ctx.createGain();
       lfo.type = 'sine';
-      lfo.frequency.setValueAtTime(2.0, now); // 2 pulses per second
-      lfoGain.gain.setValueAtTime(130, now);
+      lfo.frequency.setValueAtTime(2.2, now);
+      lfoGain.gain.setValueAtTime(160, now);
 
       lfo.connect(lfoGain);
       lfoGain.connect(osc.frequency);
-      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.setValueAtTime(920, now);
 
-      osc.connect(gain);
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(now);
@@ -257,7 +315,9 @@ class SoundManager {
    */
   public playSuccessChime() {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([30, 40, 30]);
+      try {
+        navigator.vibrate([35, 45, 35]);
+      } catch {}
     }
     if (this.isMuted) return;
     try {
@@ -270,12 +330,12 @@ class SoundManager {
         const gain = this.ctx!.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-        gain.gain.setValueAtTime(0.18, now + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+        gain.gain.setValueAtTime(0.32, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.40);
         osc.connect(gain);
         gain.connect(this.ctx!.destination);
         osc.start(now + idx * 0.08);
-        osc.stop(now + idx * 0.08 + 0.35);
+        osc.stop(now + idx * 0.08 + 0.40);
       });
     } catch {
       // Ignore
@@ -287,7 +347,9 @@ class SoundManager {
    */
   public playErrorBuzzer() {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([60, 40, 60]);
+      try {
+        navigator.vibrate([80, 50, 80, 50, 120]);
+      } catch {}
     }
     if (this.isMuted) return;
     try {
@@ -297,14 +359,14 @@ class SoundManager {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(130, now);
+      osc.frequency.setValueAtTime(140, now);
       osc.frequency.setValueAtTime(110, now + 0.12);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.35);
+      osc.stop(now + 0.38);
     } catch {
       // Ignore
     }
@@ -314,6 +376,11 @@ class SoundManager {
    * Sound effect: Subtle UI navigation tick
    */
   public playUiClick() {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(10);
+      } catch {}
+    }
     if (this.isMuted) return;
     try {
       this.initContext();
@@ -322,14 +389,14 @@ class SoundManager {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.exponentialRampToValueAtTime(400, now + 0.03);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      osc.frequency.setValueAtTime(950, now);
+      osc.frequency.exponentialRampToValueAtTime(350, now + 0.05);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.03);
+      osc.stop(now + 0.05);
     } catch {
       // Ignore
     }

@@ -343,7 +343,7 @@ export default function App() {
     if (!ehsDecisionFeedback) return;
     const timer = setTimeout(() => {
       setEhsDecisionFeedback(null);
-    }, 6500);
+    }, 1800);
     return () => clearTimeout(timer);
   }, [ehsDecisionFeedback]);
 
@@ -374,8 +374,9 @@ export default function App() {
     [shiftDurationSec, shiftTimeRemaining]
   );
 
-  // Initialize 3D Canvas
+  // Initialize 3D Canvas & Mobile Audio Unlock
   useEffect(() => {
+    soundManager.setupTouchUnlock();
     if (!canvasMountRef.current) return;
     if (sceneInstanceRef.current) return;
 
@@ -804,7 +805,9 @@ export default function App() {
 
         addDecisionEvent(
           nominal.code,
-          `Phase 1 Root-Cause Contained (${pre.title}): ${chosenOpt.label}`,
+          isZh
+            ? `第一階段根本原因阻斷成功（${pre.titleZh || pre.title}）：${chosenOpt.labelZh || chosenOpt.label}`
+            : `Phase 1 Root-Cause Contained (${pre.title}): ${chosenOpt.label}`,
           true,
           def?.regulatoryStandard || 'SEMI S2'
         );
@@ -932,7 +935,9 @@ export default function App() {
         setSafetyComplianceScore((prev) => Math.max(0, prev - 15));
         addDecisionEvent(
           nominal.code,
-          `Attempted on-site SOP without mandatory PPE (${ppeNameEn})`,
+          isZh
+            ? `未穿戴強制防護裝備（${ppeNameZh}）即進入現場執行 SOP`
+            : `Attempted on-site SOP without mandatory PPE (${ppeNameEn})`,
           false,
           'OSHA 1910.132 (PPE)'
         );
@@ -1014,7 +1019,7 @@ export default function App() {
 
         if (isLastStage) {
           const completionTime = now - hazardStartTimeRef.current;
-          addDecisionEvent(nominal.code, step.label, true);
+          addDecisionEvent(nominal.code, isZh ? (step.labelZh || step.label) : step.label, true);
 
           const savedM = hazardDef.ehsPillars.estimatedLossMillionsUSD;
           setFabValueSavedMillionsUSD((v) => Number((v + savedM).toFixed(1)));
@@ -1114,7 +1119,7 @@ export default function App() {
           sceneInstanceRef.current?.setHazardMitigationProgress(
             getPhase2BaseScale(activeHazard.containmentMode) * (nextStageIdx === 1 ? 0.55 : 0.35)
           );
-          addDecisionEvent(nominal.code, step.label, true);
+          addDecisionEvent(nominal.code, isZh ? (step.labelZh || step.label) : step.label, true);
           addFloatingDelta(
             isZh ? `✓ 第 ${currentStageIndex + 1} 階段抑制成功 (火勢/氣體減半)` : `✓ Stage ${currentStageIndex + 1} Contained (Hazard Reduced 50%)`,
             'COMBO_REFLEX'
@@ -1168,7 +1173,7 @@ export default function App() {
         setAccumulatedFines((prev) => prev + fine);
         setSafetyComplianceScore((prev) => Math.max(0, prev - (step.isFatalError ? 25 : 12)));
         setFabValueSavedMillionsUSD((v) => Math.max(0, Number((v - lossM * 0.4).toFixed(1))));
-        addDecisionEvent(nominal.code, step.label, false, activeHazard.regulatoryStandard);
+        addDecisionEvent(nominal.code, isZh ? (step.labelZh || step.label) : step.label, false, activeHazard.regulatoryStandard);
         addFloatingDelta(`💥 處置失誤！-$${(fine / 1000).toFixed(0)}k Fine`, 'WAFER_SCRAP');
 
         setChoiceOutcomes((prev) => [

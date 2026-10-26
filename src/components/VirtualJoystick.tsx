@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { SectorId } from '../types/game';
 import { Footprints } from 'lucide-react';
+import { soundManager } from '../audio/soundManager';
 
 interface VirtualJoystickProps {
   onMove: (vector: { x: number; y: number }) => void;
@@ -39,6 +40,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
       const touch = e.changedTouches[0];
       touchIdRef.current = touch.identifier;
       setIsActive(true);
+      soundManager.unlockAudio();
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(10);
       }

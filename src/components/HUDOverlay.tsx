@@ -171,12 +171,12 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
   const isMobileTuningOpen = externalIsMobileTuningOpen ?? internalIsMobileTuningOpen;
   const setIsMobileTuningOpen = onToggleMobileTuning ?? setInternalIsMobileTuningOpen;
 
-  // Auto-dismiss feedback toast after 3.5s per user feedback
+  // Auto-dismiss feedback toast after 1.8s per user feedback
   useEffect(() => {
     if (ehsDecisionFeedback) {
       const timer = setTimeout(() => {
         onDismissFeedback();
-      }, 3500);
+      }, 1800);
       return () => clearTimeout(timer);
     }
   }, [ehsDecisionFeedback, onDismissFeedback]);
@@ -330,6 +330,18 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 🛡️ {safetyScore}%
               </span>
             </div>
+            <button
+              onClick={() => setIsMobileTuningOpen(!isMobileTuningOpen)}
+              className={`p-1 px-1.5 rounded-lg border text-[10px] font-bold flex items-center gap-0.5 cursor-pointer active:scale-95 ${
+                isMobileTuningOpen
+                  ? 'bg-amber-500/30 border-amber-400 text-amber-200'
+                  : 'bg-slate-800 border-slate-700 text-amber-300 hover:text-white'
+              }`}
+              title="Recipe Tuning & Yield"
+            >
+              <Sliders className="w-3 h-3" />
+              <span>{isZh ? '配方' : 'Tune'}</span>
+            </button>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-1 rounded-lg bg-slate-800 border border-slate-700 text-cyan-300 hover:text-white cursor-pointer active:scale-95 ml-0.5"
@@ -1071,108 +1083,135 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
           </div>
         </div>
 
-          {/* Mobile Bottom Sheet Drawer (block md:hidden) - Only show when on-site (<5.5m) to avoid joystick collision while walking */}
-          {isPreAlarmBayOnSite && (
-            <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[80] max-h-[38vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
-              <div className="w-10 h-1 bg-amber-400/50 rounded-full mx-auto mb-1 shrink-0" />
-              
-              {/* Sticky Header: Title + Timer + On-Site Badge (~36px) */}
-              <div className="flex items-center justify-between gap-1.5 border-b border-amber-500/30 pb-1.5 shrink-0">
-                <div className="flex items-center space-x-1.5 min-w-0 flex-1">
-                  <Cpu className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
-                  <span className="font-bold text-white text-[12px] leading-snug line-clamp-2">
-                    {isZh ? activePreAlarm.titleZh : activePreAlarm.title}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1.5 shrink-0 font-mono ml-1">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border bg-emerald-950/80 border-emerald-400 text-emerald-300">
-                    {isZh ? '📍 現場' : '📍 On-Site'}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400 text-amber-200 text-[11px] font-bold tabular-nums">
-                    ⏳ {activePreAlarm.timeRemainingSec}s
-                  </span>
-                </div>
+          {/* Mobile Bottom Sheet Drawer (block md:hidden) - Visible whenever Pre-Alarm is active */}
+          <div className="block md:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[80] max-h-[38vh] flex flex-col rounded-2xl border-2 border-amber-400 bg-slate-950/98 p-2.5 shadow-2xl backdrop-blur-xl pointer-events-auto animate-slide-up font-mono text-xs">
+            <div className="w-10 h-1 bg-amber-400/50 rounded-full mx-auto mb-1 shrink-0" />
+            
+            {/* Sticky Header: Title + Timer + Distance/On-Site Badge (~36px) */}
+            <div className="flex items-center justify-between gap-1.5 border-b border-amber-500/30 pb-1.5 shrink-0">
+              <div className="flex items-center space-x-1.5 min-w-0 flex-1">
+                <Cpu className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
+                <span className="font-bold text-white text-[12px] leading-snug line-clamp-2">
+                  {isZh ? activePreAlarm.titleZh : activePreAlarm.title}
+                </span>
               </div>
-
-              {/* UNIFIED SCROLL CONTAINER: Entire body scrolls together smoothly with thumb */}
-              <div className="flex-1 overflow-y-auto overscroll-contain pr-1 py-1 space-y-2">
-                {/* Equipment Incident Cause & Sensor Symptoms */}
-                <div className="p-2 rounded-xl bg-slate-900/95 border border-amber-500/40 text-[10.5px] space-y-1">
-                  <div className="font-bold text-amber-300 flex items-center justify-between">
-                    <span>📊 異常原因與即時感測線索：</span>
-                    <span className="text-[9.5px] text-rose-300">⚠️ 誤判晶圓報廢</span>
-                  </div>
-                  <div className="space-y-0.5 text-slate-200 font-mono">
-                    {(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).map((s, idx) => (
-                      <div key={idx} className="flex items-start gap-1">
-                        <span className="text-amber-400 shrink-0">▸</span>
-                        <span className="leading-tight">{s}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="pt-0.5 border-t border-slate-800 text-[10px] text-cyan-300 flex items-center justify-between">
-                    <span>🔬 晶圓缺陷圖譜：{isZh ? activePreAlarm.waferDefectPatternZh : activePreAlarm.waferDefectPattern}</span>
-                  </div>
-                </div>
-
-                {(difficultyMode === 'ASSISTED' || isTutorialActive) && activePreAlarm.howToPreventZh && (
-                  <div className="p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-[10.5px] flex items-center space-x-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="leading-tight">
-                      {isZh ? `💡 AI建議：${activePreAlarm.howToPreventZh}` : `💡 AI Hint: ${activePreAlarm.howToPrevent}`}
-                    </span>
-                  </div>
-                )}
-
-                {/* 3 Troubleshooting Options with Full Explanations */}
-                <div className="space-y-1.5">
-                  {activePreAlarm.troubleshootingOptions.map((opt, idx) => (
-                    <button
-                      key={opt.id || idx}
-                      onClick={() => onPreventPreAlarm(activePreAlarm.sectorId, opt)}
-                      className="w-full p-2.5 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-1.5 mb-0.5">
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {isZh ? `方案 ${idx + 1}` : `Opt ${idx + 1}`}
-                          </span>
-                          {(difficultyMode === 'ASSISTED' || isTutorialActive) && (
-                            <span
-                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
-                                opt.outcomeType === 'SOLVE'
-                                  ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
-                                  : opt.outcomeType === 'PARTIAL'
-                                  ? 'bg-amber-950/80 border-amber-400 text-amber-300'
-                                  : 'bg-rose-950/80 border-rose-400 text-rose-300'
-                              }`}
-                            >
-                              {opt.outcomeType === 'SOLVE'
-                                ? (isZh ? '推薦' : 'Best')
-                                : opt.outcomeType === 'PARTIAL'
-                                ? (isZh ? '治標' : 'Partial')
-                                : (isZh ? '誤判' : 'Risk')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11.5px] font-bold text-white leading-snug">
-                          🔧 {isZh ? opt.labelZh : opt.label}
-                        </div>
-                        <div className="text-[10px] text-slate-300 mt-0.5 leading-snug font-sans">
-                          {isZh
-                            ? (opt.explanationZh || opt.consequenceSummaryZh)
-                            : (opt.explanation || opt.consequenceSummary)}
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-bold text-amber-400 shrink-0 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-400/30">
-                        {isZh ? '選擇' : 'Pick'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center space-x-1.5 shrink-0 font-mono ml-1">
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                    isPreAlarmBayOnSite
+                      ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                      : 'bg-amber-950/80 border-amber-400/60 text-amber-200'
+                  }`}
+                >
+                  {isPreAlarmBayOnSite ? (isZh ? '📍 現場' : '📍 On-Site') : `${preAlarmBayDist.toFixed(1)}m`}
+                </span>
+                <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-400 text-amber-200 text-[11px] font-bold tabular-nums">
+                  ⏳ {activePreAlarm.timeRemainingSec}s
+                </span>
               </div>
             </div>
-          )}
+
+            {/* UNIFIED SCROLL CONTAINER */}
+            <div className="flex-1 overflow-y-auto overscroll-contain pr-1 py-1 space-y-2">
+              {/* Equipment Incident Cause & Sensor Symptoms */}
+              <div className="p-2 rounded-xl bg-slate-900/95 border border-amber-500/40 text-[10.5px] space-y-1">
+                <div className="font-bold text-amber-300 flex items-center justify-between">
+                  <span>📊 異常原因與即時感測線索：</span>
+                  <span className="text-[9.5px] text-rose-300">⚠️ 誤判晶圓報廢</span>
+                </div>
+                <div className="space-y-0.5 text-slate-200 font-mono">
+                  {(isZh ? activePreAlarm.symptomsZh : activePreAlarm.symptoms).map((s, idx) => (
+                    <div key={idx} className="flex items-start gap-1">
+                      <span className="text-amber-400 shrink-0">▸</span>
+                      <span className="leading-tight">{s}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-0.5 border-t border-slate-800 text-[10px] text-cyan-300 flex items-center justify-between">
+                  <span>🔬 晶圓缺陷圖譜：{isZh ? activePreAlarm.waferDefectPatternZh : activePreAlarm.waferDefectPattern}</span>
+                </div>
+              </div>
+
+              {!isPreAlarmBayOnSite ? (
+                <button
+                  onClick={() => {
+                    onSelectSector(activePreAlarm.sectorId);
+                    onWalkToSector(activePreAlarm.sectorId);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-amber-500/25 active:scale-95 cursor-pointer animate-pulse"
+                >
+                  <Footprints className="w-4 h-4" />
+                  <span>
+                    {isAutoWalking && walkingTargetSector === activePreAlarm.sectorId
+                      ? (isZh
+                          ? `🏃 走往 ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} 中 (${preAlarmBayDist.toFixed(1)}m)...`
+                          : `🏃 Walking to Bay (${preAlarmBayDist.toFixed(1)}m)...`)
+                      : (isZh
+                          ? `🏃 立即前往 ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} 現場 (<5.5m) 排除異常`
+                          : `🏃 Walk to ${INITIAL_SECTORS[activePreAlarm.sectorId].code.split('/')[0]} (<5.5m) to Fix`)}
+                  </span>
+                </button>
+              ) : (
+                <>
+                  {(difficultyMode === 'ASSISTED' || isTutorialActive) && activePreAlarm.howToPreventZh && (
+                    <div className="p-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-[10.5px] flex items-center space-x-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="leading-tight">
+                        {isZh ? `💡 AI建議：${activePreAlarm.howToPreventZh}` : `💡 AI Hint: ${activePreAlarm.howToPrevent}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 3 Troubleshooting Options with Full Explanations */}
+                  <div className="space-y-1.5">
+                    {activePreAlarm.troubleshootingOptions.map((opt, idx) => (
+                      <button
+                        key={opt.id || idx}
+                        onClick={() => onPreventPreAlarm(activePreAlarm.sectorId, opt)}
+                        className="w-full p-2.5 rounded-xl bg-slate-900/95 border border-slate-700 hover:border-amber-400 active:scale-98 text-left transition-all cursor-pointer flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-1.5 mb-0.5">
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {isZh ? `方案 ${idx + 1}` : `Opt ${idx + 1}`}
+                            </span>
+                            {(difficultyMode === 'ASSISTED' || isTutorialActive) && (
+                              <span
+                                className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                                  opt.outcomeType === 'SOLVE'
+                                    ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                                    : opt.outcomeType === 'PARTIAL'
+                                    ? 'bg-amber-950/80 border-amber-400 text-amber-300'
+                                    : 'bg-rose-950/80 border-rose-400 text-rose-300'
+                                }`}
+                              >
+                                {opt.outcomeType === 'SOLVE'
+                                  ? (isZh ? '推薦' : 'Best')
+                                  : opt.outcomeType === 'PARTIAL'
+                                  ? (isZh ? '治標' : 'Partial')
+                                  : (isZh ? '誤判' : 'Risk')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11.5px] font-bold text-white leading-snug">
+                            🔧 {isZh ? opt.labelZh : opt.label}
+                          </div>
+                          <div className="text-[10px] text-slate-300 mt-0.5 leading-snug font-sans">
+                            {isZh
+                              ? (opt.explanationZh || opt.consequenceSummaryZh)
+                              : (opt.explanation || opt.consequenceSummary)}
+                          </div>
+                        </div>
+                        <span className="text-[11px] font-bold text-amber-400 shrink-0 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-400/30">
+                          {isZh ? '選擇' : 'Pick'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </>
       )}
 
@@ -2408,6 +2447,32 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* On-Site Maintenance & Yield Boost Action */}
+            {isSelectedBayOnSite ? (
+              <button
+                onClick={() => {
+                  onPreventPreAlarm(selectedSectorId);
+                  onTriggerPhysicalAction('N2_PURGE', selectedSectorId);
+                }}
+                className="w-full py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer transition-all bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/70 text-emerald-200 active:scale-95 shadow"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>{isZh ? '🔧 現場排障校準 (+1.5% 良率)' : '🔧 On-Site Maintenance (+1.5% Yield)'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => onWalkToSector(selectedSectorId)}
+                className="w-full py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer transition-all bg-cyan-950/80 hover:bg-cyan-900/80 border border-cyan-500/60 text-cyan-200 active:scale-95"
+              >
+                <Footprints className="w-3.5 h-3.5" />
+                <span>
+                  {isZh
+                    ? `🏃 走往 ${selectedSector.code.split('/')[0]} (<5.5m) 現場保養升良率`
+                    : `🏃 Walk to ${selectedSector.code.split('/')[0]} for Maintenance`}
+                </span>
+              </button>
+            )}
 
             {/* Live Yield & Speed Telemetry + Compact On-Site Actions */}
             <div className="flex items-center justify-between gap-1.5 text-[10px] pt-1 border-t border-slate-800">
