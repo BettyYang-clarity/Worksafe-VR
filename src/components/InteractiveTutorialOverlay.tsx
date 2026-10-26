@@ -46,6 +46,104 @@ export const InteractiveTutorialOverlay: React.FC<InteractiveTutorialOverlayProp
 }) => {
   const isZh = language === 'zh-TW';
 
+  // On mobile (< md) during Step 3, collapse tutorial into a slim top banner to leave the amber card 100% visible!
+  if (step === 3 && !isStep3Resolved) {
+    return (
+      <>
+        {/* Mobile Compact Guidance Strip (< md) - Takes only ~34px, 0% occlusion of amber card! */}
+        <div className="fixed inset-x-2 top-11 z-30 pointer-events-auto block md:hidden animate-fade-in font-sans">
+          <div className="px-2.5 py-1.5 rounded-xl border-2 border-emerald-400 bg-slate-950/95 shadow-xl flex items-center justify-between text-xs backdrop-blur-md">
+            <div className="flex items-center space-x-1.5 min-w-0">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+              <span className="text-[11px] font-bold text-emerald-300 truncate">
+                {isZh
+                  ? '實習 3/3：請在下方黃色卡片點選【推薦】排障'
+                  : 'Step 3/3: Tap [Best] fix in amber card below'}
+              </span>
+            </div>
+            <button
+              onClick={onSkip}
+              className="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 text-[10px] font-mono shrink-0 ml-1.5 cursor-pointer"
+            >
+              {isZh ? '跳過' : 'Skip'}
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Standard View (>= md) */}
+        <div className="fixed inset-x-0 top-14 z-30 pointer-events-none hidden md:flex justify-center px-3 animate-fade-in font-sans">
+          <div className="w-full max-w-2xl pointer-events-auto rounded-2xl border-2 border-emerald-400 bg-slate-950/95 shadow-2xl shadow-emerald-950/60 p-4 md:p-5 backdrop-blur-md space-y-3">
+            {/* Header Bar */}
+            <div className="flex items-center justify-between border-b border-emerald-500/30 pb-2.5">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-400/40">
+                  <Sparkles className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-white text-sm">
+                      {isZh ? '🎓 無塵室新人實習引導' : '🎓 Cleanroom Onboarding Tutorial'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 border border-emerald-400 text-emerald-300">
+                      Step 3 / 3
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onSkip}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono flex items-center space-x-1 cursor-pointer"
+              >
+                <span>{isZh ? '跳過教學' : 'Skip'}</span>
+                <FastForward className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Step 3 content */}
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0 mt-0.5">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-rose-200">
+                    {isZh ? '第 3 步：學習機台異常排障' : 'Step 3: Respond to equipment alarms'}
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed font-sans">
+                    {isZh
+                      ? '畫面中央出現了模擬的黃色預警卡片！請依 AI 指引，點選標記【推薦】的正確工程方案。'
+                      : 'A demo amber warning card is active below! Click the fix marked [Recommended] as guided by AI.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/50 flex items-center justify-between text-xs font-mono text-emerald-300">
+                <span className="flex items-center space-x-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                  <span>
+                    {isZh
+                      ? '👇 請在下方黃色卡片中點選：【暫停交接、歸零 Z 軸光學編碼器並清潔安全光柵鏡面】'
+                      : '👇 Click the fix below: [Pause Handoff, Re-Zero Z-Axis Optical Encoder & Wipe Light Curtain]'}
+                  </span>
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 border border-emerald-400 text-emerald-300 font-bold shrink-0">
+                  {isZh ? '推薦' : 'Best'}
+                </span>
+              </div>
+            </div>
+
+            {/* Progress Dots */}
+            <div className="flex items-center justify-center space-x-2 pt-1 border-t border-slate-800/80">
+              <div className="h-1.5 rounded-full w-3 bg-emerald-500/60" />
+              <div className="h-1.5 rounded-full w-3 bg-emerald-500/60" />
+              <div className="h-1.5 rounded-full w-8 bg-emerald-400" />
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="fixed inset-x-0 top-12 md:top-14 z-30 pointer-events-none flex justify-center px-2 sm:px-3 animate-fade-in font-sans">
       <div className="w-full max-w-2xl pointer-events-auto rounded-2xl border-2 border-emerald-400 bg-slate-950/95 shadow-2xl shadow-emerald-950/60 p-3.5 sm:p-4 md:p-5 backdrop-blur-md space-y-3 max-h-[70vh] overflow-y-auto">

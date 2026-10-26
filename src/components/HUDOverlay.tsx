@@ -729,7 +729,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 3. AMBER EQUIPMENT DIAGNOSTIC & TROUBLESHOOTING CARD */}
       {/* ==================================================== */}
       {activePreAlarm && !activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[50vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[58vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto overscroll-contain pr-1">
           <div className="rounded-2xl border-2 border-amber-400/90 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/30 pb-2">
               <div className="flex items-center space-x-2">
@@ -909,7 +909,7 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 4. RED EMERGENCY CRISIS CARD (PPE Crucial Step + SOP)*/}
       {/* ==================================================== */}
       {activeHazard && (
-        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[50vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto pr-1">
+        <div className="mx-auto max-w-3xl w-full pointer-events-auto mt-1 mb-auto animate-fade-in max-h-[58vh] md:max-h-[calc(100dvh-70px)] overflow-y-auto overscroll-contain pr-1">
           <div className="rounded-2xl border-2 border-rose-500/95 bg-slate-950/95 p-3 md:p-4 shadow-2xl backdrop-blur-md space-y-2 md:space-y-2.5">
             {/* Header with Level Tier, Mute Siren & Comfortable 60s Timer */}
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1199,62 +1199,144 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       {/* 5. 4-PILLAR CONSEQUENCE & LEARNING FEEDBACK TOAST    */}
       {/* ==================================================== */}
       {ehsDecisionFeedback && (
-        <div className="mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in max-h-[calc(100dvh-75px)] overflow-y-auto pr-1">
-          <div
-            className={`p-3 md:p-3.5 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
-              ehsDecisionFeedback.type === 'PREVENTED' ||
-              ehsDecisionFeedback.type === 'CORRECT_STEP' ||
-              ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
-                ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
-                : 'bg-rose-950/95 border-rose-500 text-rose-100'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 font-bold text-sm">
-                {ehsDecisionFeedback.type === 'WRONG_STEP' ||
-                ehsDecisionFeedback.type === 'FATAL_ERROR' ||
-                ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
-                  <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                )}
-                <span>
-                  {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
-                </span>
-              </div>
-              <button
-                onClick={onDismissFeedback}
-                className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
-                title={isZh ? '立即關閉' : 'Dismiss'}
-              >
-                ✕
-              </button>
-            </div>
-            <p className="leading-relaxed text-slate-100">
-              {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
-            </p>
-            <div className="pt-1 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-amber-200">
-              <span>
-                {isZh ? ehsDecisionFeedback.consequenceNoteZh : ehsDecisionFeedback.consequenceNote}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-black/30 text-cyan-300">
-                {ehsDecisionFeedback.standard}
-              </span>
-            </div>
-            {/* Smooth auto-dismiss timer progress line */}
-            <div className="w-full h-0.5 bg-black/40 rounded-full overflow-hidden mt-1">
+        <>
+          {/* Mobile Lightweight Toast during active incident (prevents screen overlap) */}
+          {activeHazard ? (
+            <div className="block md:hidden mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in">
               <div
-                className={`h-full animate-shrink-6s ${
+                className={`px-3 py-1.5 rounded-xl border flex items-center justify-between text-xs backdrop-blur-md shadow-lg ${
                   ehsDecisionFeedback.type === 'PREVENTED' ||
                   ehsDecisionFeedback.type === 'CORRECT_STEP' ||
                   ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
-                    ? 'bg-emerald-400'
-                    : 'bg-rose-400'
+                    ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
+                    : 'bg-rose-950/95 border-rose-500 text-rose-100'
                 }`}
-              />
+              >
+                <div className="flex items-center space-x-1.5 min-w-0 mr-2">
+                  {ehsDecisionFeedback.type === 'WRONG_STEP' ||
+                  ehsDecisionFeedback.type === 'FATAL_ERROR' ||
+                  ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
+                    <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  )}
+                  <span className="font-bold truncate text-[11px]">
+                    {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
+                  </span>
+                </div>
+                <button
+                  onClick={onDismissFeedback}
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-slate-300 shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Mobile Standard Toast when no active crisis */
+            <div className="block md:hidden mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in max-h-[35vh] overflow-y-auto pr-1">
+              <div
+                className={`p-3 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
+                  ehsDecisionFeedback.type === 'PREVENTED' ||
+                  ehsDecisionFeedback.type === 'CORRECT_STEP' ||
+                  ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
+                    ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
+                    : 'bg-rose-950/95 border-rose-500 text-rose-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 font-bold text-xs">
+                    {ehsDecisionFeedback.type === 'WRONG_STEP' ||
+                    ehsDecisionFeedback.type === 'FATAL_ERROR' ||
+                    ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
+                      <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    )}
+                    <span>
+                      {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
+                    </span>
+                  </div>
+                  <button
+                    onClick={onDismissFeedback}
+                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="leading-relaxed text-slate-100 text-[11px]">
+                  {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
+                </p>
+                <div className="pt-1 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-amber-200">
+                  <span>
+                    {isZh ? ehsDecisionFeedback.consequenceNoteZh : ehsDecisionFeedback.consequenceNote}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-black/30 text-cyan-300">
+                    {ehsDecisionFeedback.standard}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Always-Detailed Card (>= md) */}
+          <div className="hidden md:block mx-auto max-w-xl w-full pointer-events-auto my-1 animate-fade-in max-h-[calc(100dvh-75px)] overflow-y-auto pr-1">
+            <div
+              className={`p-3 md:p-3.5 rounded-2xl border-2 shadow-2xl backdrop-blur-md text-xs space-y-1.5 ${
+                ehsDecisionFeedback.type === 'PREVENTED' ||
+                ehsDecisionFeedback.type === 'CORRECT_STEP' ||
+                ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
+                  ? 'bg-emerald-950/95 border-emerald-400 text-emerald-100'
+                  : 'bg-rose-950/95 border-rose-500 text-rose-100'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 font-bold text-sm">
+                  {ehsDecisionFeedback.type === 'WRONG_STEP' ||
+                  ehsDecisionFeedback.type === 'FATAL_ERROR' ||
+                  ehsDecisionFeedback.type === 'PPE_VIOLATION' ? (
+                    <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  )}
+                  <span>
+                    {isZh ? ehsDecisionFeedback.titleZh : ehsDecisionFeedback.title}
+                  </span>
+                </div>
+                <button
+                  onClick={onDismissFeedback}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 hover:bg-black/50 text-slate-300 cursor-pointer"
+                  title={isZh ? '立即關閉' : 'Dismiss'}
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="leading-relaxed text-slate-100">
+                {isZh ? ehsDecisionFeedback.explanationZh : ehsDecisionFeedback.explanation}
+              </p>
+              <div className="pt-1 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-amber-200">
+                <span>
+                  {isZh ? ehsDecisionFeedback.consequenceNoteZh : ehsDecisionFeedback.consequenceNote}
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-black/30 text-cyan-300">
+                  {ehsDecisionFeedback.standard}
+                </span>
+              </div>
+              {/* Smooth auto-dismiss timer progress line */}
+              <div className="w-full h-0.5 bg-black/40 rounded-full overflow-hidden mt-1">
+                <div
+                  className={`h-full animate-shrink-6s ${
+                    ehsDecisionFeedback.type === 'PREVENTED' ||
+                    ehsDecisionFeedback.type === 'CORRECT_STEP' ||
+                    ehsDecisionFeedback.type === 'HAZARD_RESOLVED'
+                      ? 'bg-emerald-400'
+                      : 'bg-rose-400'
+                  }`}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ==================================================== */}
@@ -1696,16 +1778,102 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
       </div>
 
       {/* ==================================================== */}
-      {/* 6B. MOBILE ULTRA-COMPACT CONSOLE (< md)              */}
+      {/* 6B. MOBILE COLLAPSIBLE RECIPE DRAWER (配方良率收攏盤) */}
       {/* ==================================================== */}
-      <div className="block md:hidden pointer-events-auto mx-auto w-full font-mono mt-auto z-20 px-1 pb-1">
-        {/* Toggleable Micro Recipe Slider Card (Min Footprint ~70px) */}
-        {isMobileTuningOpen && (
-          <div className="mb-1 p-2 rounded-xl bg-slate-950/95 border border-cyan-500/50 backdrop-blur-md shadow-2xl space-y-1.5 animate-fade-in text-xs">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-cyan-300 font-bold flex items-center gap-1">
-                <Zap className="w-3 h-3 text-amber-400" />
-                <span>{selectedSector.nameZh.substring(0, 8)} RF 射頻功率</span>
+      {/* 1. Collapsed Pill (Always Visible at Bottom-Right, Zero Occlusion) */}
+      {!isMobileTuningOpen && (
+        <button
+          onClick={() => setIsMobileTuningOpen(true)}
+          className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-2 sm:right-3 z-40 block md:hidden flex items-center space-x-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-bold text-xs shadow-2xl shadow-amber-500/50 border-2 border-amber-300 hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto"
+        >
+          <Sliders className="w-3.5 h-3.5 text-slate-950" />
+          <span className="font-extrabold">{isZh ? '配方良率調盤' : 'Recipe Tuning'}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-950/20 font-mono font-bold">
+            {selectedSector.rfPowerWatts}W
+          </span>
+          <ChevronUp className="w-3.5 h-3.5 text-slate-950" />
+        </button>
+      )}
+
+      {/* 2. Expanded Bottom Sheet Drawer (Full Thumb Controls) */}
+      {isMobileTuningOpen && (
+        <div className="fixed inset-x-2 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 block md:hidden max-w-lg mx-auto rounded-3xl bg-slate-950/98 border-2 border-amber-400 shadow-2xl backdrop-blur-2xl p-3.5 space-y-2.5 animate-fade-in font-mono text-xs pointer-events-auto max-h-[70vh] overflow-y-auto">
+          {/* Header Row */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center space-x-2">
+              <Sliders className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-bold text-white">
+                {isZh ? '🎛️ 5大製程配方良率微調盤' : '🎛️ 5-Bay Recipe Tuning Drawer'}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsMobileTuningOpen(false)}
+              className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold flex items-center space-x-1 cursor-pointer active:scale-95"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>{isZh ? '收攏盤' : 'Collapse'}</span>
+            </button>
+          </div>
+
+          {/* 5-Bay Switcher Tabs */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
+            {pipelineOrder.map((sId) => {
+              const s = sectors[sId];
+              if (!s) return null;
+              const isSel = selectedSectorId === sId;
+              const isCris = s.activeHazardId !== null;
+              const isPre = s.preAlarm !== null;
+              const bayDist = bayDistances[sId] ?? 10;
+              const onSite = bayDist <= ON_SITE_DISTANCE_THRESHOLD_M;
+
+              return (
+                <button
+                  key={sId}
+                  onClick={() => onSelectSector(sId)}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold shrink-0 transition-all flex items-center space-x-1 cursor-pointer ${
+                    isSel
+                      ? 'bg-cyan-500/30 border-2 border-cyan-400 text-cyan-200 shadow-md shadow-cyan-500/30'
+                      : isCris
+                      ? 'bg-rose-500/30 border border-rose-500 text-rose-200 animate-pulse'
+                      : isPre
+                      ? 'bg-amber-500/30 border border-amber-400 text-amber-200 animate-pulse'
+                      : 'bg-slate-900 border border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <span>{s.code.split('/')[0].replace('BAY-', 'B')}</span>
+                  <span>{isZh ? s.nameZh.substring(5, 7) : ''}</span>
+                  {onSite && <span className="text-[9px] text-cyan-300">📍</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Bay Telemetry & Proximity */}
+          <div className="flex items-center justify-between text-xs bg-slate-900/90 rounded-xl px-2.5 py-1.5 border border-slate-800">
+            <span className="text-slate-200 font-bold">
+              {selectedSector.nameZh} ({selectedBayDist.toFixed(1)}m)
+            </span>
+            {isSelectedBayOnSite ? (
+              <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+                📍 已在機台現場
+              </span>
+            ) : (
+              <button
+                onClick={() => onWalkToSector(selectedSectorId)}
+                className="px-2 py-0.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[10px] flex items-center gap-1 cursor-pointer active:scale-95 shadow"
+              >
+                <Footprints className="w-3 h-3" />
+                <span>走往機台現場</span>
+              </button>
+            )}
+          </div>
+
+          {/* Slider: RF Power */}
+          <div className="p-2.5 rounded-2xl bg-slate-900/95 border border-slate-800 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-300 font-bold flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isZh ? 'RF 射頻功率 (電漿火力)' : 'RF Power'}</span>
               </span>
               <span
                 className={`font-bold tabular-nums ${
@@ -1715,7 +1883,6 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 {selectedSector.rfPowerWatts} W
               </span>
             </div>
-
             <input
               type="range"
               min="500"
@@ -1727,11 +1894,10 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                   rfPowerWatts: Number(e.target.value),
                 })
               }
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
             />
-
-            <div className="flex items-center justify-between text-[9px] text-slate-400">
-              <span>{isZh ? '安全: 800~1750W' : 'Safe: 800~1750W'}</span>
+            <div className="flex items-center justify-between text-[10px] text-slate-400">
+              <span>{isZh ? '安全區: 800~1750W' : 'Safe: 800~1750W'}</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 800 })}
@@ -1741,9 +1907,9 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
                 </button>
                 <button
                   onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1200 })}
-                  className="px-1.5 py-0.5 rounded bg-cyan-900/70 border border-cyan-500/60 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
+                  className="px-1.5 py-0.5 rounded bg-cyan-900/80 border border-cyan-400 text-cyan-200 font-mono text-[9px] font-bold cursor-pointer"
                 >
-                  1200W (佳)
+                  1200W (最佳良率)
                 </button>
                 <button
                   onClick={() => onTuneSectorParams?.(selectedSectorId, { rfPowerWatts: 1600 })}
@@ -1754,77 +1920,47 @@ export const HUDOverlay: React.FC<HUDOverlayProps> = ({
               </div>
             </div>
           </div>
-        )}
 
-        {/* Mobile Slim Action Dock Bar (~34px) */}
-        <div className="flex items-center justify-between gap-1 px-2 py-1 rounded-xl bg-slate-950/95 border border-slate-700/80 backdrop-blur-md shadow-xl text-xs">
-          {/* Current Bay & Distance */}
-          <div className="flex items-center space-x-1.5 min-w-0">
-            <span className="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/50 text-cyan-200 text-[10px] font-bold shrink-0">
-              {selectedSector.code.split('/')[0].replace('BAY-', 'B')} {isZh ? selectedSector.nameZh.substring(5, 7) : ''}
-            </span>
-
-            {isSelectedBayOnSite ? (
-              <span className="text-[10px] text-emerald-400 font-bold shrink-0">
-                📍 {isZh ? '現場' : 'Here'}
-              </span>
-            ) : (
-              <button
-                onClick={() => onWalkToSector(selectedSectorId)}
-                className="px-1.5 py-0.5 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold shrink-0 flex items-center gap-0.5 cursor-pointer shadow-sm active:scale-95"
-              >
-                <Footprints className="w-2.5 h-2.5" />
-                <span>{isZh ? `走往 ${selectedBayDist.toFixed(0)}m` : `Walk ${selectedBayDist.toFixed(0)}m`}</span>
-              </button>
-            )}
+          {/* Quick Gas & Efficiency Telemetry */}
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+              <span className="text-slate-400">{isZh ? '特氣流量' : 'Gas Flow'}:</span>
+              <span className="font-bold text-cyan-300 font-mono">{selectedSector.gasFlowSccm} sccm</span>
+            </div>
+            <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+              <span className="text-slate-400">{isZh ? '即時產速' : 'Speed'}:</span>
+              <span className="font-bold text-emerald-400 font-mono">產速 {selectedSector.efficiency}%</span>
+            </div>
           </div>
 
-          {/* Crisis PPE Pill if required and missing */}
-          {requiredPpeCode && !isRequiredPpeEquipped && requiredPpeInfo && (
-            <button
-              onClick={() => onTogglePPE(requiredPpeInfo.key)}
-              className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold animate-pulse shrink-0 flex items-center gap-1 shadow-md cursor-pointer"
-            >
-              <span>{requiredPpeInfo.icon}</span>
-              <span>戴上 {isZh ? requiredPpeInfo.nameZh.substring(0, 4) : requiredPpeCode}!</span>
-            </button>
+          {/* On-Site Actions (if within 5.5m) */}
+          {isSelectedBayOnSite && (
+            <div className="flex items-center space-x-2 pt-1 border-t border-slate-800">
+              <button
+                onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
+                className="flex-1 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1 cursor-pointer active:scale-95"
+              >
+                <span>⚡ 接地放電棒</span>
+              </button>
+              <button
+                onClick={() => onHitEmo(selectedSectorId)}
+                className="flex-1 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center space-x-1 cursor-pointer active:scale-95"
+              >
+                <span>🛑 EMO 緊急停機</span>
+              </button>
+            </div>
           )}
 
-          {/* Right Controls: On-Site actions (Ground / EMO) + Slider Drawer Toggle */}
-          <div className="flex items-center space-x-1 shrink-0 ml-auto">
-            {isSelectedBayOnSite && (
-              <>
-                <button
-                  onClick={() => onTriggerPhysicalAction('ARC_SPARKS', selectedSectorId)}
-                  className="px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold shrink-0 cursor-pointer active:scale-95"
-                  title="Grounding Stick"
-                >
-                  ⚡接地
-                </button>
-                <button
-                  onClick={() => onHitEmo(selectedSectorId)}
-                  className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shrink-0 cursor-pointer active:scale-95"
-                  title="EMO"
-                >
-                  🛑EMO
-                </button>
-              </>
-            )}
-
-            <button
-              onClick={() => setIsMobileTuningOpen(!isMobileTuningOpen)}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95 ${
-                isMobileTuningOpen
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/40'
-                  : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700'
-              }`}
-            >
-              <Sliders className="w-3 h-3" />
-              <span>{isMobileTuningOpen ? (isZh ? '收起' : 'Close') : (isZh ? '🎛️ 調桿' : 'Sliders')}</span>
-            </button>
-          </div>
+          {/* Bottom Collapse Button */}
+          <button
+            onClick={() => setIsMobileTuningOpen(false)}
+            className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center space-x-1 cursor-pointer transition-colors active:scale-95"
+          >
+            <ChevronDown className="w-4 h-4" />
+            <span>{isZh ? '▾ 收攏盤，回到 3D 全景巡廠' : '▾ Collapse Drawer'}</span>
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };
